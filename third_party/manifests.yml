@@ -14,7 +14,7 @@ components:
   infra:
     branch: master
     dest_dir: infra
-    revision: 526cf1e27e42c1176bfcd39adb1907f72d7a5870
+    revision: 904f1ed79c7fb2288e609054486c4b0c262531f9
     type: git
 converter: E-1180
 version: '1'
