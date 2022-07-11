@@ -6,7 +6,10 @@
  */
 
 #pragma once
+
 #include <cstdint>
+#include <cstddef>
+
 namespace aub_stream {
 
 struct AllocationParams {
