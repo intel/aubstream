@@ -26,7 +26,7 @@ struct CommandStreamerHelperGen12LP : public Helper {
         stream.writeMMIO(mmioEngine + 0x2550, 1);
     }
 
-    const uint32_t getPollForCompletionMask() const override { return 0x00008000; }
+    uint32_t getPollForCompletionMask() const override { return 0x00008000; }
 
     const MMIOList getEngineMMIO() const override;
 
@@ -44,12 +44,12 @@ struct GpuGen12LP : public Gpu {
 
     const MMIOList getGlobalMMIO() const override {
         const MMIOList globalMMIO = {
-            MMIOPair(0x00002090, 0xffff0000), //CHICKEN_PWR_CTX_RASTER_1
-            MMIOPair(0x000020d8, 0x00020000), //CS_DEBUG_MODE2_RCSUNIT
-            MMIOPair(0x000020e0, 0xffff4000), //FF_SLICE_CS_CHICKEN1_RCSUNIT
-            MMIOPair(0x000020e4, 0xffff0000), //FF_SLICE_CS_CHICKEN2_RCSUNIT
-            MMIOPair(0x000020ec, 0xffff0051), //CS_DEBUG_MODE1
-            MMIOPair(0x00002580, 0xffff0005), //CS_CHICKEN1
+            MMIOPair(0x00002090, 0xffff0000), // CHICKEN_PWR_CTX_RASTER_1
+            MMIOPair(0x000020d8, 0x00020000), // CS_DEBUG_MODE2_RCSUNIT
+            MMIOPair(0x000020e0, 0xffff4000), // FF_SLICE_CS_CHICKEN1_RCSUNIT
+            MMIOPair(0x000020e4, 0xffff0000), // FF_SLICE_CS_CHICKEN2_RCSUNIT
+            MMIOPair(0x000020ec, 0xffff0051), // CS_DEBUG_MODE1
+            MMIOPair(0x00002580, 0xffff0005), // CS_CHICKEN1
 
             // GLOBAL_MOCS
             MMIOPair(0x00004000, 0x00000008),
@@ -151,7 +151,7 @@ struct GpuGen12LP : public Gpu {
             MMIOPair(0x0000B098, 0x00300010),
             MMIOPair(0x0000B09C, 0x00300010),
 
-            //PAT_INDEX
+            // PAT_INDEX
             MMIOPair(0x00004100, 0x0000000),
             MMIOPair(0x00004104, 0x0000000),
             MMIOPair(0x00004108, 0x0000000),
@@ -161,20 +161,20 @@ struct GpuGen12LP : public Gpu {
             MMIOPair(0x00004118, 0x0000000),
             MMIOPair(0x0000411c, 0x0000000),
 
-            MMIOPair(0x00004b80, 0xffff1001), //GACB_PERF_CTRL_REG
-            MMIOPair(0x00007000, 0xffff0000), //CACHE_MODE_0
-            MMIOPair(0x00007004, 0xffff0000), //CACHE_MODE_1
-            MMIOPair(0x00009008, 0x00000200), //IDICR
-            MMIOPair(0x0000900c, 0x00001b40), //SNPCR
-            MMIOPair(0x0000b120, 0x14000002), //LTCDREG
-            MMIOPair(0x0000b134, 0xd0000020), //L3ALLOCREG
-            MMIOPair(0x0000b234, 0xd0000020), //L3ALLOCREG_CCS0
-            MMIOPair(0x0000ce90, 0x00030003), //GFX_MULT_CTXT_CTL
-            MMIOPair(0x0000cf58, 0x80000000), //LMEM_CFG for local memory
-            MMIOPair(0x0000e194, 0xffff0002), //CHICKEN_SAMPLER_2
-            MMIOPair(0x00014800, 0x00010001), //RCU_MODE
-            MMIOPair(0x0001a0d8, 0x00020000), //CS_DEBUG_MODE2_CCSUNIT
-            MMIOPair(0x00042080, 0x00000000), //CHICKEN_MISC_1
+            MMIOPair(0x00004b80, 0xffff1001), // GACB_PERF_CTRL_REG
+            MMIOPair(0x00007000, 0xffff0000), // CACHE_MODE_0
+            MMIOPair(0x00007004, 0xffff0000), // CACHE_MODE_1
+            MMIOPair(0x00009008, 0x00000200), // IDICR
+            MMIOPair(0x0000900c, 0x00001b40), // SNPCR
+            MMIOPair(0x0000b120, 0x14000002), // LTCDREG
+            MMIOPair(0x0000b134, 0xd0000020), // L3ALLOCREG
+            MMIOPair(0x0000b234, 0xd0000020), // L3ALLOCREG_CCS0
+            MMIOPair(0x0000ce90, 0x00030003), // GFX_MULT_CTXT_CTL
+            MMIOPair(0x0000cf58, 0x80000000), // LMEM_CFG for local memory
+            MMIOPair(0x0000e194, 0xffff0002), // CHICKEN_SAMPLER_2
+            MMIOPair(0x00014800, 0x00010001), // RCU_MODE
+            MMIOPair(0x0001a0d8, 0x00020000), // CS_DEBUG_MODE2_CCSUNIT
+            MMIOPair(0x00042080, 0x00000000), // CHICKEN_MISC_1
         };
         return globalMMIO;
     }

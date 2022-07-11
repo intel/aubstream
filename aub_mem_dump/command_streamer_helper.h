@@ -75,12 +75,12 @@ struct CommandStreamerHelper {
 
     uint32_t numNoops0 = 3;
 
-    uint32_t offsetLRI1 = offsetLRI0 + (1 + numRegsLRI0 * 2 + numNoops0) * sizeof(uint32_t); //offsetLRI == 0x21 * sizeof(uint32_t);
+    uint32_t offsetLRI1 = offsetLRI0 + (1 + numRegsLRI0 * 2 + numNoops0) * sizeof(uint32_t); // offsetLRI == 0x21 * sizeof(uint32_t);
     uint32_t numRegsLRI1 = 9;
 
     uint32_t numNoops1 = 13;
 
-    uint32_t offsetLRI2 = offsetLRI1 + (1 + numRegsLRI1 * 2 + numNoops1) * sizeof(uint32_t); //offsetLR2 == 0x41 * sizeof(uint32_t);
+    uint32_t offsetLRI2 = offsetLRI1 + (1 + numRegsLRI1 * 2 + numNoops1) * sizeof(uint32_t); // offsetLR2 == 0x41 * sizeof(uint32_t);
     uint32_t numRegsLRI2 = 1;
 
     uint32_t offsetRingRegisters = offsetLRI0 + (3 * sizeof(uint32_t));
@@ -110,7 +110,7 @@ struct CommandStreamerHelper {
     void setPML(void *pLRCIn, uint64_t address) const;
 
     virtual void submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId) const;
-    virtual const uint32_t getPollForCompletionMask() const { return 0x00000100; }
+    virtual uint32_t getPollForCompletionMask() const { return 0x00000100; }
     void pollForCompletion(AubStream &stream) const;
     void initializeEngineMMIO(AubStream &stream) const;
     virtual const MMIOList getEngineMMIO() const = 0;

@@ -30,8 +30,8 @@ namespace aub_stream {
 extern CommandStreamerHelper &getCommandStreamerHelper(uint32_t gfxFamily, uint32_t device, EngineType engine);
 
 AubManagerImp::AubManagerImp(const Gpu &gpu, const struct AubManagerOptions &options)
-    : gpu(gpu), devicesCount(options.devicesCount), localMemorySupported(options.localMemorySupported), stepping(options.stepping),
-      memoryBankSize(options.memoryBankSize), streamMode(options.mode), gpuAddressSpace(options.gpuAddressSpace), sharedMemoryInfo(options.sharedMemoryInfo),
+    : gpu(gpu), devicesCount(options.devicesCount), memoryBankSize(options.memoryBankSize), localMemorySupported(options.localMemorySupported),
+      streamMode(options.mode), stepping(options.stepping), gpuAddressSpace(options.gpuAddressSpace), sharedMemoryInfo(options.sharedMemoryInfo),
       enableThrow(options.throwOnError) {
     initialize();
 }

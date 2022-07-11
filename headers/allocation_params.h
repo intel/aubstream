@@ -16,11 +16,11 @@ struct AllocationParams {
         additionalParams = {};
     }
     uint64_t gfxAddress = 0;
+    const void *memory = nullptr;
     size_t size = 0;
-    size_t pageSize;
     uint32_t memoryBanks;
     int hint = 0;
-    const void *memory = nullptr;
+    size_t pageSize;
 
     struct AdditionalParams {
         bool compressionEnabled : 1;

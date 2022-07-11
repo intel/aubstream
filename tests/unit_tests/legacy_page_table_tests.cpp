@@ -42,10 +42,6 @@ using PDPLegacyTest = LegacyPageTableParamTest;
 using PDP4LegacyTest = LegacyPageTableParamTest;
 using PTE64KBLegacyTest = LegacyPageTableParamTest;
 
-static uint32_t nonColoredLocalMemoryBanks[] = {
-    MEMORY_BANK_0,
-};
-
 static uint32_t allMemoryBanks[] = {
     MEMORY_BANK_SYSTEM,
     MEMORY_BANK_0,

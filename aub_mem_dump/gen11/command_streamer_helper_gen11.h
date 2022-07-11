@@ -26,7 +26,7 @@ struct CommandStreamerHelperGen11 : public Helper {
         stream.writeMMIO(mmioEngine + 0x2550, 1);
     }
 
-    const uint32_t getPollForCompletionMask() const override { return 0x00008000; }
+    uint32_t getPollForCompletionMask() const override { return 0x00008000; }
 
     const MMIOList getEngineMMIO() const override;
 
@@ -44,7 +44,7 @@ struct GpuGen11 : public Gpu {
 
     const MMIOList getGlobalMMIO() const override {
         const MMIOList globalMMIO = {
-            //GFX_MOCS_0 - GFX_MOCS_11
+            // GFX_MOCS_0 - GFX_MOCS_11
             MMIOPair(0x0000C800, 0x00000009),
             MMIOPair(0x0000C804, 0x00000038),
             MMIOPair(0x0000C808, 0x0000003B),
@@ -58,7 +58,7 @@ struct GpuGen11 : public Gpu {
             MMIOPair(0x0000C828, 0x00000033),
             MMIOPair(0x0000C82C, 0x0000003B),
             MMIOPair(0x0000C8C0, 0x00000037),
-            //SAMPLER_MODE
+            // SAMPLER_MODE
             MMIOPair(0x0000E18C, 0x00200020),
         };
 

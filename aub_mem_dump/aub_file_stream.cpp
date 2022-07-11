@@ -13,7 +13,7 @@
 
 namespace aub_stream {
 
-const size_t g_dwordCountMax = 65536;
+[[maybe_unused]] const size_t g_dwordCountMax = 65536;
 
 AubFileStream::~AubFileStream() {
     if (fileHandle.is_open()) {
@@ -170,7 +170,7 @@ bool AubFileStream::init(int stepping, uint32_t device, GFXCORE_FAMILY gfxCoreFa
 }
 
 void AubFileStream::expectMemoryTable(const void *memory, size_t size, const std::vector<PageInfo> &entries, uint32_t compareOperation) {
-    size_t sizeWritten = 0;
+    [[maybe_unused]] size_t sizeWritten = 0;
     for (auto &entry : entries) {
         CmdServicesMemTraceMemoryCompare cmd = {};
         cmd.setHeader();
@@ -278,7 +278,7 @@ void AubFileStream::writeDiscontiguousPages(const void *memory, size_t size, con
         cmd.dwordCount = 0;
 
         auto index = 0u;
-        size_t writtenSize = 0;
+        [[maybe_unused]] size_t writtenSize = 0;
         auto itorCurrent = writeInfoTable.begin();
         auto itorDumpStart = itorCurrent;
         auto ptrDump = memory;
