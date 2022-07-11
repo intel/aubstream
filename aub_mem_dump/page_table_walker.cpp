@@ -84,7 +84,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
     assert(pageSize > 0);
 
-    PageInfo clonePageInfo = {};
+    PageInfo clonePageInfo;
     uint32_t clonePageInfoIndex = 0;
 
     bool isLocalMemory = memoryBanks != PhysicalAddressAllocator::mainBank;

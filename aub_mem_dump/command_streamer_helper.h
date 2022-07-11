@@ -110,7 +110,7 @@ struct CommandStreamerHelper {
     void setPML(void *pLRCIn, uint64_t address) const;
 
     virtual void submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId) const;
-    virtual uint32_t getPollForCompletionMask() const { return 0x00000100; }
+    virtual const uint32_t getPollForCompletionMask() const { return 0x00000100; }
     void pollForCompletion(AubStream &stream) const;
     void initializeEngineMMIO(AubStream &stream) const;
     virtual const MMIOList getEngineMMIO() const = 0;

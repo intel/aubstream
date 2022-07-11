@@ -26,7 +26,7 @@ struct CommandStreamerHelperGen11 : public Helper {
         stream.writeMMIO(mmioEngine + 0x2550, 1);
     }
 
-    uint32_t getPollForCompletionMask() const override { return 0x00008000; }
+    const uint32_t getPollForCompletionMask() const override { return 0x00008000; }
 
     const MMIOList getEngineMMIO() const override;
 

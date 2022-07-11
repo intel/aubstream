@@ -13,7 +13,7 @@
 
 namespace aub_stream {
 
-[[maybe_unused]] const size_t g_dwordCountMax = 65536;
+const size_t g_dwordCountMax = 65536;
 
 AubFileStream::~AubFileStream() {
     if (fileHandle.is_open()) {
@@ -38,7 +38,7 @@ void AubFileStream::addComment(const char *message) {
     fileHandle.write(message, messageLen);
     auto remainder = messageLen & (sizeof(uint32_t) - 1);
     if (remainder) {
-        //if size is not 4 byte aligned, write extra zeros to AUB
+        // if size is not 4 byte aligned, write extra zeros to AUB
         uint32_t zero = 0;
         fileHandle.write(reinterpret_cast<char *>(&zero), sizeof(uint32_t) - remainder);
     }
@@ -152,8 +152,8 @@ bool AubFileStream::init(int stepping, uint32_t device, GFXCORE_FAMILY gfxCoreFa
     header.metal = 0;
     header.device = device;
     header.csxSwizzling = CmdServicesMemTraceVersion::CsxSwizzlingValues::Disabled;
-    //Which recording method used:
-    // Phys is required for GGTT memory to be written directly to phys vs through aperture.
+    // Which recording method used:
+    //  Phys is required for GGTT memory to be written directly to phys vs through aperture.
     header.recordingMethod = CmdServicesMemTraceVersion::RecordingMethodValues::Phy;
     header.pch = CmdServicesMemTraceVersion::PchValues::Default;
     header.captureTool = CmdServicesMemTraceVersion::CaptureToolValues::AubStream;
@@ -170,7 +170,7 @@ bool AubFileStream::init(int stepping, uint32_t device, GFXCORE_FAMILY gfxCoreFa
 }
 
 void AubFileStream::expectMemoryTable(const void *memory, size_t size, const std::vector<PageInfo> &entries, uint32_t compareOperation) {
-    [[maybe_unused]] size_t sizeWritten = 0;
+    size_t sizeWritten = 0;
     for (auto &entry : entries) {
         CmdServicesMemTraceMemoryCompare cmd = {};
         cmd.setHeader();
@@ -278,7 +278,7 @@ void AubFileStream::writeDiscontiguousPages(const void *memory, size_t size, con
         cmd.dwordCount = 0;
 
         auto index = 0u;
-        [[maybe_unused]] size_t writtenSize = 0;
+        size_t writtenSize = 0;
         auto itorCurrent = writeInfoTable.begin();
         auto itorDumpStart = itorCurrent;
         auto ptrDump = memory;

@@ -19,10 +19,6 @@
 
 #define STR(x) #x
 
-#define DISALLOW_COPY_AND_ASSIGN_(type) \
-    type(type const &) = delete;        \
-    void operator=(type const &) = delete
-
 #define FAMILY_TEST_(test_case_name, test_name, parent_class, parent_id, matcher)              \
     class GTEST_TEST_CLASS_NAME_(test_case_name, test_name) : public parent_class {            \
       public:                                                                                  \
@@ -47,7 +43,7 @@
                 parent_class::TearDown();                                                      \
         }                                                                                      \
         static ::testing::TestInfo *const test_info_ GTEST_ATTRIBUTE_UNUSED_;                  \
-        DISALLOW_COPY_AND_ASSIGN_(                                                             \
+        GTEST_DISALLOW_COPY_AND_ASSIGN_(                                                       \
             GTEST_TEST_CLASS_NAME_(test_case_name, test_name));                                \
     };                                                                                         \
                                                                                                \
@@ -101,7 +97,7 @@
             return 0;                                                                                             \
         }                                                                                                         \
         static int gtest_registering_dummy_;                                                                      \
-        DISALLOW_COPY_AND_ASSIGN_(GTEST_TEST_CLASS_NAME_(test_suite_name, test_name));                            \
+        GTEST_DISALLOW_COPY_AND_ASSIGN_(GTEST_TEST_CLASS_NAME_(test_suite_name, test_name));                      \
     };                                                                                                            \
                                                                                                                   \
     int GTEST_TEST_CLASS_NAME_(test_suite_name, test_name)::gtest_registering_dummy_ =                            \
