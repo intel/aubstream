@@ -62,7 +62,7 @@ struct CommandStreamerHelper {
     int aubHintBatchBuffer = DataTypeHintValues::TraceBatchBuffer;
 
     const Gpu *gpu = nullptr;
-    const char *name = "XCS";
+    std::string name = "XCS";
     uint32_t mmioDevice = 0;
     uint32_t mmioEngine = 0;
 
