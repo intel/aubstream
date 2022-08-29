@@ -38,7 +38,7 @@ struct GpuGen12LP : public Gpu {
     CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const override;
 
     const std::vector<EngineType> getSupportedEngines() const override {
-        constexpr std::array<EngineType, 5> engines = {{ENGINE_RCS, ENGINE_BCS, ENGINE_VCS, ENGINE_VECS, ENGINE_CCS}};
+        static constexpr std::array<EngineType, 5> engines = {{ENGINE_RCS, ENGINE_BCS, ENGINE_VCS, ENGINE_VECS, ENGINE_CCS}};
         return std::vector<EngineType>(engines.begin(), engines.end());
     }
 
