@@ -65,4 +65,5 @@ if(NOT ("${BRANCH_TYPE}" STREQUAL ""))
 endif()
 
 aub_stream_add_subdirectories("gen*")
+aub_stream_add_subdirectories("*_core")
 aub_stream_create_source_tree(${TARGET_NAME})

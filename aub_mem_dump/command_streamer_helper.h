@@ -47,6 +47,14 @@ constexpr uint32_t ccsEngineOffset(uint32_t engineId) {
     }
 };
 
+constexpr uint32_t bcsLinkEngineOffset(uint32_t engineId) {
+    if (engineId >= 1 && engineId <= 8) {
+        return 0x3DC000 + (engineId * 0x2000);
+    } else {
+        return -1;
+    }
+};
+
 struct CommandStreamerHelper {
     using AddressSpaceValues = CmdServicesMemTraceMemoryWrite::AddressSpaceValues;
     using DataTypeHintValues = CmdServicesMemTraceMemoryWrite::DataTypeHintValues;
@@ -245,6 +253,27 @@ struct CommandStreamerHelperCcs : public CommandStreamerHelper {
         ringBuffer.push_back(0);
         ringBuffer.push_back(0);
         ringBuffer.push_back(0);
+        ringBuffer.push_back(0);
+    }
+};
+
+struct CommandStreamerHelperCccs : public CommandStreamerHelperRcs {
+    CommandStreamerHelperCccs(uint32_t baseDevice) : CommandStreamerHelperRcs(baseDevice) {
+        name = "CCCS";
+    }
+};
+
+struct CommandStreamerHelperLinkBcs : public CommandStreamerHelper {
+    CommandStreamerHelperLinkBcs(uint32_t deviceIndex, uint32_t engineId) : CommandStreamerHelper(deviceIndex, bcsLinkEngineOffset(engineId)) {
+        aubHintLRCA = DataTypeHintValues::TraceLogicalRingContextBcs;
+        aubHintCommandBuffer = DataTypeHintValues::TraceCommandBufferBlt;
+        aubHintBatchBuffer = DataTypeHintValues::TraceBatchBufferBlt;
+        name = "BCS" + std::to_string(engineId);
+    }
+
+    void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override {
+        // MI_FLUSH_DW
+        ringBuffer.push_back(0x13000000);
         ringBuffer.push_back(0);
     }
 };

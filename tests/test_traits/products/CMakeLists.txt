@@ -10,7 +10,20 @@ set(TEST_TRAITS_SOURCES
 
 set_property(GLOBAL APPEND PROPERTY TEST_TRAITS_SOURCES_property "${TEST_TRAITS_SOURCES}")
 
-subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "*")
+if(NOT ("${BRANCH_TYPE}" STREQUAL ""))
+  subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "${BRANCH_TYPE}")
+
+  foreach(subdir ${SUBDIRS})
+    add_subdirectory(${subdir})
+  endforeach()
+endif()
+
+subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "gen*")
+
+foreach(subdir ${SUBDIRS})
+  add_subdirectory(${subdir})
+endforeach()
+subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "*_core")
 
 foreach(subdir ${SUBDIRS})
   add_subdirectory(${subdir})

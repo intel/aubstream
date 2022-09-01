@@ -38,6 +38,7 @@ add_library(${PROJECT_NAME} STATIC
             ${CMAKE_CURRENT_SOURCE_DIR}/page_table_walker.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/page_table_walker.h
             ${CMAKE_CURRENT_SOURCE_DIR}/page_table_entry_bits.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/page_table_pml5.h
             ${CMAKE_CURRENT_SOURCE_DIR}/physical_address_allocator.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/physical_address_allocator.h
             ${CMAKE_CURRENT_SOURCE_DIR}/tbx_proto.h
@@ -83,6 +84,13 @@ macro(subdirlist result curdir dirmask)
 endmacro()
 
 subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "gen*")
+
+foreach(subdir ${SUBDIRS})
+  MESSAGE(STATUS "Adding directory: ${subdir}")
+  add_subdirectory(${subdir})
+endforeach()
+
+subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "*_core")
 
 foreach(subdir ${SUBDIRS})
   MESSAGE(STATUS "Adding directory: ${subdir}")

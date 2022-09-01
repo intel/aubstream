@@ -19,7 +19,12 @@ function(GENERATE_CONFIG Product DefaultConfig)
     set(VALUE "${AUB_STREAM_${Product}_CONFIG}")
   endif()
 
-  set_property(GLOBAL APPEND PROPERTY TEST_TRAITS_MACROS_property "${Product}_CONFIG=${VALUE}")
+  get_property(HasProperty GLOBAL PROPERTY TEST_TRAITS_MACROS_property)
+  string(FIND "${HasProperty}" "${Product}_CONFIG" ConfigFound)
+
+  if(ConfigFound EQUAL -1)
+    set_property(GLOBAL APPEND PROPERTY TEST_TRAITS_MACROS_property "${Product}_CONFIG=${VALUE}")
+  endif()
 endfunction()
 
 subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "*")

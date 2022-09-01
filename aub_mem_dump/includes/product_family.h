@@ -34,6 +34,7 @@ enum PRODUCT_FAMILY : uint32_t {
     IGFX_ALDERLAKE_P,
     IGFX_DG1 = 1210,
     IGFX_XE_HP_SDV = 1250,
+    IGFX_PVC = 1271,
     IGFX_MAX_PRODUCT,
 };
 
