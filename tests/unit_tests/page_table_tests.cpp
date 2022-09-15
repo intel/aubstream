@@ -504,7 +504,7 @@ TEST_F(PageTableTest, GivenHBMPML4TableAndSystemLastLevel64KBPageVerifyReserveCo
     PageInfo info = {0x2003000, sizeof(bytes), ppgtt.getMemoryBank() != MEMORY_BANK_SYSTEM, ppgtt.getMemoryBank()};
     entries.push_back(info);
 
-    stream.cloneMemory(&ppgtt, entries, {gfxAddress, nullptr, sizeof(bytes), MEMORY_BANK_SYSTEM, 0, 65536});
+    stream.cloneMemory(&ppgtt, entries, AllocationParams(gfxAddress, nullptr, sizeof(bytes), MEMORY_BANK_SYSTEM, 0, 65536));
 }
 
 TEST_F(PageTableTest, GivenHBMGGTTAubStreamWriteMemoryVerifyChildPageAttributes) {

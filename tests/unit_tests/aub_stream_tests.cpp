@@ -5,13 +5,13 @@
  *
  */
 
-#include "gtest/gtest.h"
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table.h"
-#include "mock_aub_stream.h"
-#include "tests/unit_tests/page_table_helper.h"
-#include "test_defaults.h"
 #include "headers/allocation_params.h"
+#include "mock_aub_stream.h"
+#include "test_defaults.h"
+#include "tests/unit_tests/page_table_helper.h"
+#include "gtest/gtest.h"
 
 #include "test.h"
 
@@ -146,7 +146,7 @@ TEST_F(AubStreamTest, clonePageTablesShouldSetCorrectPageSize) {
     PageInfo info = {0x2003000, sizeof(bytes), ppgtt.getMemoryBank() != MEMORY_BANK_SYSTEM, ppgtt.getMemoryBank()};
     entries.push_back(info);
 
-    stream.cloneMemory(&ppgtt, entries, {gfxAddress, nullptr, sizeof(bytes), ppgtt.getMemoryBank(), 0, pageSize});
+    stream.cloneMemory(&ppgtt, entries, AllocationParams(gfxAddress, nullptr, sizeof(bytes), ppgtt.getMemoryBank(), 0, pageSize));
 
     auto pdpe = ppgtt.getChild(ppgtt.getIndex(gfxAddress));
     EXPECT_NE(nullptr, pdpe);
@@ -241,7 +241,7 @@ TEST_F(AubStreamTest, givenLocalMemoryWhenCloningMemoryThenPageWalkEntriesAreWri
     PageInfo info = {0x2003000, sizeof(bytes), isLocalMemoryPage, ppgtt.getMemoryBank()};
     entries.push_back(info);
 
-    stream.cloneMemory(&ppgtt, entries, {gfxAddress, nullptr, sizeof(bytes), MEMORY_BANK_SYSTEM, 0, 65536});
+    stream.cloneMemory(&ppgtt, entries, AllocationParams(gfxAddress, nullptr, sizeof(bytes), MEMORY_BANK_SYSTEM, 0, 65536));
 }
 
 TEST_F(AubStreamTest, givenSystemMemoryWhenCloningMemoryThenPageWalkEntriesAreWrittenToStreamAndPTEIsNotWrittenWithMemory) {
@@ -264,7 +264,7 @@ TEST_F(AubStreamTest, givenSystemMemoryWhenCloningMemoryThenPageWalkEntriesAreWr
     PageInfo info = {0x2003000, sizeof(bytes), isLocalMemoryPage, ppgtt.getMemoryBank()};
     entries.push_back(info);
 
-    stream.cloneMemory(&ppgtt, entries, {gfxAddress, nullptr, sizeof(bytes), MEMORY_BANK_SYSTEM, 0, 65536});
+    stream.cloneMemory(&ppgtt, entries, AllocationParams(gfxAddress, nullptr, sizeof(bytes), MEMORY_BANK_SYSTEM, 0, 65536));
 }
 
 TEST_F(AubStreamTest, givenLocalMemoryWhenWriteMemoryAndClonePageTablesIsCalledThenPagesAreWrittenToStream) {

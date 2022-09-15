@@ -15,12 +15,12 @@
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/physical_address_allocator.h"
-#include "aub_mem_dump/tbx_stream.h"
 #include "aub_mem_dump/tbx_shm_stream.h"
-#include "headers/shared_mem_info.h"
-#include "headers/physical_allocation_info.h"
+#include "aub_mem_dump/tbx_stream.h"
 #include "headers/aubstream.h"
 #include "headers/engine_node.h"
+#include "headers/physical_allocation_info.h"
+#include "headers/shared_mem_info.h"
 #include <cassert>
 #include <exception>
 #include <stdexcept>
@@ -165,7 +165,7 @@ void AubManagerImp::adjustPageSize(uint32_t memoryBanks, size_t &pageSize) {
 void AubManagerImp::writeMemory(uint64_t gfxAddress, const void *memory, size_t size, uint32_t memoryBanks,
                                 int hint, size_t pageSize) {
     // fallback to new interface
-    writeMemory2({gfxAddress, memory, size, memoryBanks, hint, pageSize});
+    writeMemory2(AllocationParams(gfxAddress, memory, size, memoryBanks, hint, pageSize));
 }
 
 void AubManagerImp::writeMemory2(AllocationParams allocationParams) {
@@ -185,10 +185,10 @@ void AubManagerImp::writePageTableEntries(uint64_t gfxAddress, size_t size, uint
     adjustPageSize(memoryBanks, pageSize);
     AubStream *stream = getStream();
 
-    auto pageTableEntries = stream->writeMemory(ppgtts[0].get(), {gfxAddress, nullptr, size, memoryBanks, hint, pageSize});
+    auto pageTableEntries = stream->writeMemory(ppgtts[0].get(), AllocationParams(gfxAddress, nullptr, size, memoryBanks, hint, pageSize));
 
     for (uint32_t i = 1; i < ppgtts.size(); i++) {
-        stream->cloneMemory(ppgtts[i].get(), pageTableEntries, {gfxAddress, nullptr, size, memoryBanks, 0, pageSize});
+        stream->cloneMemory(ppgtts[i].get(), pageTableEntries, AllocationParams(gfxAddress, nullptr, size, memoryBanks, 0, pageSize));
     }
 
     lastLevelPages.insert(lastLevelPages.end(), pageTableEntries.begin(), pageTableEntries.end());
@@ -242,7 +242,7 @@ bool AubManagerImp::reservePhysicalMemory(AllocationParams allocationParams, Phy
 bool AubManagerImp::mapGpuVa(uint64_t gfxAddress, size_t size, const PhysicalAllocationInfo physicalAllocInfo) {
     AubStream *stream = getStream();
 
-    AllocationParams allocationParams = {gfxAddress, nullptr, size, physicalAllocInfo.memoryBank, 0, physicalAllocInfo.pageSize};
+    AllocationParams allocationParams(gfxAddress, nullptr, size, physicalAllocInfo.memoryBank, 0, physicalAllocInfo.pageSize);
 
     for (auto &ppgtt : ppgtts) {
         stream->mapGpuVa(ppgtt.get(), allocationParams, physicalAllocInfo.physicalAddress);

@@ -6,13 +6,13 @@
  */
 
 #pragma once
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 namespace aub_stream {
 
-struct SurfaceInfo;
 struct AllocationParams;
+struct SurfaceInfo;
 
 struct HardwareContext {
     virtual void initialize() = 0;
