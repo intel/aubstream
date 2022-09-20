@@ -749,6 +749,7 @@ struct CmdServicesMemTraceMemoryWrite {
             TraceDummyGgttEntry = 62,
             TraceVertexShaderState = 16,
             TracePpgttLevel4 = 68,
+            TracePpgttLevel5 = 69,
             TraceIndirectStateBuffer = 8,
             TraceAudioLinkTable = 46,
             TraceBlendState = 32,

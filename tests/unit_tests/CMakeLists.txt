@@ -25,6 +25,7 @@ add_executable(${TARGET_NAME}
                ${CMAKE_CURRENT_SOURCE_DIR}/mock_physical_address_allocator.h
                ${CMAKE_CURRENT_SOURCE_DIR}/options_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/page_table_helper.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/page_table_pml5_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/page_table_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/page_table_walker_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/physical_allocator_tests.cpp

@@ -18,7 +18,6 @@ add_library(${PROJECT_NAME} STATIC
             ${CMAKE_CURRENT_SOURCE_DIR}/aub_manager_imp.h
             ${CMAKE_CURRENT_SOURCE_DIR}/aub_stream.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/aub_stream.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/${BRANCH_TYPE}/aub_stream_extra.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/aub_tbx_stream.h
             ${CMAKE_CURRENT_SOURCE_DIR}/command_streamer_helper.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/command_streamer_helper.h

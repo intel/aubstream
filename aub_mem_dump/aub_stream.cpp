@@ -204,4 +204,37 @@ bool AubStream::mapGpuVa(PageTable *ppgtt, AllocationParams allocationParams, ui
     return true;
 }
 
+void AubStream::writePageWalkEntries(const PageTableWalker &pageWalker, bool pageTablesInLocalMemory, uint32_t numAddressBits) {
+    bool usePml5 = numAddressBits > 48;
+    bool useLegacyAddressSpaces = !usePml5 && !pageTablesInLocalMemory;
+
+    if (useLegacyAddressSpaces) {
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[3], AddressSpaceValues::TracePml4Entry, DataTypeHintValues::TraceNotype);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[2], AddressSpaceValues::TracePhysicalPdpEntry, DataTypeHintValues::TraceNotype);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[1], AddressSpaceValues::TracePpgttPdEntry, DataTypeHintValues::TraceNotype);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[0], AddressSpaceValues::TracePpgttEntry, DataTypeHintValues::TraceNotype);
+    } else {
+        auto addressSpace = pageTablesInLocalMemory ? AddressSpaceValues::TraceLocal : AddressSpaceValues::TraceNonlocal;
+        if (usePml5) {
+            writeDiscontiguousPages(pageWalker.pageWalkEntries[4], addressSpace, DataTypeHintValues::TracePpgttLevel5);
+        }
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[3], addressSpace, DataTypeHintValues::TracePpgttLevel4);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[2], addressSpace, DataTypeHintValues::TracePpgttLevel3);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[1], addressSpace, DataTypeHintValues::TracePpgttLevel2);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[0], addressSpace, DataTypeHintValues::TracePpgttLevel1);
+    }
+}
+
+void AubStream::writePpgttLevel1(const std::vector<PageEntryInfo> &pageWalkEntry, bool pageTablesInLocalMemory, uint32_t numAddressBits) {
+    bool usePml5 = numAddressBits > 48;
+    bool useLegacyAddressSpaces = !usePml5 && !pageTablesInLocalMemory;
+
+    if (useLegacyAddressSpaces) {
+        writeDiscontiguousPages(pageWalkEntry, AddressSpaceValues::TracePpgttEntry, DataTypeHintValues::TraceNotype);
+    } else {
+        auto addressSpace = pageTablesInLocalMemory ? AddressSpaceValues::TraceLocal : AddressSpaceValues::TraceNonlocal;
+        writeDiscontiguousPages(pageWalkEntry, addressSpace, DataTypeHintValues::TracePpgttLevel1);
+    }
+}
+
 } // namespace aub_stream
