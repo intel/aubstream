@@ -210,3 +210,27 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForLocalMem
 
     EXPECT_EQ(3u, pageWalker2.entries.size());
 }
+
+TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForSameAddressTwiceWithDifferentPhysicalAddressAndMemoryBank) {
+    const uint64_t gfxAddress = 1ull << (ppgtt->getNumAddressBits() - 9);
+    const size_t size = 4096u;
+
+    const uint64_t firstPhysicalAddress = ppgtt->getPhysicalAddressAllocator()->reservePhysicalMemory(MEMORY_BANK_SYSTEM, size, 65536);
+    const uint64_t secondPhysicalAddress = ppgtt->getPhysicalAddressAllocator()->reservePhysicalMemory(MEMORY_BANK_0, size, 65536);
+    PageTableWalker pageWalker;
+
+    pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_SYSTEM, 0, size}, PageTableWalker::WalkMode::Reserve, nullptr, firstPhysicalAddress);
+
+    PageTableWalker pageWalker2;
+
+    pageWalker2.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, size}, PageTableWalker::WalkMode::Reserve, nullptr, secondPhysicalAddress);
+
+    EXPECT_EQ(pageWalker.entries[0].physicalAddress, firstPhysicalAddress);
+    EXPECT_EQ(pageWalker.entries[0].isLocalMemory, false);
+    EXPECT_EQ(pageWalker.entries[0].memoryBank, MEMORY_BANK_SYSTEM);
+
+    // Second walk should have updated both physical address and memory bank
+    EXPECT_EQ(pageWalker2.entries[0].physicalAddress, secondPhysicalAddress);
+    EXPECT_EQ(pageWalker2.entries[0].isLocalMemory, true);
+    EXPECT_EQ(pageWalker2.entries[0].memoryBank, MEMORY_BANK_0);
+}

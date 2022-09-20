@@ -252,6 +252,9 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                     // We need to remap here
                     child->setPhysicalAddress(physicalAddress);
                 }
+                if (child->getMemoryBank() != pageMemoryBank) {
+                    child->setMemoryBank(pageMemoryBank);
+                }
             }
 
             PageEntryInfo info = {

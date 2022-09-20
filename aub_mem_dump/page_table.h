@@ -91,6 +91,10 @@ struct PageTable {
         return memoryBank;
     }
 
+    void setMemoryBank(uint32_t memoryBankIn) {
+        memoryBank = memoryBankIn;
+    }
+
     uint32_t getNumAddressBits() const {
         return numAddressBits;
     }
