@@ -183,7 +183,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     }
 
     auto pageSize = allocationParams.pageSize;
-    auto memoryBanks = allocationParams.memoryBanks;
+    auto pageMemoryBank = allocationParams.memoryBanks;
     auto gfxAddress = allocationParams.gfxAddress;
 
     assert(pageSize > 0);
@@ -191,7 +191,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     PageInfo clonePageInfo;
     uint32_t clonePageInfoIndex = 0;
 
-    bool isLocalMemory = memoryBanks != PhysicalAddressAllocator::mainBank;
+    bool isLocalMemory = pageMemoryBank != PhysicalAddressAllocator::mainBank;
 
     // Reserve # of entries plus two for leading/trailing pages
     pageWalkEntries[4].reserve(2 + (uint64_t(size) >> 48));
@@ -206,8 +206,6 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
         PageTable *parent = nullptr;
         PageTable *child = ppgtt;
         int level = ppgtt->getNumLevels() - 1;
-
-        uint32_t pageMemoryBank = memoryBanks;
 
         if (mode == WalkMode::Clone) {
             clonePageInfo = (*pageInfos)[clonePageInfoIndex++];
@@ -239,7 +237,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                     // For interior nodes, child use parent's memory bank
                     child = parent->allocateChild(ppgtt->getGpu(), pageSize, parent->getMemoryBank());
                 } else {
-                    // For leaf nodes, use pageMemoryBank which manages coloring
+                    // for child node use memory bank previously reserved
                     child = parent->allocateChild(ppgtt->getGpu(), pageSize, pageMemoryBank, allocationParams.additionalParams, physicalAddress);
                 }
 
