@@ -5,12 +5,12 @@
  *
  */
 
-#include "gtest/gtest.h"
-#include "test_defaults.h"
-#include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/aub_file_stream.h"
+#include "aub_mem_dump/memory_banks.h"
 #include "aub_services.h"
 #include "headers/aubstream.h"
+#include "test_defaults.h"
+#include "gtest/gtest.h"
 
 #include "test.h"
 
@@ -86,8 +86,11 @@ void AubTests<PPGTTType>::writeVerifyOneByte(AubFileStream &stream, AubStream::P
         stream.writeMemory(ggtt, GGTT::AddressType(gfxAddress), &data, sizeof(data), defaultMemoryBank, DataTypeHintValues::TraceNotype, pageSize);
         stream.expectMemory(ggtt, GGTT::AddressType(gfxAddress), &data, sizeof(data), CompareOperationValues::CompareEqual);
     }
-    stream.dumpBufferBIN(pageTableType, gfxAddress, sizeof(data), context);
-    stream.dumpSurface(pageTableType, surfaceInfo, context);
+
+    if (gfxAddress < std::numeric_limits<uint64_t>::max() - pageSize) {
+        stream.dumpBufferBIN(pageTableType, gfxAddress, sizeof(data), context);
+        stream.dumpSurface(pageTableType, surfaceInfo, context);
+    }
 }
 
 template <typename PPGTTType>
@@ -104,8 +107,11 @@ void AubTests<PPGTTType>::writeVerifySevenBytes(AubFileStream &stream, AubStream
         stream.writeMemory(ggtt, GGTT::AddressType(gfxAddress), bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, pageSize);
         stream.expectMemory(ggtt, GGTT::AddressType(gfxAddress), bytes, sizeof(bytes), CompareOperationValues::CompareEqual);
     }
-    stream.dumpBufferBIN(pageTableType, gfxAddress, sizeof(bytes), context);
-    stream.dumpSurface(pageTableType, surfaceInfo, context);
+
+    if (gfxAddress < std::numeric_limits<uint64_t>::max() - pageSize) {
+        stream.dumpBufferBIN(pageTableType, gfxAddress, sizeof(bytes), context);
+        stream.dumpSurface(pageTableType, surfaceInfo, context);
+    }
 }
 
 template <typename PPGTTType>
@@ -123,8 +129,10 @@ void AubTests<PPGTTType>::writeVerifyOneMegaByte(AubFileStream &stream, AubStrea
         stream.writeMemory(ggtt, GGTT::AddressType(gfxAddress), bytes.get(), size, defaultMemoryBank, DataTypeHintValues::TraceNotype, pageSize);
         stream.expectMemory(ggtt, GGTT::AddressType(gfxAddress), bytes.get(), size, CompareOperationValues::CompareEqual);
     }
-    stream.dumpBufferBIN(pageTableType, gfxAddress, size, context);
-    stream.dumpSurface(pageTableType, surfaceInfo, context);
+    if (gfxAddress < std::numeric_limits<uint64_t>::max() - pageSize - size) {
+        stream.dumpBufferBIN(pageTableType, gfxAddress, size, context);
+        stream.dumpSurface(pageTableType, surfaceInfo, context);
+    }
 }
 
 template <typename PPGTTType>
@@ -320,12 +328,12 @@ TEST_F(Aub48, writeVerifyNotEqualOneMegaBytePPGTT64KB) {
     writeVerifyNotEqualOneMegaByte(stream, AubStream::PAGE_TABLE_PPGTT, gfxAddress, 65536);
 }
 
-TEST_F(Aub48, DISABLED_writeMaxAddress4KB) {
+TEST_F(Aub48, writeMaxAddress4KB) {
     PPGTTType::AddressType gfxAddress = static_cast<uintptr_t>(-1) - 7;
     writeVerifySevenBytes(stream, AubStream::PAGE_TABLE_PPGTT, gfxAddress, 4096);
 }
 
-TEST_F(Aub48, DISABLED_writeMaxAddress64KB) {
+TEST_F(Aub48, writeMaxAddress64KB) {
     PPGTTType::AddressType gfxAddress = static_cast<uintptr_t>(-1) - 7;
     writeVerifySevenBytes(stream, AubStream::PAGE_TABLE_PPGTT, gfxAddress, 65536);
 }
