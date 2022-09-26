@@ -28,6 +28,7 @@ class MockAubManager : public AubManagerImp {
     using AubManagerImp::streamAub;
     using AubManagerImp::streamAubTbx;
     using AubManagerImp::streamTbx;
+    using AubManagerImp::streamTbxShm;
 
     MockAubManager(const Gpu &gpu, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping, bool localMemorySupported, uint32_t streamMode)
         : AubManagerImp(gpu, {/* Product Family not used*/ 0, devicesCount, memoryBankSize, stepping, localMemorySupported, streamMode, gpuAddressSpace48}) {}

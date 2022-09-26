@@ -82,6 +82,51 @@ TEST(AubManagerTest, givenSupportedProductFamilyWhenAubManagerIsCreatedThenValid
     delete aubManager;
 }
 
+TEST(AubManagerImp, givenInvalidStreamModeWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse) {
+    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, std::numeric_limits<uint32_t>::max());
+    EXPECT_FALSE(aubManager.isInitialized());
+
+    EXPECT_EQ(nullptr, aubManager.streamAub.get());
+    EXPECT_EQ(nullptr, aubManager.streamTbx.get());
+    EXPECT_EQ(nullptr, aubManager.streamAubTbx.get());
+    EXPECT_EQ(nullptr, aubManager.streamTbxShm.get());
+}
+
+TEST(AubManagerImp, givenInvalidStreamModeWhenAubManagerCreateCalledThenNullptrReturned) {
+    auto aubManager = AubManager::create(gpu->productFamily, 1, 32 * defaultPageSize, defaultStepping, true, std::numeric_limits<uint32_t>::max(), maxNBitValue(48));
+    EXPECT_EQ(nullptr, aubManager);
+
+    aubManager = AubManager::create(gpu->productFamily, 1, 32 * defaultPageSize, defaultStepping, true, std::numeric_limits<uint32_t>::max(), maxNBitValue(48), SharedMemoryInfo{});
+    EXPECT_EQ(nullptr, aubManager);
+
+    AubManagerOptions options;
+    options.productFamily = gpu->productFamily;
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = 32 * defaultPageSize;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = std::numeric_limits<uint32_t>::max();
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = false;
+
+    aubManager = AubManager::create(options);
+    EXPECT_EQ(nullptr, aubManager);
+}
+
+TEST(AubManagerImp, givenInvalidStreamModeAndExceptionsEnabledWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse) {
+    AubManagerOptions options;
+    options.productFamily = gpu->productFamily;
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = defaultHBMSizePerDevice;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = std::numeric_limits<uint32_t>::max();
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = true;
+
+    EXPECT_THROW(AubManager::create(options), std::runtime_error);
+}
+
 TEST(AubManagerImp, whenAubManagerIsCreatedWithAubFileModeAndOpenIsCalledThenItInitializesAubFileStream) {
     MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     EXPECT_NE(nullptr, aubManager.streamAub.get());

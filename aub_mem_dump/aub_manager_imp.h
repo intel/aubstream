@@ -46,6 +46,9 @@ class AubManagerImp : public AubManager {
     bool isOpen() override;
     const std::string getFileName() override;
     void pause(bool onoff) override;
+    bool isInitialized() {
+        return getStream() != nullptr;
+    }
 
     void addComment(const char *message) override;
     void writeMemory(uint64_t gfxAddress, const void *memory, size_t size, uint32_t memoryBanks, int hint, size_t pageSize) override;
@@ -63,6 +66,7 @@ class AubManagerImp : public AubManager {
     void initialize();
     AubStream *getStream();
     void adjustPageSize(uint32_t memoryBanks, size_t &pageSize);
+    void throwErrorIfEnabled(const std::string &);
 
     const Gpu &gpu;
     const uint32_t devicesCount;

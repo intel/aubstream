@@ -88,6 +88,10 @@ void AubManagerImp::initialize() {
         ppgtts[i] = std::unique_ptr<PageTable>(gpu.allocatePPGTT(physicalAddressAllocator.get(), memoryBank, gpuAddressSpace));
         ggtts[i] = std::unique_ptr<GGTT>(gpu.allocateGGTT(physicalAddressAllocator.get(), memoryBank, gttBaseAddress));
     }
+
+    if (!getStream()) {
+        return;
+    }
     gpu.initializeDefaultMemoryPools(*getStream(), devicesCount, memoryBankSize);
 }
 
@@ -263,7 +267,7 @@ AubStream *AubManagerImp::getStream() {
     } else if (streamMode == mode::tbxShm) {
         stream = streamTbxShm.get();
     } else {
-        assert(false);
+        throwErrorIfEnabled("Stream is null.");
     }
 
     return stream;
@@ -280,7 +284,11 @@ AubManager *AubManager::create(uint32_t productFamily, uint32_t devicesCount, ui
         internal_options.localMemorySupported = localMemorySupported;
         internal_options.mode = mode;
         internal_options.gpuAddressSpace = gpuAddressSpace;
-        return new AubManagerImp(*gpu, internal_options);
+        auto aubManager = new AubManagerImp(*gpu, internal_options);
+        if (aubManager->isInitialized()) {
+            return aubManager;
+        }
+        delete aubManager;
     }
     return nullptr;
 }
@@ -297,7 +305,11 @@ AubManager *AubManager::create(uint32_t productFamily, uint32_t devicesCount, ui
         internal_options.mode = mode;
         internal_options.gpuAddressSpace = gpuAddressSpace;
         internal_options.sharedMemoryInfo = sharedMemoryInfo;
-        return new AubManagerImp(*gpu, internal_options);
+        auto aubManager = new AubManagerImp(*gpu, internal_options);
+        if (aubManager->isInitialized()) {
+            return aubManager;
+        }
+        delete aubManager;
     }
     return nullptr;
 }
@@ -305,9 +317,19 @@ AubManager *AubManager::create(uint32_t productFamily, uint32_t devicesCount, ui
 AubManager *AubManager::create(const struct AubManagerOptions &options) {
     auto gpu = getGpu(static_cast<PRODUCT_FAMILY>(options.productFamily));
     if (nullptr != gpu) {
-        return new AubManagerImp(*gpu, options);
+        auto aubManager = new AubManagerImp(*gpu, options);
+        if (aubManager->isInitialized()) {
+            return aubManager;
+        }
+        delete aubManager;
     }
     return nullptr;
+}
+
+void AubManagerImp::throwErrorIfEnabled(const std::string &str) {
+    if (enableThrow) {
+        throw std::runtime_error(str);
+    }
 }
 
 } // namespace aub_stream
