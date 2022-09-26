@@ -63,6 +63,9 @@ struct AubStream {
     virtual uint32_t getStreamMode() const = 0;
 
     virtual ~AubStream() = default;
+    AubStream() = default;
+    AubStream(const AubStream &) = delete;
+    AubStream &operator=(const AubStream &) = delete;
 
   protected:
     void writePages(const PageTableWalker &pageWalker, const void *memory, size_t size, int hint, bool pageTablesInLocalMemory,
