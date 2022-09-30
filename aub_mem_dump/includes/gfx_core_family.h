@@ -23,6 +23,7 @@ enum GFXCORE_FAMILY : uint32_t {
     GEN12_CORE = 17,
     GEN12LP_CORE = 18,
     XE_HP_CORE = 0x0c05,
+    XE_HPG_CORE = 0x0c07,
     XE_HPC_CORE = 0x0c08,
     MAX_CORE, //Max Family, for lookup table
 };
