@@ -8,7 +8,7 @@
 #pragma once
 #include "aub_stream.h"
 #include "tbx_sockets.h"
-#include "headers/shared_mem_info.h"
+#include "aubstream/headers/shared_mem_info.h"
 #include <chrono>
 
 namespace aub_stream {

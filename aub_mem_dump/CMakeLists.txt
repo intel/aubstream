@@ -53,6 +53,8 @@ add_library(${PROJECT_NAME} STATIC
             ${CMAKE_CURRENT_SOURCE_DIR}/${BRANCH_TYPE}/includes/product_family.h
 )
 
+target_include_directories(${PROJECT_NAME} INTERFACE ${INTERFACE_HEADERS_DIRECTORY})
+
 target_include_directories(${PROJECT_NAME}
                            PRIVATE
                            ${CMAKE_CURRENT_SOURCE_DIR}/${BRANCH_TYPE}/includes

@@ -17,10 +17,10 @@
 #include "aub_mem_dump/physical_address_allocator.h"
 #include "aub_mem_dump/tbx_shm_stream.h"
 #include "aub_mem_dump/tbx_stream.h"
-#include "headers/aubstream.h"
-#include "headers/engine_node.h"
-#include "headers/physical_allocation_info.h"
-#include "headers/shared_mem_info.h"
+#include "aubstream/headers/aubstream.h"
+#include "aubstream/headers/engine_node.h"
+#include "aubstream/headers/physical_allocation_info.h"
+#include "aubstream/headers/shared_mem_info.h"
 #include <cassert>
 #include <exception>
 #include <stdexcept>

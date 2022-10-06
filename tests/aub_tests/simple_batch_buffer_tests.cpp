@@ -8,7 +8,7 @@
 #include "aub_mem_dump/aub_file_stream.h"
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/tbx_stream.h"
-#include "headers/aubstream.h"
+#include "aubstream/headers/aubstream.h"
 #include "simple_batch_buffer_fixture.h"
 #include "test_defaults.h"
 #include "tests/simple_batch_buffer.h"

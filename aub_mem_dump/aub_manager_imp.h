@@ -7,11 +7,11 @@
 
 #pragma once
 
-#include "headers/aub_manager.h"
-#include "headers/page_info.h"
-#include "headers/allocation_params.h"
+#include "aubstream/headers/aub_manager.h"
+#include "aubstream/headers/page_info.h"
+#include "aubstream/headers/allocation_params.h"
 #include "page_table.h"
-#include "headers/shared_mem_info.h"
+#include "aubstream/headers/shared_mem_info.h"
 #include <memory>
 #include <string>
 #include <vector>

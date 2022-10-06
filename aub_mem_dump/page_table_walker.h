@@ -8,8 +8,8 @@
 #pragma once
 
 #include "aub_mem_dump/page_table.h"
-#include "headers/page_info.h"
-#include "headers/allocation_params.h"
+#include "aubstream/headers/page_info.h"
+#include "aubstream/headers/allocation_params.h"
 
 namespace aub_stream {
 

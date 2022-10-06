@@ -10,8 +10,8 @@
 #include "aub_mem_dump/aub_manager_imp.h"
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/aub_tbx_stream.h"
-#include "headers/hardware_context.h"
-#include "headers/aubstream.h"
+#include "aubstream/headers/hardware_context.h"
+#include "aubstream/headers/aubstream.h"
 #include "tests/simple_batch_buffer.h"
 
 using namespace aub_stream;

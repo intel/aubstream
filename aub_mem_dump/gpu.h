@@ -8,8 +8,8 @@
 #pragma once
 #include "aub_mem_dump/aub_stream.h"
 #include "gfx_core_family.h"
-#include "headers/engine_node.h"
-#include "headers/allocation_params.h"
+#include "aubstream/headers/engine_node.h"
+#include "aubstream/headers/allocation_params.h"
 
 #include "product_family.h"
 

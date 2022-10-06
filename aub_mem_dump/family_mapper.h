@@ -7,7 +7,7 @@
 
 #pragma once
 #include "gfx_core_family.h"
-#include "headers/engine_node.h"
+#include "aubstream/headers/engine_node.h"
 #include "product_family.h"
 #include <map>
 

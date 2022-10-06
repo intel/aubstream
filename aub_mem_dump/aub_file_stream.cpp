@@ -9,7 +9,7 @@
 #include <string.h>
 
 #include "aub_file_stream.h"
-#include "headers/aubstream.h"
+#include "aubstream/headers/aubstream.h"
 
 namespace aub_stream {
 

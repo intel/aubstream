@@ -129,9 +129,9 @@ function(aub_stream_add_subdirectories dirmask)
   endforeach()
 endfunction()
 
-set(INTERFACE_HEADERS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+set(INTERFACE_HEADERS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(NOT ("${BRANCH_TYPE}" STREQUAL ""))
-  set(INTERFACE_HEADERS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${BRANCH_TYPE})
+  set(INTERFACE_HEADERS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${BRANCH_TYPE}/include)
 endif()
 include_directories(${INTERFACE_HEADERS_DIRECTORY})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -146,14 +146,14 @@ endif()
 
 set(SOURCES
     ${SOURCES}
-    ${INTERFACE_HEADERS_DIRECTORY}/headers/allocation_params.h
-    ${INTERFACE_HEADERS_DIRECTORY}/headers/aub_manager.h
-    ${INTERFACE_HEADERS_DIRECTORY}/headers/aubstream.h
-    ${INTERFACE_HEADERS_DIRECTORY}/headers/engine_node.h
-    ${INTERFACE_HEADERS_DIRECTORY}/headers/hardware_context.h
-    ${INTERFACE_HEADERS_DIRECTORY}/headers/page_info.h
-    ${INTERFACE_HEADERS_DIRECTORY}/headers/shared_mem_info.h
-    ${INTERFACE_HEADERS_DIRECTORY}/headers/physical_allocation_info.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/allocation_params.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/aub_manager.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/aubstream.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/engine_node.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/hardware_context.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/page_info.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/shared_mem_info.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/physical_allocation_info.h
     ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
 )
 

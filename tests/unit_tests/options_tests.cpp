@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 #include "aub_mem_dump/options.h"
-#include "headers/aubstream.h"
+#include "aubstream/headers/aubstream.h"
 
 using namespace aub_stream;
 

@@ -11,8 +11,8 @@
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table.h"
 
-#include "headers/aubstream.h"
-#include "headers/engine_node.h"
+#include "aubstream/headers/aubstream.h"
+#include "aubstream/headers/engine_node.h"
 
 #include "hardware_context_tests.h"
 #include "mock_aub_stream.h"
