@@ -4,21 +4,23 @@
 # SPDX-License-Identifier: MIT
 #
 
-target_sources(${PROJECT_NAME}
-               PRIVATE
-               ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
-               ${CMAKE_CURRENT_SOURCE_DIR}/command_streamer_helper_gen9.cpp
-               ${CMAKE_CURRENT_SOURCE_DIR}/command_streamer_helper_gen9.h
-)
+if(SUPPORT_GEN9)
+  target_sources(${PROJECT_NAME}
+                 PRIVATE
+                 ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+                 ${CMAKE_CURRENT_SOURCE_DIR}/command_streamer_helper_gen9.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/command_streamer_helper_gen9.h
+  )
 
-target_sources(${PROJECT_NAME}_all_hw
-               PRIVATE
-               ${CMAKE_CURRENT_SOURCE_DIR}/enable_gen9.cpp
-)
+  target_sources(${PROJECT_NAME}_all_hw
+                 PRIVATE
+                 ${CMAKE_CURRENT_SOURCE_DIR}/enable_gen9.cpp
+  )
 
-subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "*")
+  subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "*")
 
-foreach(subdir ${SUBDIRS})
-  MESSAGE(STATUS "Adding directory: ${subdir}")
-  add_subdirectory(${subdir})
-endforeach()
+  foreach(subdir ${SUBDIRS})
+    MESSAGE(STATUS "Adding directory: ${subdir}")
+    add_subdirectory(${subdir})
+  endforeach()
+endif()

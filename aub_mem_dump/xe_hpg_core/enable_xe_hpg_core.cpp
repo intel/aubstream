@@ -9,5 +9,7 @@
 #include "aub_mem_dump/gpu.h"
 
 namespace aub_stream {
+#ifdef SUPPORT_DG2
 static RegisterFamily<IGFX_DG2> registerFamilyDg2;
+#endif
 } // namespace aub_stream

@@ -4,8 +4,10 @@
 # SPDX-License-Identifier: MIT
 #
 
-target_sources(${PROJECT_NAME}
-               PRIVATE
-               ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
-               ${CMAKE_CURRENT_SOURCE_DIR}/command_streamer_helper_gen8_bdw.cpp
-)
+if(SUPPORT_BDW)
+  target_sources(${PROJECT_NAME}
+                 PRIVATE
+                 ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+                 ${CMAKE_CURRENT_SOURCE_DIR}/command_streamer_helper_gen8_bdw.cpp
+  )
+endif()

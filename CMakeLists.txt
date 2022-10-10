@@ -60,6 +60,12 @@ endif()
 
 MESSAGE(STATUS "Project: ${PROJECT_NAME}")
 MESSAGE(STATUS "Branch used: ${BRANCH_TYPE}")
+set(BRANCH_DIR_SUFFIX "/${BRANCH_TYPE}")
+if(NOT "${BRANCH_TYPE}" STREQUAL "")
+  set(BRANCH_DIR_SUFFIX "${BRANCH_DIR_SUFFIX}/")
+endif()
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/init_platforms.cmake)
 
 # set output paths
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

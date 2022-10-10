@@ -4,4 +4,6 @@
 # SPDX-License-Identifier: MIT
 #
 
-aub_stream_add_subdirectories("*")
+if(TESTS_GEN12LP)
+  aub_stream_add_subdirectories("*")
+endif()

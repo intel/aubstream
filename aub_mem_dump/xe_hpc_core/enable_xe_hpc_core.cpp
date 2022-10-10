@@ -9,5 +9,7 @@
 #include "aub_mem_dump/gpu.h"
 
 namespace aub_stream {
+#ifdef SUPPORT_PVC
 static RegisterFamily<IGFX_PVC> registerFamilyPvc;
+#endif
 } // namespace aub_stream
