@@ -18,6 +18,8 @@ struct HardwareContextImp : public HardwareContext {
     HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggtt, PageTable &ppgtt, uint32_t flags);
 
     ~HardwareContextImp() override;
+    HardwareContextImp(const HardwareContextImp &) = delete;
+    HardwareContextImp &operator=(const HardwareContextImp &) = delete;
 
     void initialize() override;
     void release();
