@@ -421,6 +421,7 @@ void AubFileStream::writeDiscontiguousPages(const std::vector<PageEntryInfo> &wr
             }
 
             // Store the entries in the command
+            assert(index < maxEntries);
             cmd.Dword_2_To_190[index].dataSizeInBytes = sizeof(writeInfo.tableEntry);
             cmd.Dword_2_To_190[index].address = writeInfo.physicalAddress;
 
