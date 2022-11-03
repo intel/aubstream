@@ -130,7 +130,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                 assert(mode != WalkMode::Expect);
 
                 if (level == 0 && mode == WalkMode::Clone) {
-                    const auto physicalAddressAligned = clonePageInfo.physicalAddress & ~(static_cast<uint64_t>(pte->getPageSize() - 1));
+                    const auto physicalAddressAligned = clonePageInfo.physicalAddress & ~(static_cast<uint64_t>(pageSize - 1));
                     child = new PageTableMemory(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo.memoryBank, allocationParams.additionalParams);
                 } else if (level != 0) {
                     // For interior nodes, child use parent's memory bank
