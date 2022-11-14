@@ -13,7 +13,7 @@
 using namespace aub_stream;
 
 TEST(Gpu, gpuXeHpReturnsCorrectDeviceId) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_XE_HP_SDV);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::XeHpSdv);
 
     EXPECT_EQ(0x1d, gpu->deviceId);
 }

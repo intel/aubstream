@@ -26,7 +26,7 @@ struct MockAubStreamBase : public AubStream {
   public:
     MOCK_METHOD1(addComment, void(const char *message));
     MOCK_METHOD4(expectMemoryTable, void(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, uint32_t compareOperation));
-    MOCK_METHOD3(init, bool(int steppingValue, uint32_t device, GFXCORE_FAMILY gfxCoreFamily));
+    MOCK_METHOD3(init, bool(int steppingValue, uint32_t device, CoreFamily gfxCoreFamily));
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
     MOCK_METHOD5(writeContiguousPages, void(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint));
@@ -45,7 +45,7 @@ struct MockAubStreamBase : public AubStream {
 
 struct MockAubFileStream : public AubFileStream {
   public:
-    MOCK_METHOD3(init, bool(int steppingValue, uint32_t device, GFXCORE_FAMILY gfxCoreFamily));
+    MOCK_METHOD3(init, bool(int steppingValue, uint32_t device, CoreFamily gfxCoreFamily));
     MOCK_METHOD1(addComment, void(const char *message));
 
     MOCK_METHOD2(declareContextForDumping, void(uint32_t handleDumpContext, PageTable *pageTable));
@@ -69,7 +69,7 @@ struct MockAubFileStream : public AubFileStream {
 
 struct MockTbxStream : public TbxStream {
   public:
-    MOCK_METHOD3(init, bool(int steppingValue, uint32_t device, GFXCORE_FAMILY gfxCoreFamily));
+    MOCK_METHOD3(init, bool(int steppingValue, uint32_t device, CoreFamily gfxCoreFamily));
     MOCK_METHOD1(addComment, void(const char *message));
 
     MOCK_METHOD2(declareContextForDumping, void(uint32_t handleDumpContext, PageTable *pageTable));
@@ -92,7 +92,7 @@ struct MockTbxStream : public TbxStream {
 
 struct MockTbxShmStream : public TbxShmStream {
   public:
-    MOCK_METHOD3(init, bool(int steppingValue, uint32_t device, GFXCORE_FAMILY gfxCoreFamily));
+    MOCK_METHOD3(init, bool(int steppingValue, uint32_t device, CoreFamily gfxCoreFamily));
     MOCK_METHOD1(addComment, void(const char *message));
 
     MOCK_METHOD2(declareContextForDumping, void(uint32_t handleDumpContext, PageTable *pageTable));

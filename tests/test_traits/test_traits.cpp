@@ -9,6 +9,6 @@
 
 namespace aub_stream {
 
-const TestTraits *testTraits[PRODUCT_FAMILY::IGFX_MAX_PRODUCT] = {};
+const TestTraits *testTraits[static_cast<uint32_t>(ProductFamily::MaxProduct)] = {};
 
 } // namespace aub_stream

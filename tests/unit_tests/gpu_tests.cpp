@@ -16,19 +16,19 @@ using ::testing::_;
 using ::testing::AtLeast;
 
 TEST(Gpu, gpuTgllpReturnsCorrectDeviceId) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_TIGERLAKE_LP);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Tgllp);
 
     EXPECT_EQ(0x16, gpu->deviceId);
 }
 
 TEST(Gpu, gpuAdlpReturnsCorrectDeviceId) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_ALDERLAKE_P);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Adlp);
 
     EXPECT_EQ(0x22, gpu->deviceId);
 }
 
 TEST(Gpu, gpuAdlsReturnsCorrectDeviceId) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_ALDERLAKE_S);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Adls);
 
     EXPECT_EQ(0x25, gpu->deviceId);
 }
@@ -54,7 +54,7 @@ TEST(Gpu, initializeGlobalMMIOAlsoWritesMmioListInjected) {
 }
 
 TEST(Gpu, gen12lpGivenOneIntegratedDeviceSetMemoryBankSizeOnlyDefinesOneBank) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == GEN12LP_CORE && gpu->productFamily != IGFX_DG1);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::Gen12lp && gpu->productFamily != ProductFamily::Dg1);
 
     MockAubStreamBase stream;
     EXPECT_CALL(stream, writeMMIO(0x4900, 0x00000000)).Times(1);

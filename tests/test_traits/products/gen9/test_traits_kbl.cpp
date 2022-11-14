@@ -8,5 +8,5 @@
 #include "tests/test_traits/test_traits.h"
 
 namespace aub_stream {
-EnableTestTraits<PRODUCT_FAMILY::IGFX_KABYLAKE> enableKbl(KBL_CONFIG);
+EnableTestTraits<ProductFamily::Kbl> enableKbl(KBL_CONFIG);
 } // namespace aub_stream

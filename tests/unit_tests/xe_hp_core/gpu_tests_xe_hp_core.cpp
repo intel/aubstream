@@ -16,7 +16,7 @@ using ::testing::_;
 using ::testing::AtLeast;
 
 TEST(Gpu, XeHpGivenOneDeviceSetMemoryBankSizeOnlyDefinesOneBank) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
 
     MockAubStreamBase stream;
     EXPECT_CALL(stream, writeMMIO(0x4900, _)).Times(0);
@@ -30,7 +30,7 @@ TEST(Gpu, XeHpGivenOneDeviceSetMemoryBankSizeOnlyDefinesOneBank) {
 }
 
 TEST(Gpu, XeHpGivenTwoDevicesSetMemoryBankSizeOnlyDefinesTwoBanks) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
 
     MockAubStreamBase stream;
     EXPECT_CALL(stream, writeMMIO(0x4900, 0x00000201)).Times(1);
@@ -44,7 +44,7 @@ TEST(Gpu, XeHpGivenTwoDevicesSetMemoryBankSizeOnlyDefinesTwoBanks) {
 }
 
 TEST(Gpu, XeHpGivenFourDeviceSetMemoryBankSizeDefinesAllBanks) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
 
     MockAubStreamBase stream;
     EXPECT_CALL(stream, writeMMIO(0x4900, 0x00000201)).Times(1);
@@ -58,7 +58,7 @@ TEST(Gpu, XeHpGivenFourDeviceSetMemoryBankSizeDefinesAllBanks) {
 }
 
 TEST(Gpu, XeHpFileStreamInitializeGlobalMMIOWritesFlatCcsBaseAddress) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
     MockAubFileStream stream;
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
     EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(0);
@@ -67,7 +67,7 @@ TEST(Gpu, XeHpFileStreamInitializeGlobalMMIOWritesFlatCcsBaseAddress) {
 }
 
 TEST(Gpu, XeHpTbxStreamInitializeGlobalMMIOWritesFlatCcsBaseAddress) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
     MockTbxStream stream;
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
     EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(1);
@@ -76,7 +76,7 @@ TEST(Gpu, XeHpTbxStreamInitializeGlobalMMIOWritesFlatCcsBaseAddress) {
 }
 
 TEST(Gpu, XeHpInitializeGlobalMMIOWritesFlatCcsBaseAddressPtr) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
     constexpr uint32_t mmioDeviceOffset = 16 * MB;
     constexpr uint32_t numDevices = 4;
     constexpr uint64_t perDeviceHbmSize = 8llu * GB;
@@ -98,7 +98,7 @@ TEST(Gpu, XeHpInitializeGlobalMMIOWritesFlatCcsBaseAddressPtr) {
 }
 
 TEST(Gpu, XeHpGivenOneDeviceThenGGTTBaseAddressIsProgrammedForOneTile) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
 
     MockAubStreamBase stream;
     EXPECT_CALL(stream, writeMMIO(0x108100, 0xff800000)).Times(1);
@@ -121,7 +121,7 @@ TEST(Gpu, XeHpGivenOneDeviceThenGGTTBaseAddressIsProgrammedForOneTile) {
 }
 
 TEST(Gpu, XeHpGivenTwoDevicesThenGGTTBaseAddressesAreProgrammedForTwoTiles) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
 
     MockAubStreamBase stream;
     EXPECT_CALL(stream, writeMMIO(0x108100, 0xff800000)).Times(1);
@@ -145,7 +145,7 @@ TEST(Gpu, XeHpGivenTwoDevicesThenGGTTBaseAddressesAreProgrammedForTwoTiles) {
 }
 
 TEST(Gpu, XeHpGivenFourDevicesThenGGTTBaseAddressesAreProgrammedForFourTiles) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
 
     MockAubStreamBase stream;
     EXPECT_CALL(stream, writeMMIO(0x108100, 0xff800000)).Times(1);

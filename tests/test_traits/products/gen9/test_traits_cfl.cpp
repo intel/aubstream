@@ -8,5 +8,5 @@
 #include "tests/test_traits/test_traits.h"
 
 namespace aub_stream {
-EnableTestTraits<PRODUCT_FAMILY::IGFX_COFFEELAKE> enableCfl(CFL_CONFIG);
+EnableTestTraits<ProductFamily::Cfl> enableCfl(CFL_CONFIG);
 } // namespace aub_stream

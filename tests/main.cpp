@@ -20,9 +20,9 @@ extern std::string getTestFilter(const Gpu &gpu);
 int runTests(const Gpu *gpu) {
     int result = 0;
 
-    auto traits = testTraits[gpu->productFamily];
+    auto traits = testTraits[static_cast<uint32_t>(gpu->productFamily)];
 
-    if (gpu->gfxCoreFamily >= GEN12_CORE) {
+    if (gpu->gfxCoreFamily >= CoreFamily::Gen12lp) {
         defaultEngine = EngineType::ENGINE_CCS;
     } else {
         defaultEngine = EngineType::ENGINE_RCS;
@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
         for (auto const &enabledGpu : *productFamilyTable) {
             gpu = enabledGpu.second;
 
-            assert(testTraits[gpu->productFamily]);
+            assert(testTraits[static_cast<uint32_t>(gpu->productFamily)]);
 
             result = runTests(gpu);
 

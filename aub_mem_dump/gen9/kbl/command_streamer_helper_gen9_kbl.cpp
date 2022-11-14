@@ -7,13 +7,14 @@
 
 #include "aub_mem_dump/gen9/command_streamer_helper_gen9.h"
 #include "aub_services.h"
+#include "product_family.h"
 
 namespace aub_stream {
 
 struct GpuKbl : public GpuGen9 {
     GpuKbl() {
-        productFamily = IGFX_KABYLAKE;
-        gfxCoreFamily = GEN9_CORE;
+        productFamily = ProductFamily::Kbl;
+        gfxCoreFamily = CoreFamily::Gen9;
         productAbbreviation = "kbl";
         deviceId = CmdServicesMemTraceVersion::DeviceValues::Kbl;
         deviceCount = 1;
@@ -24,7 +25,7 @@ struct GpuKbl : public GpuGen9 {
     }
 };
 template <>
-const Gpu *enableGpu<IGFX_KABYLAKE>() {
+const Gpu *enableGpu<ProductFamily::Kbl>() {
     static const GpuKbl kbl;
     return &kbl;
 }

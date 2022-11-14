@@ -16,13 +16,13 @@ using ::testing::_;
 using ::testing::AtLeast;
 
 TEST(Gpu, gpuDg2ReturnsCorrectDeviceId) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_DG2);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Dg2);
 
     EXPECT_EQ(0x24, gpu->deviceId);
 }
 
 TEST(Gpu, givenDg2WhenInitializeDefaultMemoryPoolsThenNotInitializeFlatCcsBaseAddressPtr) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_DG2);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Dg2);
     constexpr uint32_t mmioDeviceOffset = 16 * MB;
     constexpr uint32_t numDevices = 4;
     constexpr uint64_t perDeviceHbmSize = 8llu * GB;
@@ -44,7 +44,7 @@ TEST(Gpu, givenDg2WhenInitializeDefaultMemoryPoolsThenNotInitializeFlatCcsBaseAd
 }
 
 TEST(Gpu, givenDg2AndFileStreamWhenInitializeDefaultMemoryPoolsThenFlatCcsBaseAddressIsProgrammed) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_DG2);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Dg2);
 
     MockAubFileStream stream;
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
@@ -54,7 +54,7 @@ TEST(Gpu, givenDg2AndFileStreamWhenInitializeDefaultMemoryPoolsThenFlatCcsBaseAd
 }
 
 TEST(Gpu, givenDg2AndTbxStreamInitializeDefaultMemoryPoolsThenFlatCcsBaseAddressIsProgrammed) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_DG2);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Dg2);
 
     MockTbxStream stream;
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
@@ -63,7 +63,7 @@ TEST(Gpu, givenDg2AndTbxStreamInitializeDefaultMemoryPoolsThenFlatCcsBaseAddress
     gpu->initializeDefaultMemoryPools(stream, 1, 1);
 }
 TEST(Gpu, givenDg2WhenCheckEngineSuportThenAllExpectedEnginesAreSupported) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_DG2);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Dg2);
     EXPECT_TRUE(gpu->isEngineSupported(ENGINE_RCS));
     EXPECT_TRUE(gpu->isEngineSupported(ENGINE_BCS));
     EXPECT_TRUE(gpu->isEngineSupported(ENGINE_CCS));

@@ -15,7 +15,7 @@
 using namespace aub_stream;
 
 TEST(PageTableTestsDg2, getEntryValue) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_DG2);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Dg2);
 
     uint64_t physicalAddress = 0x20000;
     PageTableMemory pageTable(*gpu, physicalAddress, MEMORY_BANK_0);

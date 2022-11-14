@@ -5,16 +5,17 @@
  *
  */
 
+#pragma once
 #include "aub_mem_dump/xe_hpc_core/command_streamer_helper_xe_hpc_core.h"
 
-#pragma once
+#include "product_family.h"
 
 namespace aub_stream {
 
 struct GpuPvc : public GpuXeHpcCore {
     GpuPvc() {
-        productFamily = IGFX_PVC;
-        gfxCoreFamily = XE_HPC_CORE;
+        productFamily = ProductFamily::Pvc;
+        gfxCoreFamily = CoreFamily::XeHpcCore;
         productAbbreviation = "pvc";
         deviceId = 0x27;
         deviceCount = GpuXeHpcCore::numSupportedDevices;

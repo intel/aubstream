@@ -13,11 +13,11 @@
 using namespace aub_stream;
 std::string getTestFilter(const Gpu &gpu) {
     std::string filter = "";
-    if (gpu.gfxCoreFamily <= GFXCORE_FAMILY::GEN11LP_CORE) {
+    if (gpu.gfxCoreFamily <= CoreFamily::Gen11) {
         filter += "*NotEqual*";
     }
 
-    if (gpu.gfxCoreFamily == GFXCORE_FAMILY::GEN8_CORE) {
+    if (gpu.gfxCoreFamily == CoreFamily::Gen8) {
         filter += ":*SimpleBatchBuffer.vecs*:*SimpleBatchBuffer.vcs*";
     }
 

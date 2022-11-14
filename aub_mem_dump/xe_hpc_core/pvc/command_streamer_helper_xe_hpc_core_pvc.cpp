@@ -11,7 +11,7 @@
 namespace aub_stream {
 
 template <>
-const Gpu *enableGpu<IGFX_PVC>() {
+const Gpu *enableGpu<ProductFamily::Pvc>() {
     static const GpuPvc pvc;
     return &pvc;
 }

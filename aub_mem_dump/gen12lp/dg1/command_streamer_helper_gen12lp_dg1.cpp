@@ -7,12 +7,13 @@
 
 #include "aub_mem_dump/gen12lp/command_streamer_helper_gen12lp.h"
 
+#include "product_family.h"
 namespace aub_stream {
 
 struct GpuDg1 : public GpuGen12LP {
     GpuDg1() {
-        productFamily = IGFX_DG1;
-        gfxCoreFamily = GEN12LP_CORE;
+        productFamily = ProductFamily::Dg1;
+        gfxCoreFamily = CoreFamily::Gen12lp;
         productAbbreviation = "dg1";
         deviceId = 0x1e;
         deviceCount = 1;
@@ -56,7 +57,7 @@ struct GpuDg1 : public GpuGen12LP {
 };
 
 template <>
-const Gpu *enableGpu<IGFX_DG1>() {
+const Gpu *enableGpu<ProductFamily::Dg1>() {
     static const GpuDg1 gpu;
     return &gpu;
 }

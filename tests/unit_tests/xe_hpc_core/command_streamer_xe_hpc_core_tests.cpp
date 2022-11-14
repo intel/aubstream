@@ -20,7 +20,7 @@ using ::testing::Return;
 
 struct XeHPCCoreMatcher {
     static bool isXeHpcCore(const aub_stream::Gpu *gpu) {
-        return gpu->gfxCoreFamily == aub_stream::GFXCORE_FAMILY::XE_HPC_CORE;
+        return gpu->gfxCoreFamily == aub_stream::CoreFamily::XeHpcCore;
     }
 };
 

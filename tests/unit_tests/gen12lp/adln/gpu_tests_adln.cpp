@@ -13,7 +13,7 @@ using namespace aub_stream;
 using ::testing::_;
 
 TEST(Gpu, gpuAdlnReturnsCorrectDeviceId) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_ALDERLAKE_N);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Adln);
 
     EXPECT_EQ(0x22, gpu->deviceId);
 }

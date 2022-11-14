@@ -26,22 +26,16 @@
 using namespace aub_stream;
 using ::testing::_;
 
-struct AubManagerTests : public ::testing::TestWithParam<PRODUCT_FAMILY> {
-    AubManagerTests() = default;
-
-    void SetUp() override {}
-    void TearDown() override {}
-};
-
-TEST_P(AubManagerTests, givenNotSupportedGenWhenAubManagerIsCreatedThenNullptrIsReturned) {
-    auto aubManager = AubManager::create(GetParam(), defaultDeviceCount, defaultHBMSizePerDevice, defaultStepping, true, mode::aubFile, maxNBitValue(48));
+TEST(AubManagerTest, givenNotSupportedGenWhenAubManagerIsCreatedThenNullptrIsReturned) {
+    auto aubManager = AubManager::create(ProductFamily::MaxProduct, defaultDeviceCount, defaultHBMSizePerDevice, defaultStepping, true, mode::aubFile, maxNBitValue(48));
 
     EXPECT_EQ(nullptr, aubManager);
 }
 
-TEST_P(AubManagerTests, givenNotSupportedGenWhenAubManagerIsCreatedThenNullptrIsReturnedUsingOptions) {
+TEST(AubManagerTest, givenNotSupportedGenWhenAubManagerIsCreatedUsingOldInterfaceThenNullptrIsReturnedUsingOptions) {
     AubManagerOptions internal_options;
-    internal_options.productFamily = GetParam();
+    internal_options.version = 0;
+    internal_options.productFamily = 0;
     internal_options.devicesCount = defaultDeviceCount;
     internal_options.memoryBankSize = defaultHBMSizePerDevice;
     internal_options.stepping = defaultStepping;
@@ -53,23 +47,26 @@ TEST_P(AubManagerTests, givenNotSupportedGenWhenAubManagerIsCreatedThenNullptrIs
     EXPECT_EQ(nullptr, aubManager);
 }
 
-static PRODUCT_FAMILY notSupportedFamilies[] = {
-    IGFX_CHERRYVIEW,
-    IGFX_WILLOWVIEW,
-    IGFX_CANNONLAKE,
-    IGFX_ICELAKE,
-    IGFX_LAKEFIELD,
-    IGFX_JASPERLAKE,
-};
+TEST(AubManagerTest, givenNotSupportedGenWhenAubManagerIsCreatedThenNullptrIsReturnedUsingOptions) {
+    AubManagerOptions internal_options;
+    internal_options.version = 1;
+    internal_options.productFamily = static_cast<uint32_t>(ProductFamily::MaxProduct);
+    internal_options.devicesCount = defaultDeviceCount;
+    internal_options.memoryBankSize = defaultHBMSizePerDevice;
+    internal_options.stepping = defaultStepping;
+    internal_options.localMemorySupported = true;
+    internal_options.mode = mode::aubFile;
+    internal_options.gpuAddressSpace = maxNBitValue(48);
+    auto aubManager = AubManager::create(internal_options);
 
-INSTANTIATE_TEST_SUITE_P(,
-                         AubManagerTests,
-                         ::testing::ValuesIn(notSupportedFamilies));
+    EXPECT_EQ(nullptr, aubManager);
+}
 
 TEST(AubManagerTest, givenSupportedProductFamilyWhenAubManagerIsCreatedThenValidPtrIsReturned) {
 
     AubManagerOptions internal_options;
-    internal_options.productFamily = gpu->productFamily;
+    internal_options.version = 1;
+    internal_options.productFamily = static_cast<uint32_t>(gpu->productFamily);
     internal_options.devicesCount = defaultDeviceCount;
     internal_options.memoryBankSize = defaultHBMSizePerDevice;
     internal_options.stepping = defaultStepping;
@@ -96,11 +93,9 @@ TEST(AubManagerImp, givenInvalidStreamModeWhenAubManagerCreateCalledThenNullptrR
     auto aubManager = AubManager::create(gpu->productFamily, 1, 32 * defaultPageSize, defaultStepping, true, std::numeric_limits<uint32_t>::max(), maxNBitValue(48));
     EXPECT_EQ(nullptr, aubManager);
 
-    aubManager = AubManager::create(gpu->productFamily, 1, 32 * defaultPageSize, defaultStepping, true, std::numeric_limits<uint32_t>::max(), maxNBitValue(48), SharedMemoryInfo{});
-    EXPECT_EQ(nullptr, aubManager);
-
     AubManagerOptions options;
-    options.productFamily = gpu->productFamily;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
     options.devicesCount = defaultDeviceCount;
     options.memoryBankSize = 32 * defaultPageSize;
     options.stepping = defaultStepping;
@@ -115,7 +110,8 @@ TEST(AubManagerImp, givenInvalidStreamModeWhenAubManagerCreateCalledThenNullptrR
 
 TEST(AubManagerImp, givenInvalidStreamModeAndExceptionsEnabledWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse) {
     AubManagerOptions options;
-    options.productFamily = gpu->productFamily;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
     options.devicesCount = defaultDeviceCount;
     options.memoryBankSize = defaultHBMSizePerDevice;
     options.stepping = defaultStepping;

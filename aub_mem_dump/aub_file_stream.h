@@ -15,7 +15,7 @@ struct AubTbxStream;
 struct AubFileStream : public AubStream {
     virtual ~AubFileStream();
 
-    bool init(int steppingValue, uint32_t device, GFXCORE_FAMILY gfxCoreFamily) override;
+    bool init(int steppingValue, uint32_t device, CoreFamily gfxCoreFamily) override;
     void addComment(const char *message) override;
 
     void declareContextForDumping(uint32_t handleDumpContext, PageTable *pageTable) override;

@@ -8,5 +8,5 @@
 #include "tests/test_traits/test_traits.h"
 
 namespace aub_stream {
-EnableTestTraits<PRODUCT_FAMILY::IGFX_GEMINILAKE> enableGlk(GLK_CONFIG);
+EnableTestTraits<ProductFamily::Glk> enableGlk(GLK_CONFIG);
 } // namespace aub_stream

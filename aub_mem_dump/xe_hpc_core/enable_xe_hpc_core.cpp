@@ -8,8 +8,9 @@
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/gpu.h"
 
+#include "product_family.h"
 namespace aub_stream {
 #ifdef SUPPORT_PVC
-static RegisterFamily<IGFX_PVC> registerFamilyPvc;
+static RegisterFamily<ProductFamily::Pvc> registerFamilyPvc;
 #endif
 } // namespace aub_stream

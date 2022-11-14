@@ -7,23 +7,24 @@
 
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/gpu.h"
+#include "product_family.h"
 
 namespace aub_stream {
 
 #ifdef SUPPORT_SKL
-static RegisterFamily<IGFX_SKYLAKE> registerFamilySkl;
+static RegisterFamily<ProductFamily::Skl> registerFamilySkl;
 #endif
 #ifdef SUPPORT_KBL
-static RegisterFamily<IGFX_KABYLAKE> registerFamilyKbl;
+static RegisterFamily<ProductFamily::Kbl> registerFamilyKbl;
 #endif
 #ifdef SUPPORT_GLK
-static RegisterFamily<IGFX_GEMINILAKE> registerFamilyGlk;
+static RegisterFamily<ProductFamily::Glk> registerFamilyGlk;
 #endif
 #ifdef SUPPORT_BXT
-static RegisterFamily<IGFX_BROXTON> registerFamilyBxt;
+static RegisterFamily<ProductFamily::Bxt> registerFamilyBxt;
 #endif
 #ifdef SUPPORT_CFL
-static RegisterFamily<IGFX_COFFEELAKE> registerFamilyCfl;
+static RegisterFamily<ProductFamily::Cfl> registerFamilyCfl;
 #endif
 
 } // namespace aub_stream

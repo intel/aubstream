@@ -7,9 +7,10 @@
 
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/gpu.h"
+#include "product_family.h"
 
 namespace aub_stream {
 #ifdef SUPPORT_ICLLP
-static RegisterFamily<IGFX_ICELAKE_LP> registerFamilyIcllp;
+static RegisterFamily<ProductFamily::Icllp> registerFamilyIcllp;
 #endif
 } // namespace aub_stream

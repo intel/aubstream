@@ -7,9 +7,10 @@
 
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/gpu.h"
+#include "product_family.h"
 
 namespace aub_stream {
 #ifdef SUPPORT_BDW
-static RegisterFamily<IGFX_BROADWELL> registerFamilyBdw;
+static RegisterFamily<ProductFamily::Bdw> registerFamilyBdw;
 #endif
 } // namespace aub_stream

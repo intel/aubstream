@@ -18,7 +18,7 @@ struct AubTbxStream : public AubStream {
 
     virtual ~AubTbxStream() = default;
 
-    bool init(int steppingValue, uint32_t device, GFXCORE_FAMILY gfxCoreFamily) override {
+    bool init(int steppingValue, uint32_t device, CoreFamily gfxCoreFamily) override {
         auto result = aubFileStream.init(steppingValue, device, gfxCoreFamily);
         result &= tbxStream.init(steppingValue, device, gfxCoreFamily);
         return result;

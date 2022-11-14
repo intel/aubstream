@@ -45,12 +45,12 @@ void TbxShmStream::dumpSurface(PageTableType gttType, const SurfaceInfo &surface
 void TbxShmStream::reserveContiguousPages(const std::vector<uint64_t> &entries) {
 }
 
-bool TbxShmStream::init(int stepping, uint32_t device, GFXCORE_FAMILY gfxCoreFamily) {
+bool TbxShmStream::init(int stepping, uint32_t device, CoreFamily gfxCoreFamily) {
     assert(0); // Shouldn't ever get here!
     return false;
 }
 
-bool TbxShmStream::init(int stepping, uint32_t device, GFXCORE_FAMILY gfxCoreFamily, SharedMemoryInfo *sharedMemoryInfo) {
+bool TbxShmStream::init(int stepping, uint32_t device, CoreFamily gfxCoreFamily, SharedMemoryInfo *sharedMemoryInfo) {
     socket = TbxSockets::create();
     assert(socket != nullptr);
 

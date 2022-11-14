@@ -53,7 +53,7 @@ std::string getAubFileName(const GpuDescriptor &desc) {
                     << "tx";
     }
 
-    auto traits = testTraits[desc.productFamily];
+    auto traits = testTraits[static_cast<uint32_t>(desc.productFamily)];
     assert(traits);
 
     strfilename << traits->deviceSliceCount

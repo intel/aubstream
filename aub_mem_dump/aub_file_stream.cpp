@@ -10,6 +10,7 @@
 
 #include "aub_file_stream.h"
 #include "aubstream/headers/aubstream.h"
+#include "gfx_core_family.h"
 
 namespace aub_stream {
 
@@ -140,9 +141,9 @@ void AubFileStream::dumpSurface(PageTableType gttType, const SurfaceInfo &surfac
     fileHandle.flush();
 }
 
-bool AubFileStream::init(int stepping, uint32_t device, GFXCORE_FAMILY gfxCoreFamily) {
-    this->dumpBinSupported = gfxCoreFamily >= GFXCORE_FAMILY::XE_HP_CORE;
-    this->dumpSurfaceSupported = gfxCoreFamily >= GFXCORE_FAMILY::XE_HP_CORE;
+bool AubFileStream::init(int stepping, uint32_t device, CoreFamily gfxCoreFamily) {
+    this->dumpBinSupported = gfxCoreFamily >= CoreFamily::XeHpCore;
+    this->dumpSurfaceSupported = gfxCoreFamily >= CoreFamily::XeHpCore;
 
     CmdServicesMemTraceVersion header = {};
 

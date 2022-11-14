@@ -8,5 +8,5 @@
 #include "tests/test_traits/test_traits.h"
 
 namespace aub_stream {
-EnableTestTraits<PRODUCT_FAMILY::IGFX_PVC> enablePvc(PVC_CONFIG);
+EnableTestTraits<ProductFamily::Pvc> enablePvc(PVC_CONFIG);
 } // namespace aub_stream

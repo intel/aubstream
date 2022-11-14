@@ -38,7 +38,7 @@ void TbxStream::dumpSurface(PageTableType gttType, const SurfaceInfo &surfaceInf
 void TbxStream::reserveContiguousPages(const std::vector<uint64_t> &entries) {
 }
 
-bool TbxStream::init(int stepping, uint32_t device, GFXCORE_FAMILY gfxCoreFamily) {
+bool TbxStream::init(int stepping, uint32_t device, CoreFamily gfxCoreFamily) {
     socket = TbxSockets::create();
     assert(socket != nullptr);
     return socket->init(tbxServerIp, tbxServerPort, tbxFrontdoorMode);

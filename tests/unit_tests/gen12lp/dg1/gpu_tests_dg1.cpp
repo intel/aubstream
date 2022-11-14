@@ -14,13 +14,13 @@
 using namespace aub_stream;
 
 TEST(Gpu, gpuDg1ReturnsCorrectDeviceId) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_DG1);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Dg1);
 
     EXPECT_EQ(0x1e, gpu->deviceId);
 }
 
 TEST(Gpu, dg1GivenOneDeviceSetMemoryBankSizeOnlyDefinesOneBank) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_DG1);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Dg1);
 
     MockAubStreamBase stream;
     EXPECT_CALL(stream, writeMMIO(0x4900, 0x00000201)).Times(1);

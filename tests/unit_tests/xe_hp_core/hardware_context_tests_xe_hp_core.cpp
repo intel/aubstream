@@ -27,7 +27,7 @@ using ::testing::_;
 using ::testing::AtLeast;
 
 TEST_F(HardwareContextTest, whenXeHpHardwareContextIsInitializedLRCAUses64KBPages) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
     MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     auto context = aubManager.createHardwareContext(0, ENGINE_RCS, 0);
 
@@ -41,7 +41,7 @@ TEST_F(HardwareContextTest, whenXeHpHardwareContextIsInitializedLRCAUses64KBPage
 }
 
 TEST_F(HardwareContextTest, whenXeHpHardwareContextIsInitializedRingBufferUses64KBPages) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
     MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     auto context = aubManager.createHardwareContext(0, ENGINE_RCS, 0);
 
@@ -55,7 +55,7 @@ TEST_F(HardwareContextTest, whenXeHpHardwareContextIsInitializedRingBufferUses64
 }
 
 TEST_F(HardwareContextTest, whenXeHpHardwareContextIsInitializedGlobalHWSPUses64KBPages) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
     MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     auto context = aubManager.createHardwareContext(0, ENGINE_RCS, 0);
     auto contextImp = static_cast<HardwareContextImp *>(context);
@@ -72,7 +72,7 @@ TEST_F(HardwareContextTest, whenXeHpHardwareContextIsInitializedGlobalHWSPUses64
 }
 
 TEST_F(HardwareContextTest, XeHpGiven4KBLocalPageWriteMemoryPromotesTo64KB) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};

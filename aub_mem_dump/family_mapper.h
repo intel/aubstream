@@ -8,39 +8,39 @@
 #pragma once
 #include "gfx_core_family.h"
 #include "aubstream/headers/engine_node.h"
-#include "product_family.h"
 #include <map>
 
 namespace aub_stream {
 
 struct CommandStreamerHelper;
 struct Gpu;
+enum class ProductFamily : uint32_t;
 
 // Table of HW family specific Gpus
-extern const Gpu *gpuCoreFamilyTable[MAX_CORE];
-extern std::map<PRODUCT_FAMILY, const Gpu *> *productFamilyTable;
+extern const Gpu *gpuCoreFamilyTable[static_cast<uint32_t>(CoreFamily::MaxCore)];
+extern std::map<ProductFamily, const Gpu *> *productFamilyTable;
 
 // Helper method to access a productFamily Gpu
-template <PRODUCT_FAMILY>
+template <ProductFamily>
 const Gpu *enableGpu();
 
 // Helper to register product families
-template <PRODUCT_FAMILY productFamily>
+template <ProductFamily productFamily>
 struct RegisterFamily {
     RegisterFamily() {
         auto gpu = enableGpu<productFamily>();
-        gpuCoreFamilyTable[gpu->gfxCoreFamily] = gpu;
+        gpuCoreFamilyTable[static_cast<uint32_t>(gpu->gfxCoreFamily)] = gpu;
         if (!productFamilyTable) {
-            productFamilyTable = new std::map<PRODUCT_FAMILY, const Gpu *>;
+            productFamilyTable = new std::map<ProductFamily, const Gpu *>;
         }
         (*productFamilyTable)[productFamily] = gpu;
     }
 };
 
 // Main accessor to get a Gpu
-const Gpu *getGpu(PRODUCT_FAMILY productFamily);
+const Gpu *getGpu(ProductFamily productFamily);
 
 // Main accessor to get a CommandStreamerHelper
-CommandStreamerHelper &getCommandStreamerHelper(PRODUCT_FAMILY productFamily, uint32_t device, EngineType engine);
+CommandStreamerHelper &getCommandStreamerHelper(ProductFamily productFamily, uint32_t device, EngineType engine);
 
 } // namespace aub_stream

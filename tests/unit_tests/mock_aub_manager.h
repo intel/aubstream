@@ -9,9 +9,6 @@
 #include "aub_mem_dump/aub_manager_imp.h"
 #include "aub_mem_dump/aub_stream.h"
 #include "aubstream/headers/aubstream.h"
-#include "gfx_core_family.h"
-#include "test_defaults.h"
-#include "gmock/gmock.h"
 
 #include <string>
 
@@ -31,7 +28,7 @@ class MockAubManager : public AubManagerImp {
     using AubManagerImp::streamTbxShm;
 
     MockAubManager(const Gpu &gpu, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping, bool localMemorySupported, uint32_t streamMode)
-        : AubManagerImp(gpu, {/* Product Family not used*/ 0, devicesCount, memoryBankSize, stepping, localMemorySupported, streamMode, gpuAddressSpace48}) {}
+        : AubManagerImp(gpu, {/* version */ 0, /* Product Family not used*/ 0, devicesCount, memoryBankSize, stepping, localMemorySupported, streamMode, gpuAddressSpace48}) {}
 };
 
 } // namespace aub_stream

@@ -22,7 +22,7 @@ struct MockPageTableMemory : PageTableMemory {
 };
 
 TEST(PageTableTestsXeHpcCore, getEntryValue) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HPC_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpcCore);
 
     uint64_t physicalAddress = 0x20000;
     MockPageTableMemory pageTable(*gpu, physicalAddress, MEMORY_BANK_0);

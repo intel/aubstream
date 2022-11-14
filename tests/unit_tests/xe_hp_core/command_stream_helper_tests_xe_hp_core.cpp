@@ -20,7 +20,7 @@
 using namespace aub_stream;
 
 TEST_F(CommandStreamerHelperTest, XeHpMemoryAlignment4KB) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == GFXCORE_FAMILY::XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
     auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
     auto pageSize = 4096u;
 
@@ -33,7 +33,7 @@ TEST_F(CommandStreamerHelperTest, XeHpMemoryAlignment4KB) {
 }
 
 TEST_F(CommandStreamerHelperTest, XeHpMemoryAlignment64KB) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == GFXCORE_FAMILY::XE_HP_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
     auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
     auto pageSize = 65536u;
 

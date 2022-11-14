@@ -122,10 +122,10 @@ struct MatchMemory {
 
 struct HwMatcher {
     static bool coreBelowGen12Core(const aub_stream::Gpu *gpu) {
-        return gpu->gfxCoreFamily < aub_stream::GFXCORE_FAMILY::GEN12_CORE;
+        return gpu->gfxCoreFamily < aub_stream::CoreFamily::Gen12lp;
     }
 
     static bool coreAboveEqualXeHp(const aub_stream::Gpu *gpu) {
-        return gpu->gfxCoreFamily >= aub_stream::GFXCORE_FAMILY::XE_HP_CORE;
+        return gpu->gfxCoreFamily >= aub_stream::CoreFamily::XeHpCore;
     }
 };

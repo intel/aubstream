@@ -22,10 +22,6 @@
 
 using namespace aub_stream;
 
-TEST_F(CommandStreamerHelperTest, UnsupportedProductFamilyEntriesInGetCommandStreamerHelperArrayAreZeroInitialized) {
-    EXPECT_EQ(nullptr, gpuCoreFamilyTable[GFXCORE_FAMILY::UNKNOWN_CORE]);
-}
-
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesLRISettingDebugMode) {
     auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
 

@@ -8,5 +8,5 @@
 #include "tests/test_traits/test_traits.h"
 
 namespace aub_stream {
-EnableTestTraits<PRODUCT_FAMILY::IGFX_SKYLAKE> enableSkl(SKL_CONFIG);
+EnableTestTraits<ProductFamily::Skl> enableSkl(SKL_CONFIG);
 } // namespace aub_stream

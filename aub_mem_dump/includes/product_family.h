@@ -40,4 +40,59 @@ enum PRODUCT_FAMILY : uint32_t {
     IGFX_MAX_PRODUCT,
 };
 
+enum class ProductFamily : uint32_t {
+    Bdw,
+    Skl,
+    Kbl,
+    Cfl,
+    Bxt,
+    Glk,
+    Icllp,
+    Tgllp,
+    Adls,
+    Adlp,
+    Adln,
+    Dg1,
+    XeHpSdv,
+    Dg2,
+    Pvc,
+    MaxProduct,
+};
+
+inline ProductFamily getProductFamilyType(PRODUCT_FAMILY gfxProductFamily) {
+    switch (gfxProductFamily) {
+    case IGFX_BROADWELL:
+        return ProductFamily::Bdw;
+    case IGFX_SKYLAKE:
+        return ProductFamily::Skl;
+    case IGFX_KABYLAKE:
+        return ProductFamily::Kbl;
+    case IGFX_COFFEELAKE:
+        return ProductFamily::Cfl;
+    case IGFX_BROXTON:
+        return ProductFamily::Bxt;
+    case IGFX_GEMINILAKE:
+        return ProductFamily::Glk;
+    case IGFX_ICELAKE_LP:
+        return ProductFamily::Icllp;
+    case IGFX_TIGERLAKE_LP:
+        return ProductFamily::Tgllp;
+    case IGFX_ALDERLAKE_S:
+        return ProductFamily::Adls;
+    case IGFX_ALDERLAKE_P:
+        return ProductFamily::Adlp;
+    case IGFX_ALDERLAKE_N:
+        return ProductFamily::Adln;
+    case IGFX_DG1:
+        return ProductFamily::Dg1;
+    case IGFX_XE_HP_SDV:
+        return ProductFamily::XeHpSdv;
+    case IGFX_DG2:
+        return ProductFamily::Dg2;
+    case IGFX_PVC:
+        return ProductFamily::Pvc;
+    default:
+        return ProductFamily::MaxProduct;
+    }
+}
 } // namespace aub_stream

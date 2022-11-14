@@ -7,11 +7,8 @@
 
 #pragma once
 #include "aub_mem_dump/aub_stream.h"
-#include "gfx_core_family.h"
 #include "aubstream/headers/engine_node.h"
 #include "aubstream/headers/allocation_params.h"
-
-#include "product_family.h"
 
 #include <array>
 #include <vector>
@@ -20,10 +17,11 @@ namespace aub_stream {
 
 struct CommandStreamerHelper;
 struct PageTable;
+enum class ProductFamily : uint32_t;
 
 struct GpuDescriptor {
-    PRODUCT_FAMILY productFamily{};
-    GFXCORE_FAMILY gfxCoreFamily{};
+    ProductFamily productFamily{};
+    CoreFamily gfxCoreFamily{};
     std::string productAbbreviation;
     uint32_t deviceId{};
     uint32_t deviceCount{};

@@ -22,9 +22,9 @@ struct TestTraits {
     uint32_t deviceEuPerSubSlice;
 };
 
-extern const TestTraits *testTraits[PRODUCT_FAMILY::IGFX_MAX_PRODUCT];
+extern const TestTraits *testTraits[static_cast<uint32_t>(ProductFamily::MaxProduct)];
 
-template <PRODUCT_FAMILY productFamily>
+template <ProductFamily productFamily>
 struct EnableTestTraits {
     EnableTestTraits() = delete;
 
@@ -33,9 +33,9 @@ struct EnableTestTraits {
                                  static_cast<uint32_t>((config >> 16) & 0xFFFF),
                                  static_cast<uint32_t>(config & 0xFFFF));
 
-        assert(!testTraits[productFamily]);
+        assert(!testTraits[static_cast<uint32_t>(productFamily)]);
 
-        testTraits[productFamily] = &traits;
+        testTraits[static_cast<uint32_t>(productFamily)] = &traits;
     }
 };
 

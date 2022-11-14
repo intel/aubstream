@@ -7,20 +7,21 @@
 
 #include "aub_mem_dump/gen8/command_streamer_helper_gen8.h"
 #include "aub_services.h"
+#include "product_family.h"
 
 namespace aub_stream {
 
 struct GpuBdw : public GpuGen8 {
     GpuBdw() {
-        productFamily = IGFX_BROADWELL;
-        gfxCoreFamily = GEN8_CORE;
+        productFamily = ProductFamily::Bdw;
+        gfxCoreFamily = CoreFamily::Gen8;
         productAbbreviation = "bdw";
         deviceId = CmdServicesMemTraceVersion::DeviceValues::Bdw;
         deviceCount = 1;
     }
 };
 template <>
-const Gpu *enableGpu<IGFX_BROADWELL>() {
+const Gpu *enableGpu<ProductFamily::Bdw>() {
     static const GpuBdw bdw;
     return &bdw;
 }

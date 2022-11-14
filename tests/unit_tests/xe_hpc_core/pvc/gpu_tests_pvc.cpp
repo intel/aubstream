@@ -15,13 +15,13 @@ using ::testing::_;
 using ::testing::AtLeast;
 
 TEST(Gpu, gpuPvcReturnsCorrectDeviceId) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_PVC);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Pvc);
 
     EXPECT_EQ(0x27, gpu->deviceId);
 }
 
 TEST(Pvc, allocatePML5) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_PVC);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Pvc);
     PhysicalAddressAllocator allocator;
     GpuPvc gpu;
 
@@ -30,7 +30,7 @@ TEST(Pvc, allocatePML5) {
 }
 
 TEST(Pvc, givenInitializeGlobalMMIOWhenPvcSteppingA0ThenWritesMmioLtcdregWithSetSleepModeDisabled) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_PVC);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Pvc);
     MockAubStream stream;
     uint32_t LTCDREG = 0x0000b120;
     uint32_t valueWithSleepModeDisabled = 0x54000002;
@@ -43,7 +43,7 @@ TEST(Pvc, givenInitializeGlobalMMIOWhenPvcSteppingA0ThenWritesMmioLtcdregWithSet
 }
 
 TEST(Pvc, givenInitializeGlobalMMIOWhenPvcSteppingNotA0ThenWritesMmioLtcdregWithoutSetSleepModeDisabled) {
-    TEST_REQUIRES(gpu->productFamily == IGFX_PVC);
+    TEST_REQUIRES(gpu->productFamily == ProductFamily::Pvc);
     MockAubStream stream;
     uint32_t LTCDREG = 0x0000b120;
     uint32_t valueWithSleepModeDisabled = 0x14000002;

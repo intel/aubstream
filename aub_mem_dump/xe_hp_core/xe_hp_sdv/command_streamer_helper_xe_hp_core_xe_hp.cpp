@@ -7,12 +7,13 @@
 
 #include "aub_mem_dump/xe_hp_core/command_streamer_helper_xe_hp_core.h"
 
+#include "product_family.h"
 namespace aub_stream {
 
 struct GpuXeHpSdv : public GpuXeHpCore {
     GpuXeHpSdv() {
-        productFamily = IGFX_XE_HP_SDV;
-        gfxCoreFamily = XE_HP_CORE;
+        productFamily = ProductFamily::XeHpSdv;
+        gfxCoreFamily = CoreFamily::XeHpCore;
         productAbbreviation = "xe_hp_sdv";
         deviceId = 0x1d;
         deviceCount = GpuXeHpCore::numSupportedDevices;
@@ -167,7 +168,7 @@ struct GpuXeHpSdv : public GpuXeHpCore {
     }
 };
 template <>
-const Gpu *enableGpu<IGFX_XE_HP_SDV>() {
+const Gpu *enableGpu<ProductFamily::XeHpSdv>() {
     static const GpuXeHpSdv xeHp;
     return &xeHp;
 }

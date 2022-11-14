@@ -21,7 +21,7 @@ using ::testing::AtLeast;
 using ::testing::Return;
 
 TEST(Gpu, givenOneDeviceWhenSetMemoryBankSizeThenOnlyDefinedOneBank) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HPG_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpgCore);
 
     MockAubStreamBase stream;
     EXPECT_CALL(stream, writeMMIO(0x4900, _)).Times(0);
@@ -35,7 +35,7 @@ TEST(Gpu, givenOneDeviceWhenSetMemoryBankSizeThenOnlyDefinedOneBank) {
 }
 
 TEST(Gpu, givenOneDeviceWhenSetGGTTBaseAddressThenIsProgrammedForOneTile) {
-    TEST_REQUIRES(gpu->gfxCoreFamily == XE_HPG_CORE);
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpgCore);
 
     MockAubStreamBase stream;
     EXPECT_CALL(stream, writeMMIO(0x108100, 0xff800000)).Times(1);
@@ -59,7 +59,7 @@ TEST(Gpu, givenOneDeviceWhenSetGGTTBaseAddressThenIsProgrammedForOneTile) {
 
 struct XeHPGCoreMatcher {
     static bool isXeHpgCore(const aub_stream::Gpu *gpu) {
-        return gpu->gfxCoreFamily == aub_stream::GFXCORE_FAMILY::XE_HPG_CORE;
+        return gpu->gfxCoreFamily == aub_stream::CoreFamily::XeHpgCore;
     }
 };
 

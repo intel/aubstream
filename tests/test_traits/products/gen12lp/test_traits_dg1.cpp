@@ -8,5 +8,5 @@
 #include "tests/test_traits/test_traits.h"
 
 namespace aub_stream {
-EnableTestTraits<PRODUCT_FAMILY::IGFX_DG1> enableDg1(DG1_CONFIG);
+EnableTestTraits<ProductFamily::Dg1> enableDg1(DG1_CONFIG);
 } // namespace aub_stream
