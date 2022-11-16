@@ -7,6 +7,7 @@
 
 #pragma once
 #include <cstdint>
+#include "aubstream/headers/product_family.h"
 
 namespace aub_stream {
 
@@ -38,25 +39,6 @@ enum PRODUCT_FAMILY : uint32_t {
     IGFX_DG2 = 1270,
     IGFX_PVC = 1271,
     IGFX_MAX_PRODUCT,
-};
-
-enum class ProductFamily : uint32_t {
-    Bdw,
-    Skl,
-    Kbl,
-    Cfl,
-    Bxt,
-    Glk,
-    Icllp,
-    Tgllp,
-    Adls,
-    Adlp,
-    Adln,
-    Dg1,
-    XeHpSdv,
-    Dg2,
-    Pvc,
-    MaxProduct,
 };
 
 inline ProductFamily getProductFamilyType(PRODUCT_FAMILY gfxProductFamily) {

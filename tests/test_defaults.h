@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <string>
 #include "gfx_core_family.h"
-#include "product_family.h"
+#include "aubstream/headers/product_family.h"
 #include "aub_mem_dump/gpu.h"
 
 namespace aub_stream {

@@ -7,7 +7,7 @@
 
 #include "aub_mem_dump/gen9/command_streamer_helper_gen9.h"
 #include "aub_services.h"
-#include "product_family.h"
+#include "aubstream/headers/product_family.h"
 
 namespace aub_stream {
 

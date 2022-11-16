@@ -8,7 +8,7 @@
 #pragma once
 #include "aub_mem_dump/xe_hpc_core/command_streamer_helper_xe_hpc_core.h"
 
-#include "product_family.h"
+#include "aubstream/headers/product_family.h"
 
 namespace aub_stream {
 

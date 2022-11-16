@@ -7,7 +7,7 @@
 
 #include "aub_mem_dump/gen12lp/command_streamer_helper_gen12lp.h"
 
-#include "product_family.h"
+#include "aubstream/headers/product_family.h"
 namespace aub_stream {
 
 struct GpuDg1 : public GpuGen12LP {

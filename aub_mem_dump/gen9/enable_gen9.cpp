@@ -7,7 +7,7 @@
 
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/gpu.h"
-#include "product_family.h"
+#include "aubstream/headers/product_family.h"
 
 namespace aub_stream {
 
