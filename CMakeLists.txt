@@ -146,14 +146,14 @@ endif()
 
 set(SOURCES
     ${SOURCES}
-    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/allocation_params.h
-    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/aub_manager.h
-    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/aubstream.h
-    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/engine_node.h
-    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/hardware_context.h
-    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/page_info.h
-    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/shared_mem_info.h
-    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/headers/physical_allocation_info.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/allocation_params.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/aub_manager.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/aubstream.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/engine_node.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/hardware_context.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/page_info.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/shared_mem_info.h
+    ${INTERFACE_HEADERS_DIRECTORY}/aubstream/physical_allocation_info.h
     ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
 )
 

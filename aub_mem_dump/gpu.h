@@ -7,8 +7,8 @@
 
 #pragma once
 #include "aub_mem_dump/aub_stream.h"
-#include "aubstream/headers/engine_node.h"
-#include "aubstream/headers/allocation_params.h"
+#include "aubstream/engine_node.h"
+#include "aubstream/allocation_params.h"
 
 #include <array>
 #include <vector>

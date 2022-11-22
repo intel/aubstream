@@ -7,7 +7,7 @@
 
 #pragma once
 #include "gfx_core_family.h"
-#include "aubstream/headers/engine_node.h"
+#include "aubstream/engine_node.h"
 #include <map>
 
 namespace aub_stream {

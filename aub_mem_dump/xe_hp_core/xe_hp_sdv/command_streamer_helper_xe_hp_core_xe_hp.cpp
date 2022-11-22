@@ -7,7 +7,7 @@
 
 #include "aub_mem_dump/xe_hp_core/command_streamer_helper_xe_hp_core.h"
 
-#include "aubstream/headers/product_family.h"
+#include "aubstream/product_family.h"
 namespace aub_stream {
 
 struct GpuXeHpSdv : public GpuXeHpCore {

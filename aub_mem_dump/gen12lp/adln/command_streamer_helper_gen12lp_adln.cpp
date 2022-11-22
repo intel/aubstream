@@ -5,7 +5,7 @@
  *
  */
 
-#include "aubstream/headers/product_family.h"
+#include "aubstream/product_family.h"
 #include "aub_mem_dump/gen12lp/command_streamer_helper_gen12lp.h"
 
 namespace aub_stream {

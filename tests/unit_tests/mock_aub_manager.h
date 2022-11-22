@@ -8,7 +8,7 @@
 #pragma once
 #include "aub_mem_dump/aub_manager_imp.h"
 #include "aub_mem_dump/aub_stream.h"
-#include "aubstream/headers/aubstream.h"
+#include "aubstream/aubstream.h"
 
 #include <string>
 

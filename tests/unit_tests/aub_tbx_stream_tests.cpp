@@ -7,7 +7,7 @@
 
 #include "aub_mem_dump/aub_tbx_stream.h"
 #include "aub_services.h"
-#include "aubstream/headers/aubstream.h"
+#include "aubstream/aubstream.h"
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
 

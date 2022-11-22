@@ -7,7 +7,7 @@
 
 #include "aub_mem_dump/gpu.h"
 #include "gfx_core_family.h"
-#include "aubstream/headers/product_family.h"
+#include "aubstream/product_family.h"
 #include <string>
 
 using namespace aub_stream;

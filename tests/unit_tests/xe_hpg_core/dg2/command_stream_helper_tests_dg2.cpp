@@ -10,7 +10,7 @@
 #include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/memory_banks.h"
 
-#include "aubstream/headers/engine_node.h"
+#include "aubstream/engine_node.h"
 #include "tests/unit_tests/command_stream_helper_tests.h"
 
 #include "test_defaults.h"

@@ -12,8 +12,8 @@
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/tbx_stream.h"
-#include "aubstream/headers/aubstream.h"
-#include "aubstream/headers/hardware_context.h"
+#include "aubstream/aubstream.h"
+#include "aubstream/hardware_context.h"
 
 #include "test_defaults.h"
 #include "tests/unit_tests/mock_aub_manager.h"

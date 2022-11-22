@@ -12,7 +12,7 @@
 #include <vector>
 #include "physical_address_allocator.h"
 #include "page_table_entry_bits.h"
-#include "aubstream/headers/allocation_params.h"
+#include "aubstream/allocation_params.h"
 
 namespace aub_stream {
 

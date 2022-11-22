@@ -12,8 +12,8 @@
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/page_table_walker.h"
 #include "aub_services.h"
-#include "aubstream/headers/aubstream.h"
-#include "aubstream/headers/allocation_params.h"
+#include "aubstream/aubstream.h"
+#include "aubstream/allocation_params.h"
 
 namespace aub_stream {
 using MMIOPair = std::pair<uint32_t, uint32_t>;

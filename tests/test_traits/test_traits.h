@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "aubstream/headers/product_family.h"
+#include "aubstream/product_family.h"
 #include <cassert>
 
 namespace aub_stream {
