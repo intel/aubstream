@@ -10,7 +10,5 @@
 #include "aubstream/product_family.h"
 
 namespace aub_stream {
-#ifdef SUPPORT_XE_HP_SDV
 static RegisterFamily<ProductFamily::XeHpSdv> registerFamilyXeHp;
-#endif
 } // namespace aub_stream
