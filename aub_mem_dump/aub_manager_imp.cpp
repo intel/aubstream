@@ -24,11 +24,8 @@
 #include <cassert>
 #include <exception>
 #include <stdexcept>
-#include "product_family.h"
 
 namespace aub_stream {
-
-extern CommandStreamerHelper &getCommandStreamerHelper(uint32_t gfxFamily, uint32_t device, EngineType engine);
 
 AubManagerImp::AubManagerImp(const Gpu &gpu, const struct AubManagerOptions &options)
     : gpu(gpu), devicesCount(options.devicesCount), localMemorySupported(options.localMemorySupported), stepping(options.stepping),
@@ -274,36 +271,9 @@ AubStream *AubManagerImp::getStream() {
     return stream;
 }
 
-AubManager *AubManager::create(uint32_t productFamily, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping, bool localMemorySupported, uint32_t mode, uint64_t gpuAddressSpace) {
-    return AubManager::create(getProductFamilyType(static_cast<PRODUCT_FAMILY>(productFamily)), devicesCount, memoryBankSize, stepping, localMemorySupported, mode, gpuAddressSpace);
-}
-
-AubManager *AubManager::create(ProductFamily productFamily, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping, bool localMemorySupported, uint32_t mode, uint64_t gpuAddressSpace) {
-    auto gpu = getGpu(productFamily);
-    if (nullptr != gpu) {
-        AubManagerOptions internal_options{};
-        internal_options.version = 1;
-        internal_options.productFamily = static_cast<uint32_t>(productFamily);
-        internal_options.devicesCount = devicesCount;
-        internal_options.memoryBankSize = memoryBankSize;
-        internal_options.stepping = stepping;
-        internal_options.localMemorySupported = localMemorySupported;
-        internal_options.mode = mode;
-        internal_options.gpuAddressSpace = gpuAddressSpace;
-        auto aubManager = new AubManagerImp(*gpu, internal_options);
-        if (aubManager->isInitialized()) {
-            return aubManager;
-        }
-        delete aubManager;
-    }
-    return nullptr;
-}
-
 AubManager *AubManager::create(const struct AubManagerOptions &options) {
     const Gpu *gpu = nullptr;
-    if (options.version == 0) {
-        gpu = getGpu(getProductFamilyType(static_cast<PRODUCT_FAMILY>(options.productFamily)));
-    } else if (options.version == 1) {
+    if (options.version == 1) {
         gpu = getGpu(static_cast<ProductFamily>(options.productFamily));
     }
     if (nullptr != gpu) {
