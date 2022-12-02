@@ -5,10 +5,10 @@
  *
  */
 
-#include "aub_mem_dump/xe_hpc_core/pvc/command_streamer_helper_xe_hpc_core_pvc.h"
 #include "test_defaults.h"
 #include "unit_tests/mock_aub_stream.h"
 #include "test.h"
+#include "aub_mem_dump/memory_banks.h"
 
 using namespace aub_stream;
 using ::testing::_;
@@ -23,9 +23,8 @@ TEST(Gpu, gpuPvcReturnsCorrectDeviceId) {
 TEST(Pvc, allocatePML5) {
     TEST_REQUIRES(gpu->productFamily == ProductFamily::Pvc);
     PhysicalAddressAllocator allocator;
-    GpuPvc gpu;
 
-    auto ppgtt = std::unique_ptr<PageTable>(gpu.allocatePPGTT(&allocator, MEMORY_BANK_0, maxNBitValue(57)));
+    auto ppgtt = std::unique_ptr<PageTable>(gpu->allocatePPGTT(&allocator, MEMORY_BANK_0, maxNBitValue(57)));
     EXPECT_EQ(57u, ppgtt->getNumAddressBits());
 }
 
