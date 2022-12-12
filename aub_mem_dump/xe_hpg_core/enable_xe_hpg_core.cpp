@@ -10,6 +10,9 @@
 #include "aubstream/product_family.h"
 
 namespace aub_stream {
+#ifdef SUPPORT_MTL
+static RegisterFamily<ProductFamily::Mtl> registerFamilyMtl;
+#endif
 #ifdef SUPPORT_DG2
 static RegisterFamily<ProductFamily::Dg2> registerFamilyDg2;
 #endif
