@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -194,7 +194,7 @@ void CommandStreamerHelper::initializeEngineMMIO(AubStream &stream) const {
 void CommandStreamerHelper::pollForCompletion(AubStream &stream) const {
     bool pollNotEqual = false;
     stream.registerPoll(
-        mmioEngine + 0x2234, //EXECLIST_STATUS
+        mmioEngine + 0x2234, // EXECLIST_STATUS
         getPollForCompletionMask(),
         getPollForCompletionMask(),
         pollNotEqual,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -568,7 +568,7 @@ TEST(PageTable, PageTableStorageResizedOnSetChildCallInsteadOfConstructor) {
     EXPECT_EQ(0u, pageTable.table.size());
     auto child = pageTable.getChild(2u);
     EXPECT_EQ(nullptr, child);
-    //now set child to resize the storage.
+    // now set child to resize the storage.
     pageTable.setChild(2u, nullptr);
     EXPECT_EQ(3u, pageTable.table.size());
 }

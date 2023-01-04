@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -172,16 +172,16 @@ struct HAS_WRITE_DATA_REQ {
 };
 
 /**
-*  Extended version of HAS_WRITE_DATA_REQ
-*/
+ *  Extended version of HAS_WRITE_DATA_REQ
+ */
 struct HAS_WRITE_DATA_EXT_REQ {
     /**
-   * Original format of HAS_WRITE_DATA_REQ.
-   */
+     * Original format of HAS_WRITE_DATA_REQ.
+     */
     struct HAS_WRITE_DATA_REQ write_req;
     /**
-   * MSB bits of address.
-   */
+     * MSB bits of address.
+     */
     uint32_t address_h;
 
     enum {
@@ -213,12 +213,12 @@ struct HAS_READ_DATA_REQ {
  */
 struct HAS_READ_DATA_EXT_REQ {
     /**
-   * Original format of HAS_READ_DATA_REQ.
-   */
+     * Original format of HAS_READ_DATA_REQ.
+     */
     struct HAS_READ_DATA_REQ read_req;
     /**
-   * MSB bits of address.
-   */
+     * MSB bits of address.
+     */
     uint32_t address_h;
 
     enum {

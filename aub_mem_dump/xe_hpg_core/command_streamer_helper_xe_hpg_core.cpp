@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -12,10 +12,10 @@ namespace aub_stream {
 template <>
 const MMIOList CommandStreamerHelperXeHpgCore<CommandStreamerHelperRcs>::getEngineMMIO() const {
     const MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x00002058, 0x00000000), //CTX_WA_PTR_RCSUNIT
-        MMIOPair(mmioEngine + 0x000020a8, 0x00000000), //IMR
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
-        MMIOPair(mmioEngine + 0x0000209C, 0x10000000), //MI_MODE
+        MMIOPair(mmioEngine + 0x00002058, 0x00000000), // CTX_WA_PTR_RCSUNIT
+        MMIOPair(mmioEngine + 0x000020a8, 0x00000000), // IMR
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
+        MMIOPair(mmioEngine + 0x0000209C, 0x10000000), // MI_MODE
 
         // FORCE_TO_NONPRIV
         MMIOPair(mmioEngine + 0x000024d0, 0x40002580),
@@ -39,7 +39,7 @@ const MMIOList CommandStreamerHelperXeHpgCore<CommandStreamerHelperRcs>::getEngi
 template <>
 const MMIOList CommandStreamerHelperXeHpgCore<CommandStreamerHelperBcs>::getEngineMMIO() const {
     const MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
     };
 
     return engineMMIO;
@@ -48,7 +48,7 @@ const MMIOList CommandStreamerHelperXeHpgCore<CommandStreamerHelperBcs>::getEngi
 template <>
 const MMIOList CommandStreamerHelperXeHpgCore<CommandStreamerHelperVcs>::getEngineMMIO() const {
     const MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
 
         MMIOPair(mmioEngine + 0x000024d0, 0x103860e8),
         MMIOPair(mmioEngine + 0x000024d4, 0x10386260),
@@ -80,7 +80,7 @@ const MMIOList CommandStreamerHelperXeHpgCore<CommandStreamerHelperVcs>::getEngi
 template <>
 const MMIOList CommandStreamerHelperXeHpgCore<CommandStreamerHelperVecs>::getEngineMMIO() const {
     const MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
 
         MMIOPair(mmioEngine + 0x000024d0, 0x103860e8),
         MMIOPair(mmioEngine + 0x000024d4, 0x10386260),
@@ -110,8 +110,8 @@ const MMIOList CommandStreamerHelperXeHpgCore<CommandStreamerHelperVecs>::getEng
 template <>
 const MMIOList CommandStreamerHelperXeHpgCore<CommandStreamerHelperCcs>::getEngineMMIO() const {
     const MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
-        MMIOPair(mmioEngine + 0x0000209C, 0x10000000), //MI_MODE
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
+        MMIOPair(mmioEngine + 0x0000209C, 0x10000000), // MI_MODE
 
         // FORCE_TO_NONPRIV
         // No CCS passlists in driver currently...

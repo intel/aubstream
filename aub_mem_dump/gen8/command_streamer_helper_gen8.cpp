@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -22,7 +22,7 @@ const MMIOList CommandStreamerHelperGen8<CommandStreamerHelperRcs>::getEngineMMI
 template <>
 const MMIOList CommandStreamerHelperGen8<CommandStreamerHelperBcs>::getEngineMMIO() const {
     MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
     };
 
     return engineMMIO;
@@ -31,7 +31,7 @@ const MMIOList CommandStreamerHelperGen8<CommandStreamerHelperBcs>::getEngineMMI
 template <>
 const MMIOList CommandStreamerHelperGen8<CommandStreamerHelperVcs>::getEngineMMIO() const {
     MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
     };
 
     return engineMMIO;
@@ -40,7 +40,7 @@ const MMIOList CommandStreamerHelperGen8<CommandStreamerHelperVcs>::getEngineMMI
 template <>
 const MMIOList CommandStreamerHelperGen8<CommandStreamerHelperVecs>::getEngineMMIO() const {
     MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
     };
 
     return engineMMIO;

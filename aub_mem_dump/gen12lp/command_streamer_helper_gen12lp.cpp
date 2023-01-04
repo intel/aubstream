@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -12,9 +12,9 @@ namespace aub_stream {
 template <>
 const MMIOList CommandStreamerHelperGen12LP<CommandStreamerHelperRcs>::getEngineMMIO() const {
     const MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x00002058, 0x00000000), //CTX_WA_PTR_RCSUNIT
-        MMIOPair(mmioEngine + 0x000020a8, 0x00000000), //IMR
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
+        MMIOPair(mmioEngine + 0x00002058, 0x00000000), // CTX_WA_PTR_RCSUNIT
+        MMIOPair(mmioEngine + 0x000020a8, 0x00000000), // IMR
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
 
         // FORCE_TO_NONPRIV
         MMIOPair(mmioEngine + 0x000024d0, 0x00007014),
@@ -46,7 +46,7 @@ const MMIOList CommandStreamerHelperGen12LP<CommandStreamerHelperRcs>::getEngine
 template <>
 const MMIOList CommandStreamerHelperGen12LP<CommandStreamerHelperBcs>::getEngineMMIO() const {
     const MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
     };
 
     return engineMMIO;
@@ -55,7 +55,7 @@ const MMIOList CommandStreamerHelperGen12LP<CommandStreamerHelperBcs>::getEngine
 template <>
 const MMIOList CommandStreamerHelperGen12LP<CommandStreamerHelperVcs>::getEngineMMIO() const {
     MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
 
         // FORCE_TO_NONPRIV
         MMIOPair(mmioEngine + 0x000024d0, 0x100320e8),
@@ -86,7 +86,7 @@ const MMIOList CommandStreamerHelperGen12LP<CommandStreamerHelperVcs>::getEngine
 template <>
 const MMIOList CommandStreamerHelperGen12LP<CommandStreamerHelperVecs>::getEngineMMIO() const {
     MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
 
         // FORCE_TO_NONPRIV
         MMIOPair(mmioEngine + 0x000024d0, 0x100320e8),
@@ -117,7 +117,7 @@ const MMIOList CommandStreamerHelperGen12LP<CommandStreamerHelperVecs>::getEngin
 template <>
 const MMIOList CommandStreamerHelperGen12LP<CommandStreamerHelperCcs>::getEngineMMIO() const {
     MMIOList engineMMIO = {
-        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), //GFX_MODE
+        MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
 
         // FORCE_TO_NONPRIV
         MMIOPair(mmioEngine + 0x000024d0, 0x0001a0c8),

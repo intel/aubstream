@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -202,8 +202,8 @@ bool TbxSocketsImp::connectToServer(const std::string &hostNameOrIp, uint16_t po
 }
 
 bool TbxSocketsImp::checkServerConfig(bool frontdoor) {
-    //note: we can use INNER_VAR message to check specific server configuration parameters,
-    //e.g. support for frontdoor read/writes requests and *_EXT messages with 64b physical address
+    // note: we can use INNER_VAR message to check specific server configuration parameters,
+    // e.g. support for frontdoor read/writes requests and *_EXT messages with 64b physical address
 
     if (frontdoor) {
         // read LMEMBAR value
@@ -211,12 +211,12 @@ bool TbxSocketsImp::checkServerConfig(bool frontdoor) {
         constexpr uint64_t LMEMBAR_MASK = 0xfffffffff0000000;
         uint32_t dataLo = 0, dataHi = 0;
 
-        readPCICFG(0, 2, 0, 0x18, &dataLo); //default BDF (0/2/0)
+        readPCICFG(0, 2, 0, 0x18, &dataLo); // default BDF (0/2/0)
         readPCICFG(0, 2, 0, 0x1C, &dataHi);
 
         this->lmembar = ((static_cast<uint64_t>(dataHi) << 32) | dataLo) & LMEMBAR_MASK;
         if (this->lmembar == 0) {
-            this->lmembar = LMEMBAR_DFLT; //default LMEMBAR
+            this->lmembar = LMEMBAR_DFLT; // default LMEMBAR
         }
 
         this->frontdoorMode = true;

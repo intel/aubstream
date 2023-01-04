@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -96,7 +96,7 @@ TEST(PageTableTestsMtl, givenPageTableInSystemMemoryWhenCallingGetEntryValueThen
     uint64_t physicalAddress = 0x20000;
     MockPageTableMemory pageTable(*gpu, physicalAddress, MEMORY_BANK_SYSTEM);
 
-    //cached
+    // cached
     {
         AllocationParams::AdditionalParams params = {};
         params.uncached = false;
@@ -110,7 +110,7 @@ TEST(PageTableTestsMtl, givenPageTableInSystemMemoryWhenCallingGetEntryValueThen
         EXPECT_EQ(expectedExtraBits | expectedBaseBits, pageTable.getEntryValue());
     }
 
-    //uncached
+    // uncached
     {
         AllocationParams::AdditionalParams params = {};
         params.uncached = true;

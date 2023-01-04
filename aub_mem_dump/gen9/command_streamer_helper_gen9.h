@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -43,7 +43,7 @@ struct GpuGen9 : public Gpu {
 
     const MMIOList getGlobalMMIO() const override {
         const MMIOList globalMMIO = {
-            //GFX_MOCS_0 - GFX_MOCS_11
+            // GFX_MOCS_0 - GFX_MOCS_11
             MMIOPair(0x0000C800, 0x00000009),
             MMIOPair(0x0000C804, 0x00000038),
             MMIOPair(0x0000C808, 0x0000003B),

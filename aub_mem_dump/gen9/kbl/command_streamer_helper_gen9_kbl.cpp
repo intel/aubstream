@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -20,7 +20,7 @@ struct GpuKbl : public GpuGen9 {
         deviceCount = 1;
     }
     bool isMemorySupported(uint32_t memoryBanks, uint32_t alignment) const override {
-        //Kabylake page walks seems to be broken when using 64KB pages , so we are limiting it to 4K pages
+        // Kabylake page walks seems to be broken when using 64KB pages , so we are limiting it to 4K pages
         return memoryBanks == MEMORY_BANK_SYSTEM && (alignment == 4096);
     }
 };

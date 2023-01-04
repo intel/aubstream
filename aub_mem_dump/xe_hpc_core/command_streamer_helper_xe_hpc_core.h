@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -24,8 +24,8 @@ struct GpuXeHpcCore : public GpuXeHpCore {
     static const uint32_t numSupportedDevices = 4;
     static constexpr uint64_t patIndexBit0 = toBitValue(3);
     static constexpr uint64_t patIndexBit1 = toBitValue(4);
-    static constexpr uint64_t patIndex0 = 0;                           //0b0000
-    static constexpr uint64_t patIndex3 = patIndexBit0 | patIndexBit1; //0b0011
+    static constexpr uint64_t patIndex0 = 0;                           // 0b0000
+    static constexpr uint64_t patIndex3 = patIndexBit0 | patIndexBit1; // 0b0011
 
     CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const override;
 
