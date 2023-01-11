@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -9,12 +9,22 @@
 #include "aubstream/hardware_context.h"
 #include "page_table.h"
 #include <type_traits>
+#include <array>
 
 namespace aub_stream {
 struct AubStream;
 struct CommandStreamerHelper;
+struct HardwareContextImp;
+
+struct GroupContextHelper {
+    uint32_t contextGroupCounter = 0;
+    std::array<HardwareContextImp *, 8> contexts = {};
+};
 
 struct HardwareContextImp : public HardwareContext {
+
+    uint32_t contextGroupId = -1;
+
     HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggtt, PageTable &ppgtt, uint32_t flags);
 
     ~HardwareContextImp() override;
@@ -53,6 +63,9 @@ struct HardwareContextImp : public HardwareContext {
     uint32_t contextFenceValue;
     static uint32_t globalContextId;
     uint32_t contextId{globalContextId++};
+
+    // Per device, per Engine (engine offset)
+    static GroupContextHelper contextGroups[4][EngineType::NUM_ENGINES];
 };
 
 } // namespace aub_stream

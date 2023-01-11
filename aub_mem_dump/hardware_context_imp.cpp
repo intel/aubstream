@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -15,6 +15,7 @@
 namespace aub_stream {
 
 uint32_t HardwareContextImp::globalContextId = 0;
+GroupContextHelper HardwareContextImp::contextGroups[4][EngineType::NUM_ENGINES];
 
 HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggttIN, PageTable &ppgttIN, uint32_t flags)
     : stream(aubStream),
@@ -31,6 +32,20 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
       flags(flags),
       ggttContextFence(0),
       contextFenceValue(0) {
+
+    constexpr uint32_t contextGroupBit = (1 << 15);
+
+    if (flags & contextGroupBit) {
+        auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
+
+        assert(groupContextHelper.contextGroupCounter < 8);
+
+        this->contextGroupId = groupContextHelper.contextGroupCounter;
+
+        groupContextHelper.contextGroupCounter++;
+
+        this->flags = flags & (~contextGroupBit); // unset
+    }
 }
 
 HardwareContextImp::~HardwareContextImp() {
@@ -92,7 +107,7 @@ void HardwareContextImp::initialize() {
     auto sizeLRCA = csTraits.sizeLRCA;
 
     pLRCA = new uint8_t[sizeLRCA];
-    csTraits.initialize(pLRCA, &ppgtt, flags);
+    csTraits.initialize(pLRCA, &ppgtt, flags, this->contextGroupId != -1);
     csTraits.setRingHead(pLRCA, 0x0000);
     csTraits.setRingTail(pLRCA, 0x0000);
     csTraits.setRingBase(pLRCA, ggttRing);
@@ -110,6 +125,14 @@ void HardwareContextImp::initialize() {
         pageSize);
 
     stream.declareContextForDumping(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this)), &ppgtt);
+
+    if (this->contextGroupId != -1) {
+        auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
+
+        assert(groupContextHelper.contexts[this->contextGroupId] == nullptr);
+
+        groupContextHelper.contexts[this->contextGroupId] = this;
+    }
 }
 
 void HardwareContextImp::release() {
@@ -156,7 +179,7 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
     // Submit a batch buffer
     std::vector<uint32_t> ringCommands;
 
-    csTraits.addBatchBufferJump(ringCommands, gfxAddress);
+    csTraits.addBatchBufferJump(ringCommands, gfxAddress, this->contextGroupId != -1);
     csTraits.addFlushCommands(ringCommands);
     csTraits.storeFenceValue(ringCommands, ggttContextFence, contextFenceValue);
 
@@ -223,7 +246,13 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
         DataTypeHintValues::TraceNotype,
         pageSize);
 
-    csTraits.submit(stream, ggttLRCA, ppgtt.getNumAddressBits() != 32, contextId);
+    if (this->contextGroupId != -1) {
+        auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
+
+        csTraits.submit(stream, groupContextHelper.contexts, ppgtt.getNumAddressBits() != 32);
+    } else {
+        csTraits.submit(stream, ggttLRCA, ppgtt.getNumAddressBits() != 32, contextId);
+    }
 }
 
 void HardwareContextImp::writeMemory2(AllocationParams allocationParams) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -20,9 +20,11 @@ template <typename Helper>
 struct CommandStreamerHelperXeHpgCore : public Helper {
     using Helper::Helper;
 
-    void submitContext(AubStream &stream, MiContextDescriptorReg &contextDescriptor) const override {
-        stream.writeMMIO(mmioEngine + 0x2510, contextDescriptor.ulData[0]);
-        stream.writeMMIO(mmioEngine + 0x2514, contextDescriptor.ulData[1]);
+    void submitContext(AubStream &stream, std::array<MiContextDescriptorReg, 8> &contextDescriptor) const override {
+        for (uint32_t i = 0; i < 8; i++) {
+            stream.writeMMIO(mmioEngine + 0x2510 + (i * 8), contextDescriptor[i].ulData[0]);
+            stream.writeMMIO(mmioEngine + 0x2514 + (i * 8), contextDescriptor[i].ulData[1]);
+        }
 
         // Load our new exec list
         stream.writeMMIO(mmioEngine + 0x2550, 1);

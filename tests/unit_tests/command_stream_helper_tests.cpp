@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -29,7 +29,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
     PhysicalAddressAllocator allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
 
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x20d8, 0x00200020));
 }
@@ -41,9 +41,21 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
     PhysicalAddressAllocator allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
 
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2244, 0x00090009));
+}
+
+TEST_F(CommandStreamerHelperTest, givenGroupContextWhenCommandStreamHelperIsInitializedThenLRCAIncludesContextFlags) {
+    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+
+    auto sizeLRCA = rcs.sizeLRCA;
+    auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
+    PhysicalAddressAllocator allocator;
+    PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, true);
+
+    EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2244, 0x00090001));
 }
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedWithFlagsThenLRCAIncludesContextSRWithSpecidfiedFlags) {
@@ -54,7 +66,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedWithFlagsT
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
     PhysicalAddressAllocator allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, additionalFlags);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, additionalFlags, false);
 
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2244, (0x00090009 | additionalFlags)));
 }
@@ -66,7 +78,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
 
     auto physAddress = pageTable.getChild(0)->getPhysicalAddress();
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2270, uint32_t(physAddress)));
@@ -96,7 +108,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
 
     EXPECT_FALSE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2270, 0x00000000)); // Expecting false, we just want to make sure a 0 physical address is not used
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2274, 0x00000000));
@@ -366,7 +378,7 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, CheckBatchBufferStart) {
 
     std::vector<uint32_t> testRingBuffer{};
     const uint64_t bufferAddress = 0x0badc0fedeadbeefull;
-    cs.addBatchBufferJump(testRingBuffer, bufferAddress);
+    cs.addBatchBufferJump(testRingBuffer, bufferAddress, false);
 
     size_t sizeOfCommands = 0;
     // Verify the LRI
@@ -382,6 +394,29 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, CheckBatchBufferStart) {
     // Finally make sure that we don't have any more commands
     // which the test doesn't know about
     EXPECT_EQ(sizeOfCommands, testRingBuffer.size());
+}
+
+TEST_P(CommandStreamerHelperVerifyEngineMmioTest, givenGroupContextWhenAddingBbStartThenSetCorrectFlags) {
+    auto device = std::get<0>(GetParam());
+    auto engine = std::get<1>(GetParam()).first;
+    TEST_REQUIRES(device < gpu->deviceCount);
+    TEST_REQUIRES(gpu->isEngineSupported(engine));
+
+    auto deviceBase = device * 16 * MB;
+    auto csBase = std::get<1>(GetParam()).second + 0x2000;
+    auto mmioBase = deviceBase + csBase;
+    auto &cs = getCommandStreamerHelper(gpu->productFamily, device, engine);
+
+    std::vector<uint32_t> testRingBuffer{};
+    const uint64_t bufferAddress = 0x0badc0fedeadbeefull;
+    cs.addBatchBufferJump(testRingBuffer, bufferAddress, true);
+
+    size_t sizeOfCommands = 0;
+    // Verify the LRI
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x11000001);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], mmioBase + 0x244);
+    // Inhibit synchronous context switch
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x00090000);
 }
 
 INSTANTIATE_TEST_SUITE_P(VerifyMMIO,

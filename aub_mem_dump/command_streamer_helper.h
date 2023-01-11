@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -9,6 +9,7 @@
 #include "aub_mem_dump/aub_stream.h"
 #include "aub_mem_dump/page_table.h"
 #include "aub_services.h"
+#include "aubstream/engine_node.h"
 #include <cstdint>
 #include <vector>
 
@@ -16,6 +17,7 @@ namespace aub_stream {
 
 struct AubStream;
 struct Gpu;
+struct HardwareContextImp;
 
 union MiContextDescriptorReg {
     struct {
@@ -64,17 +66,20 @@ struct CommandStreamerHelper {
         mmioDevice = deviceIndex * 0x1000000;
         mmioEngine = mmioDevice + offsetEngine;
     }
+    std::string name = "XCS";
+
+    const Gpu *gpu = nullptr;
+    size_t sizeLRCA = 0x2000;
 
     int aubHintLRCA = DataTypeHintValues::TraceNotype;
     int aubHintCommandBuffer = DataTypeHintValues::TraceCommandBuffer;
     int aubHintBatchBuffer = DataTypeHintValues::TraceBatchBuffer;
 
-    const Gpu *gpu = nullptr;
-    std::string name = "XCS";
+    EngineType engineType = EngineType::NUM_ENGINES;
+
     uint32_t mmioDevice = 0;
     uint32_t mmioEngine = 0;
 
-    size_t sizeLRCA = 0x2000;
     uint32_t alignLRCA = 0x1000;
     uint32_t offsetContext = 0x1000;
 
@@ -103,7 +108,7 @@ struct CommandStreamerHelper {
     uint32_t offsetPDP2 = 0x4 * sizeof(uint32_t);
     uint32_t offsetPDP3 = 0x0 * sizeof(uint32_t);
 
-    void initialize(void *pLRCIn, PageTable *ppgtt, uint32_t flags) const;
+    void initialize(void *pLRCIn, PageTable *ppgtt, uint32_t flags, bool isGroupContext) const;
     bool isMemorySupported(uint32_t memoryBank, uint32_t alignment) const;
     void setRingHead(void *pLRCIn, uint32_t ringHead) const;
     void setRingTail(void *pLRCIn, uint32_t ringTail) const;
@@ -118,17 +123,18 @@ struct CommandStreamerHelper {
     void setPML(void *pLRCIn, uint64_t address) const;
 
     virtual void submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId) const;
+    void submit(AubStream &stream, const std::array<HardwareContextImp *, 8> &hwContexts, bool is48Bits) const;
     virtual const uint32_t getPollForCompletionMask() const { return 0x00000100; }
     void pollForCompletion(AubStream &stream) const;
     void initializeEngineMMIO(AubStream &stream) const;
     virtual const MMIOList getEngineMMIO() const = 0;
 
-    virtual void addBatchBufferJump(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress) const;
+    virtual void addBatchBufferJump(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, bool isGroupContext) const;
     virtual void addFlushCommands(std::vector<uint32_t> &ringBuffer) const = 0;
     virtual void storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const;
 
   protected:
-    virtual void submitContext(AubStream &stream, MiContextDescriptorReg &contextDescriptor) const = 0;
+    virtual void submitContext(AubStream &stream, std::array<MiContextDescriptorReg, 8> &contextDescriptor) const = 0;
 };
 
 struct CommandStreamerHelperRcs : public CommandStreamerHelper {
@@ -138,6 +144,8 @@ struct CommandStreamerHelperRcs : public CommandStreamerHelper {
         aubHintBatchBuffer = DataTypeHintValues::TraceBatchBufferPrimary;
         sizeLRCA = 0x11000;
         name = "RCS";
+
+        engineType = EngineType::ENGINE_RCS;
     }
 
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override {
@@ -181,6 +189,8 @@ struct CommandStreamerHelperBcs : public CommandStreamerHelper {
         aubHintCommandBuffer = DataTypeHintValues::TraceCommandBufferBlt;
         aubHintBatchBuffer = DataTypeHintValues::TraceBatchBufferBlt;
         name = "BCS";
+
+        engineType = EngineType::ENGINE_BCS;
     }
 
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override {
@@ -196,6 +206,8 @@ struct CommandStreamerHelperVcs : public CommandStreamerHelper {
         aubHintCommandBuffer = DataTypeHintValues::TraceCommandBufferMfx;
         aubHintBatchBuffer = DataTypeHintValues::TraceBatchBufferMfx;
         name = "VCS";
+
+        engineType = EngineType::ENGINE_VCS;
     }
 
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override {
@@ -209,6 +221,8 @@ struct CommandStreamerHelperVecs : public CommandStreamerHelper {
     CommandStreamerHelperVecs(uint32_t deviceIndex) : CommandStreamerHelper(deviceIndex, 0x1c6000) {
         aubHintLRCA = DataTypeHintValues::TraceLogicalRingContextVecs;
         name = "VECS";
+
+        engineType = EngineType::ENGINE_VECS;
     }
 
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override {
@@ -223,6 +237,8 @@ struct CommandStreamerHelperCcs : public CommandStreamerHelper {
                                                                                            ccsEngineOffset(engineId)) {
         aubHintLRCA = DataTypeHintValues::TraceLogicalRingContextCcs;
         name = "CCS";
+
+        engineType = static_cast<EngineType>(EngineType::ENGINE_CCS + engineId);
     }
 
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override {
@@ -260,6 +276,8 @@ struct CommandStreamerHelperCcs : public CommandStreamerHelper {
 struct CommandStreamerHelperCccs : public CommandStreamerHelperRcs {
     CommandStreamerHelperCccs(uint32_t baseDevice) : CommandStreamerHelperRcs(baseDevice) {
         name = "CCCS";
+
+        engineType = EngineType::ENGINE_CCCS;
     }
 };
 
@@ -269,6 +287,8 @@ struct CommandStreamerHelperLinkBcs : public CommandStreamerHelper {
         aubHintCommandBuffer = DataTypeHintValues::TraceCommandBufferBlt;
         aubHintBatchBuffer = DataTypeHintValues::TraceBatchBufferBlt;
         name = "BCS" + std::to_string(engineId);
+
+        engineType = static_cast<EngineType>(EngineType::ENGINE_BCS1 + engineId - 1);
     }
 
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override {

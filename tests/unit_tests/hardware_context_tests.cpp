@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -18,7 +18,7 @@
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
 #include "tests/unit_tests/mock_aub_manager.h"
-
+#include "test.h"
 #include <memory>
 
 using namespace aub_stream;
@@ -314,4 +314,51 @@ TEST_F(HardwareContextTest, checkContextIdIsUnique) {
     EXPECT_EQ(context1.contextId, contextIdBase + 1);
     EXPECT_EQ(context2.contextId, contextIdBase + 2);
     EXPECT_EQ(context3.contextId, contextIdBase + 3);
+}
+
+TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExeclist) {
+    TEST_REQUIRES(gpu->gfxCoreFamily >= CoreFamily::XeHpcCore);
+
+    PhysicalAddressAllocator allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+
+    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+    context0.initialize();
+    HardwareContextImp context1(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+    context1.initialize();
+    HardwareContextImp context2(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+    context2.initialize();
+    ::testing::Mock::VerifyAndClearExpectations(&stream);
+
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(1));
+
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514, _)).Times(1);
+
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 8, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 8, _)).Times(1);
+
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 16, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 16, _)).Times(1);
+
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, _)).Times(1);
+    context0.submitBatchBuffer(0x100, false);
+
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514, _)).Times(1);
+
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 8, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 8, _)).Times(1);
+
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 16, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 16, _)).Times(1);
+
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, _)).Times(1);
+
+    context2.submitBatchBuffer(0x100, false);
+
+    HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter = 0;
+    HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contexts = {};
 }

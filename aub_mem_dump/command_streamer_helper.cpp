@@ -9,6 +9,7 @@
 #include "aub_stream.h"
 #include "command_streamer_helper.h"
 #include "gpu.h"
+#include "hardware_context_imp.h"
 
 namespace aub_stream {
 
@@ -96,7 +97,7 @@ void CommandStreamerHelper::setPML(void *pLRCIn, uint64_t address) const {
     setPDP0(pLRCIn, address);
 }
 
-void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t flags) const {
+void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t flags, bool isGroupContext) const {
     auto pLRCABase = reinterpret_cast<uint32_t *>(pLRCIn);
 
     for (size_t i = 0; i < sizeLRCA / sizeof(uint32_t); i++) {
@@ -109,7 +110,8 @@ void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t 
     auto pLRI = ptrOffset(pLRCA, offsetLRI0);
     auto numRegs = numRegsLRI0;
     *pLRI++ = 0x11001000 | (2 * numRegs - 1);
-    uint32_t value = 0x00090009; // Inhibit context-restore and synchronous context switch
+    uint32_t value = isGroupContext ? 0x00090001 : 0x00090009; // Inhibit context-restore (if not group context) and synchronous context switch
+
     value |= flags;
     while (numRegs-- > 0) {
         *pLRI++ = mmioEngine + 0x2244; // CTXT_SR_CTL
@@ -167,20 +169,46 @@ void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t 
 }
 
 void CommandStreamerHelper::submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId) const {
-    MiContextDescriptorReg contextDescriptor{};
+    std::array<MiContextDescriptorReg, 8> contextDescriptor = {};
 
-    contextDescriptor.sData.Valid = true;
-    contextDescriptor.sData.ForcePageDirRestore = false;
-    contextDescriptor.sData.ForceRestore = false;
-    contextDescriptor.sData.Legacy = true;
-    contextDescriptor.sData.FaultSupport = 0;
-    contextDescriptor.sData.PrivilegeAccessOrPPGTT = true;
-    contextDescriptor.sData.ADor64bitSupport = is48Bits;
+    contextDescriptor[0].sData.Valid = true;
+    contextDescriptor[0].sData.ForcePageDirRestore = false;
+    contextDescriptor[0].sData.ForceRestore = false;
+    contextDescriptor[0].sData.Legacy = true;
+    contextDescriptor[0].sData.FaultSupport = 0;
+    contextDescriptor[0].sData.PrivilegeAccessOrPPGTT = true;
+    contextDescriptor[0].sData.ADor64bitSupport = is48Bits;
 
-    contextDescriptor.sData.LogicalRingCtxAddress = ggttLRCA / 4096;
-    contextDescriptor.sData.Reserved = 0;
-    contextDescriptor.sData.ContextID = contextId;
-    contextDescriptor.sData.Reserved2 = 0;
+    contextDescriptor[0].sData.LogicalRingCtxAddress = ggttLRCA / 4096;
+    contextDescriptor[0].sData.Reserved = 0;
+    contextDescriptor[0].sData.ContextID = contextId;
+    contextDescriptor[0].sData.Reserved2 = 0;
+
+    submitContext(stream, contextDescriptor);
+}
+
+void CommandStreamerHelper::submit(AubStream &stream, const std::array<HardwareContextImp *, 8> &hwContexts, bool is48Bits) const {
+    std::array<MiContextDescriptorReg, 8> contextDescriptor = {};
+
+    for (uint32_t i = 0; i < hwContexts.size(); i++) {
+        if (!hwContexts[i]) {
+            contextDescriptor[i].sData.Valid = false;
+            continue;
+        }
+
+        contextDescriptor[i].sData.Valid = true;
+        contextDescriptor[i].sData.ForcePageDirRestore = false;
+        contextDescriptor[i].sData.ForceRestore = false;
+        contextDescriptor[i].sData.Legacy = true;
+        contextDescriptor[i].sData.FaultSupport = 0;
+        contextDescriptor[i].sData.PrivilegeAccessOrPPGTT = true;
+        contextDescriptor[i].sData.ADor64bitSupport = is48Bits;
+
+        contextDescriptor[i].sData.LogicalRingCtxAddress = hwContexts[i]->ggttLRCA / 4096;
+        contextDescriptor[i].sData.Reserved = 0;
+        contextDescriptor[i].sData.ContextID = hwContexts[i]->contextId;
+        contextDescriptor[i].sData.Reserved2 = 0;
+    }
 
     submitContext(stream, contextDescriptor);
 }
@@ -201,10 +229,13 @@ void CommandStreamerHelper::pollForCompletion(AubStream &stream) const {
         CmdServicesMemTraceRegisterPoll::TimeoutActionValues::Abort);
 }
 
-void CommandStreamerHelper::addBatchBufferJump(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress) const {
+void CommandStreamerHelper::addBatchBufferJump(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, bool isGroupContext) const {
     ringBuffer.push_back(0x11000001);
     ringBuffer.push_back(mmioEngine + 0x2244);
-    ringBuffer.push_back(0x00090008); // Inhibit synchronous context switch
+
+    uint32_t value = isGroupContext ? 0x00090000 : 0x00090008; // Inhibit synchronous context switch (if not group context)
+
+    ringBuffer.push_back(value);
     // Batch Buffer start
     ringBuffer.push_back(0x18800101);
     ringBuffer.push_back(uint32_t(gfxAddress));
