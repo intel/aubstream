@@ -101,6 +101,7 @@ struct CommandStreamerHelper {
     uint32_t offsetRingTail = 0x2 * sizeof(uint32_t);
     uint32_t offsetRingBase = 0x4 * sizeof(uint32_t);
     uint32_t offsetRingCtrl = 0x6 * sizeof(uint32_t);
+    uint32_t offsetBbCurrentHeadReg = 0x8 * sizeof(uint32_t);
 
     uint32_t offsetPageTableRegisters = offsetLRI1 + (3 * sizeof(uint32_t));
     uint32_t offsetPDP0 = 0xc * sizeof(uint32_t);
@@ -114,6 +115,7 @@ struct CommandStreamerHelper {
     void setRingTail(void *pLRCIn, uint32_t ringTail) const;
     void setRingBase(void *pLRCIn, uint32_t ringBase) const;
     void setRingCtrl(void *pLRCIn, uint32_t ringCtrl) const;
+    void setBbCurrentHeadReg(void *pLRCIn) const;
 
     void setPDP0(void *pLRCIn, uint64_t address) const;
     void setPDP1(void *pLRCIn, uint64_t address) const;

@@ -53,6 +53,16 @@ void CommandStreamerHelper::setRingCtrl(void *pLRCIn, uint32_t ringCtrl) const {
     *pLRCA++ = ringCtrl;
 }
 
+void CommandStreamerHelper::setBbCurrentHeadReg(void *pLRCIn) const {
+    auto pLRCA = ptrOffset(reinterpret_cast<uint32_t *>(pLRCIn),
+                           offsetContext + offsetRingRegisters + offsetBbCurrentHeadReg);
+    *pLRCA++ = mmioEngine + 0x2168;
+    *pLRCA++ = 0;
+
+    *pLRCA++ = mmioEngine + 0x2140;
+    *pLRCA++ = 0;
+}
+
 void CommandStreamerHelper::setPDP0(void *pLRCIn, uint64_t address) const {
     auto pLRCA = ptrOffset(reinterpret_cast<uint32_t *>(pLRCIn),
                            offsetContext + offsetPageTableRegisters + offsetPDP0);
@@ -141,6 +151,7 @@ void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t 
     setRingTail(pLRCIn, 0);
     setRingBase(pLRCIn, 0);
     setRingCtrl(pLRCIn, 0);
+    setBbCurrentHeadReg(pLRCIn);
 
     if (!ppgtt) {
         setPDP0(pLRCIn, 0);
