@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -18,9 +18,9 @@ struct AubTbxStream : public AubStream {
 
     virtual ~AubTbxStream() = default;
 
-    bool init(int steppingValue, uint32_t device, CoreFamily gfxCoreFamily) override {
-        auto result = aubFileStream.init(steppingValue, device, gfxCoreFamily);
-        result &= tbxStream.init(steppingValue, device, gfxCoreFamily);
+    bool init(int steppingValue, const GpuDescriptor &gpu) override {
+        auto result = aubFileStream.init(steppingValue, gpu);
+        result &= tbxStream.init(steppingValue, gpu);
         return result;
     }
 

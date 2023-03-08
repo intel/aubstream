@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <vector>
 #include <algorithm>
+
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/page_table_walker.h"
 #include "aub_services.h"
@@ -16,6 +17,8 @@
 #include "aubstream/allocation_params.h"
 
 namespace aub_stream {
+
+struct GpuDescriptor;
 using MMIOPair = std::pair<uint32_t, uint32_t>;
 using MMIOList = std::vector<MMIOPair>;
 
@@ -52,7 +55,7 @@ struct AubStream {
     void writePhysicalMemoryPages(const void *memory, size_t size, const std::vector<PageInfo> entries, int hint);
 
     virtual void addComment(const char *message) = 0;
-    virtual bool init(int steppingValue, uint32_t device, CoreFamily gfxCoreFamily) = 0;
+    virtual bool init(int steppingValue, const GpuDescriptor &gpu) = 0;
     virtual void registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction) = 0;
     virtual void writeMMIO(uint32_t offset, uint32_t value) = 0;
     virtual void declareContextForDumping(uint32_t handleDumpContext, PageTable *pageTable) = 0;

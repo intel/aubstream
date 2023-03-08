@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -33,8 +33,8 @@ TEST(AubTbxStream, RedirectMethodsToAubFileAndTbxStreams) {
 
     auto aubTbxStream = std::make_unique<MockAubTbxStream>(*fileStream.get(), *tbxStream.get());
 
-    EXPECT_CALL(*fileStream, init(_, _, _)).Times(1);
-    EXPECT_CALL(*tbxStream, init(_, _, _)).Times(1);
+    EXPECT_CALL(*fileStream, init(_, _)).Times(1);
+    EXPECT_CALL(*tbxStream, init(_, _)).Times(1);
 
     EXPECT_CALL(*fileStream, addComment(_)).Times(1);
     EXPECT_CALL(*tbxStream, addComment(_)).Times(1);
@@ -72,7 +72,7 @@ TEST(AubTbxStream, RedirectMethodsToAubFileAndTbxStreams) {
     EXPECT_CALL(*fileStream, writeDiscontiguousPages(_, _, _)).Times(1);
     EXPECT_CALL(*tbxStream, writeDiscontiguousPages(_, _, _)).Times(1);
 
-    aubTbxStream->init(1, 1, gpu->gfxCoreFamily);
+    aubTbxStream->init(1, *gpu);
     aubTbxStream->addComment("test");
     aubTbxStream->declareContextForDumping(0, nullptr);
 
@@ -104,8 +104,8 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenAubFileStreamIsPaused) {
     auto aubTbxStream = std::make_unique<MockAubTbxStream>(*fileStream.get(), *tbxStream.get());
     aubTbxStream->pauseAubFileStream(true);
 
-    EXPECT_CALL(*fileStream, init(_, _, _)).Times(1);
-    EXPECT_CALL(*tbxStream, init(_, _, _)).Times(1);
+    EXPECT_CALL(*fileStream, init(_, _)).Times(1);
+    EXPECT_CALL(*tbxStream, init(_, _)).Times(1);
 
     EXPECT_CALL(*fileStream, addComment(_)).Times(0);
     EXPECT_CALL(*tbxStream, addComment(_)).Times(1);
@@ -143,7 +143,7 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenAubFileStreamIsPaused) {
     EXPECT_CALL(*fileStream, writeDiscontiguousPages(_, _, _)).Times(0);
     EXPECT_CALL(*tbxStream, writeDiscontiguousPages(_, _, _)).Times(1);
 
-    aubTbxStream->init(1, 1, gpu->gfxCoreFamily);
+    aubTbxStream->init(1, *gpu);
     aubTbxStream->addComment("test");
     aubTbxStream->declareContextForDumping(0, nullptr);
 

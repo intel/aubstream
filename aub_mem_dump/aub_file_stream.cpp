@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "aub_file_stream.h"
+#include "aub_mem_dump/gpu.h"
 #include "aubstream/aubstream.h"
 #include "gfx_core_family.h"
 
@@ -141,9 +142,9 @@ void AubFileStream::dumpSurface(PageTableType gttType, const SurfaceInfo &surfac
     fileHandle.flush();
 }
 
-bool AubFileStream::init(int stepping, uint32_t device, CoreFamily gfxCoreFamily) {
-    this->dumpBinSupported = gfxCoreFamily >= CoreFamily::XeHpCore;
-    this->dumpSurfaceSupported = gfxCoreFamily >= CoreFamily::XeHpCore;
+bool AubFileStream::init(int stepping, const GpuDescriptor &gpu) {
+    this->dumpBinSupported = gpu.gfxCoreFamily >= CoreFamily::XeHpCore;
+    this->dumpSurfaceSupported = gpu.gfxCoreFamily >= CoreFamily::XeHpCore;
 
     CmdServicesMemTraceVersion header = {};
 
@@ -151,7 +152,7 @@ bool AubFileStream::init(int stepping, uint32_t device, CoreFamily gfxCoreFamily
     header.dwordCount = (sizeof(header) / sizeof(uint32_t)) - 1;
     header.stepping = stepping;
     header.metal = 0;
-    header.device = device;
+    header.device = gpu.deviceId;
     header.csxSwizzling = CmdServicesMemTraceVersion::CsxSwizzlingValues::Disabled;
     // Which recording method used:
     //  Phys is required for GGTT memory to be written directly to phys vs through aperture.

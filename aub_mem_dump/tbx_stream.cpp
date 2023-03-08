@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -38,7 +38,7 @@ void TbxStream::dumpSurface(PageTableType gttType, const SurfaceInfo &surfaceInf
 void TbxStream::reserveContiguousPages(const std::vector<uint64_t> &entries) {
 }
 
-bool TbxStream::init(int stepping, uint32_t device, CoreFamily gfxCoreFamily) {
+bool TbxStream::init(int stepping, const GpuDescriptor &gpu) {
     socket = TbxSockets::create();
     assert(socket != nullptr);
     return socket->init(tbxServerIp, tbxServerPort, tbxFrontdoorMode);

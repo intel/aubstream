@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -47,7 +47,7 @@ void AubManagerImp::initialize() {
 
     if (createTbxStream) {
         streamTbx = std::make_unique<TbxStream>();
-        streamTbx->init(stepping, gpu.deviceId, gpu.gfxCoreFamily);
+        streamTbx->init(stepping, gpu);
 
         gpu.initializeGlobalMMIO(*streamTbx, devicesCount, memoryBankSize, stepping);
         gpu.setMemoryBankSize(*streamTbx, devicesCount, memoryBankSize);
@@ -96,7 +96,7 @@ void AubManagerImp::initialize() {
 void AubManagerImp::open(const std::string &aubFileName) {
     if (streamMode == aub_stream::mode::aubFile || streamMode == aub_stream::mode::aubFileAndTbx) {
         streamAub->open(aubFileName.c_str());
-        streamAub->init(stepping, gpu.deviceId, gpu.gfxCoreFamily);
+        streamAub->init(stepping, gpu);
         gpu.initializeGlobalMMIO(*streamAub, devicesCount, memoryBankSize, stepping);
         gpu.setMemoryBankSize(*streamAub, devicesCount, memoryBankSize);
     }

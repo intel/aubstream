@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -45,7 +45,7 @@ void TbxShmStream::dumpSurface(PageTableType gttType, const SurfaceInfo &surface
 void TbxShmStream::reserveContiguousPages(const std::vector<uint64_t> &entries) {
 }
 
-bool TbxShmStream::init(int stepping, uint32_t device, CoreFamily gfxCoreFamily) {
+bool TbxShmStream::init(int stepping, const GpuDescriptor &gpu) {
     assert(0); // Shouldn't ever get here!
     return false;
 }

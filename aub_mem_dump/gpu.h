@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -10,13 +10,20 @@
 #include "aubstream/engine_node.h"
 #include "aubstream/allocation_params.h"
 
+#include "aubstream/aubstream.h"
+#include "gfx_core_family.h"
+
 #include <array>
 #include <vector>
+#include <string>
 
 namespace aub_stream {
 
+struct AubStream;
 struct CommandStreamerHelper;
+struct GGTT;
 struct PageTable;
+struct PhysicalAddressAllocator;
 enum class ProductFamily : uint32_t;
 
 struct GpuDescriptor {

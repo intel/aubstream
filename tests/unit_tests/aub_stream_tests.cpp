@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -361,28 +361,28 @@ using AubFileStreamTest = ::testing::Test;
 
 HWTEST_F(AubFileStreamTest, givenLowerThanGen12CoreFamilyWhenAubFileStreamIsInitializedThenDumpBinIsNotSupported, HwMatcher::coreBelowGen12Core) {
     WhiteBox<AubFileStream> stream;
-    stream.init(SteppingValues::A, gpu->deviceId, gpu->gfxCoreFamily);
+    stream.init(SteppingValues::A, *gpu);
 
     EXPECT_FALSE(stream.dumpBinSupported);
 }
 
 HWTEST_F(AubFileStreamTest, givenCoreFamilyXeHpOrAboveWhenAubFileStreamIsInitializedThenDumpBinIsSupported, HwMatcher::coreAboveEqualXeHp) {
     WhiteBox<AubFileStream> stream;
-    stream.init(SteppingValues::A, gpu->deviceId, gpu->gfxCoreFamily);
+    stream.init(SteppingValues::A, *gpu);
 
     EXPECT_TRUE(stream.dumpBinSupported);
 }
 
 HWTEST_F(AubFileStreamTest, givenLowerThanGen12CoreFamilyWhenAubFileStreamIsInitializedThenDumpSurfaceIsNotSupported, HwMatcher::coreBelowGen12Core) {
     WhiteBox<AubFileStream> stream;
-    stream.init(SteppingValues::A, gpu->deviceId, gpu->gfxCoreFamily);
+    stream.init(SteppingValues::A, *gpu);
 
     EXPECT_FALSE(stream.dumpSurfaceSupported);
 }
 
 HWTEST_F(AubFileStreamTest, givenCoreFamilyXeHpOrAboveWhenAubFileStreamIsInitializedThenDumpSurfaceIsSupported, HwMatcher::coreAboveEqualXeHp) {
     WhiteBox<AubFileStream> stream;
-    stream.init(SteppingValues::A, gpu->deviceId, gpu->gfxCoreFamily);
+    stream.init(SteppingValues::A, *gpu);
 
     EXPECT_TRUE(stream.dumpSurfaceSupported);
 }

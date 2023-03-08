@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -84,7 +84,7 @@ bool initializeAubStream(AubFileStream &stream,
     auto filePath = getAubFileName(desc);
 
     stream.fileHandle.open(filePath, std::ofstream::binary);
-    return stream.init(SteppingValues::A, gpu->deviceId, desc.gfxCoreFamily);
+    return stream.init(SteppingValues::A, desc);
 }
 
 bool initializeAubStream(AubFileStream &stream) {
