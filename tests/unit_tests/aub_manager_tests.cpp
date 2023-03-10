@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -165,6 +165,17 @@ TEST(AubManagerImp, whenAubManagerIsCreatedWithAubFileModeAndSteppingParamThenSt
 }
 
 using AubManagerTest = ::testing::Test;
+
+HWTEST_F(AubManagerTest, ggttBaseAddressIsCorrect, HwMatcher::coreAboveEqualXeHp) {
+
+    bool localMemorySupport = false;
+    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::aubFile);
+
+    EXPECT_EQ(1u, aubManager.ggtts.size());
+    if (!gpu->requireLocalMemoryForPageTables()) {
+        EXPECT_EQ(gpu->getGGTTBaseAddress(0, defaultHBMSizePerDevice), aubManager.ggtts[0].get()->gttTableOffset);
+    }
+}
 
 HWTEST_F(AubManagerTest, when2DevicesAreCreatedThenAubManagerIsInitializedCorrectly, MatchMultiDevice::moreThanOne) {
 

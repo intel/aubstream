@@ -77,10 +77,10 @@ void AubManagerImp::initialize() {
 
     for (uint32_t i = 0; i < devicesCount; i++) {
         uint32_t memoryBank = MemoryBank::MEMORY_BANK_SYSTEM;
-        uint64_t gttBaseAddress = 0; // Default to 0 base address of GGTT for non Local Memory
+        uint64_t gttBaseAddress = gpu.getGGTTBaseAddress(i, memoryBankSize);
+
         if (localMemorySupported || gpu.requireLocalMemoryForPageTables()) {
             memoryBank = MemoryBank::MEMORY_BANK_0 << i;
-            gttBaseAddress = gpu.getGGTTBaseAddress(i, memoryBankSize);
         }
 
         ppgtts[i] = std::unique_ptr<PageTable>(gpu.allocatePPGTT(physicalAddressAllocator.get(), memoryBank, gpuAddressSpace));
