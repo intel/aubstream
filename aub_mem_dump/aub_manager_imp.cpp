@@ -58,7 +58,7 @@ void AubManagerImp::initialize() {
         if ((sharedMemoryInfo.sysMemBase == nullptr) && enableThrow) {
             throw std::logic_error("Trying to use shared memory but no shared memory for system memory given.");
         }
-        streamTbxShm->init(stepping, gpu.deviceId, gpu.gfxCoreFamily, &sharedMemoryInfo);
+        streamTbxShm->init(&sharedMemoryInfo);
         streamTbxShm->enableThrowOnError(enableThrow);
 
         gpu.initializeGlobalMMIO(*streamTbxShm, devicesCount, memoryBankSize, stepping);

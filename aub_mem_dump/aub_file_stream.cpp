@@ -5,13 +5,14 @@
  *
  */
 
-#include <cassert>
-#include <string.h>
-
 #include "aub_file_stream.h"
 #include "aub_mem_dump/gpu.h"
 #include "aubstream/aubstream.h"
 #include "gfx_core_family.h"
+
+#include <cassert>
+#include <string.h>
+#include <algorithm>
 
 namespace aub_stream {
 
@@ -159,12 +160,11 @@ bool AubFileStream::init(int stepping, const GpuDescriptor &gpu) {
     header.recordingMethod = CmdServicesMemTraceVersion::RecordingMethodValues::Phy;
     header.pch = CmdServicesMemTraceVersion::PchValues::Default;
     header.captureTool = CmdServicesMemTraceVersion::CaptureToolValues::AubStream;
-    header.primaryVersion = 0;
-    header.secondaryVersion = 0;
-    header.commandLine[0] = 'N';
-    header.commandLine[1] = 'E';
-    header.commandLine[2] = 'O';
-    header.commandLine[3] = 0;
+    memset(header.deviceAbbreviation, 0, 8);
+    if (gpu.deviceId == 0) {
+        memcpy(header.deviceAbbreviation, gpu.productAbbreviation.c_str(), std::min(size_t(8), gpu.productAbbreviation.length()));
+    }
+    memcpy(header.commandLine, "NEO", 4);
 
     fileHandle.write(reinterpret_cast<char *>(&header), sizeof(header));
     fileHandle.flush();

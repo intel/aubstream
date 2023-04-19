@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -36,8 +36,7 @@ struct CmdServicesMemTraceVersion {
         uint32_t pch : 8;
         uint32_t captureTool : 4;
     };
-    uint32_t primaryVersion;
-    uint32_t secondaryVersion;
+    char deviceAbbreviation[8];
     char commandLine[4];
     int32_t getCommandLineLength() const {
         return getPacketSize() - (5);

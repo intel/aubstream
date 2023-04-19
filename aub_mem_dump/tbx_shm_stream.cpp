@@ -50,7 +50,7 @@ bool TbxShmStream::init(int stepping, const GpuDescriptor &gpu) {
     return false;
 }
 
-bool TbxShmStream::init(int stepping, uint32_t device, CoreFamily gfxCoreFamily, SharedMemoryInfo *sharedMemoryInfo) {
+bool TbxShmStream::init(SharedMemoryInfo *sharedMemoryInfo) {
     socket = TbxSockets::create();
     assert(socket != nullptr);
 

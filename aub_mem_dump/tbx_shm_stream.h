@@ -28,7 +28,7 @@ struct TbxShmStream : public AubStream {
     void reserveContiguousPages(const std::vector<uint64_t> &entries) override;
     void writeMMIO(uint32_t offset, uint32_t value) override;
 
-    bool init(int steppingValue, uint32_t device, CoreFamily gfxCoreFamily, SharedMemoryInfo *sharedMemoryInfo);
+    bool init(SharedMemoryInfo *sharedMemoryInfo);
     void readMemory(PageTable *ppgtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize);
     void readMemory(GGTT *gtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize);
 
