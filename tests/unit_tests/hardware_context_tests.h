@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -26,7 +26,7 @@ class HardwareContextTest : public MockAubStreamFixture, public ::testing::Test 
         MockAubStreamFixture::TearDown();
     }
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     std::unique_ptr<::testing::NiceMock<MockAubManager>> aubManager;
 };
 } // namespace aub_stream

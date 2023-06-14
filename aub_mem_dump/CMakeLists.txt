@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022 Intel Corporation
+# Copyright (C) 2022-2023 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -48,6 +48,7 @@ add_library(${PROJECT_NAME} STATIC
             ${CMAKE_CURRENT_SOURCE_DIR}/tbx_shm_stream.h
             ${CMAKE_CURRENT_SOURCE_DIR}/tbx_shm_stream.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/tbx_stream.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/alloc_tools.h
             ${CMAKE_CURRENT_SOURCE_DIR}/${BRANCH_TYPE}/includes/aub_services.h
             ${CMAKE_CURRENT_SOURCE_DIR}/${BRANCH_TYPE}/includes/gfx_core_family.h
 )

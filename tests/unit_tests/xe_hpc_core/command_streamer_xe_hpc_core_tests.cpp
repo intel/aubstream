@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -28,7 +28,7 @@ using XeHpcCoreCsTest = CommandStreamerHelperTest;
 HWTEST_F(XeHpcCoreCsTest, GivenCcsEngineWhenInitializingEngineThenMiModeNestedBBIsSetToZero, XeHPCCoreMatcher::isXeHpcCore) {
     auto &ccs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_CCS);
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
 
     EXPECT_CALL(stream, writeMMIO(_, _)).WillRepeatedly(Return());

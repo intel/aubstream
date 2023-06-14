@@ -105,13 +105,15 @@ void TbxShmStream::writeMMIO(uint32_t offset, uint32_t value) {
 
 void TbxShmStream::writeContiguousPages(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint) {
     bool isLocalMemory = addressSpace == AddressSpaceValues::TraceLocal;
+    uint64_t memSize = isLocalMemory ? sharedMemoryInfo->localMemSize : sharedMemoryInfo->sysMemSize;
+    size_t destSize = mode == aub_stream::mode::tbxShm ? static_cast<size_t>(memSize - physAddress) : size;
 
     if (isLocalMemory) {
-        memcpy_s((void *)(sharedMemoryInfo->localMemBase + physAddress), static_cast<size_t>(sharedMemoryInfo->localMemSize - physAddress), memory, size);
+        memcpy_s((void *)(sharedMemoryInfo->localMemBase + physAddress), destSize, memory, size);
         log << "Local Mem: \t" << std::hex << physAddress << " \t" << std::hex << "0x00000000"
             << " \t" << std::hex << size << std::endl;
     } else {
-        memcpy_s((void *)(sharedMemoryInfo->sysMemBase + physAddress), static_cast<size_t>(sharedMemoryInfo->sysMemSize - physAddress), memory, size);
+        memcpy_s((void *)(sharedMemoryInfo->sysMemBase + physAddress), destSize, memory, size);
         log << "System Mem: \t" << std::hex << physAddress << " \t" << std::hex << "0x00000000"
             << " \t" << std::hex << size << std::endl;
     }
@@ -120,12 +122,14 @@ void TbxShmStream::writeContiguousPages(const void *memory, size_t size, uint64_
 
 void TbxShmStream::writeDiscontiguousPages(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, int hint) {
     for (auto &entry : writeInfoTable) {
+        uint64_t memSize = entry.isLocalMemory ? sharedMemoryInfo->localMemSize : sharedMemoryInfo->sysMemSize;
+        size_t destSize = mode == aub_stream::mode::tbxShm ? static_cast<size_t>(memSize - entry.physicalAddress) : entry.size;
         if (entry.isLocalMemory) {
-            memcpy_s((void *)(sharedMemoryInfo->localMemBase + entry.physicalAddress), static_cast<size_t>(sharedMemoryInfo->localMemSize - entry.physicalAddress), memory, entry.size);
+            memcpy_s((void *)(sharedMemoryInfo->localMemBase + entry.physicalAddress), destSize, memory, entry.size);
             log << "Local Mem: \t" << std::hex << entry.physicalAddress << " \t" << std::hex << "0x00000000"
                 << " \t" << std::hex << entry.size << std::endl;
         } else {
-            memcpy_s((void *)(sharedMemoryInfo->sysMemBase + entry.physicalAddress), static_cast<size_t>(sharedMemoryInfo->sysMemSize - entry.physicalAddress), memory, entry.size);
+            memcpy_s((void *)(sharedMemoryInfo->sysMemBase + entry.physicalAddress), destSize, memory, entry.size);
             log << "System Mem: \t" << std::hex << entry.physicalAddress << " \t" << std::hex << "0x00000000"
                 << " \t" << std::hex << entry.size << std::endl;
         }
@@ -139,12 +143,14 @@ void TbxShmStream::writeDiscontiguousPages(const std::vector<PageEntryInfo> &wri
     assert(addressSpace != AddressSpaceValues::TraceGttEntry);
 
     bool isLocalMemory = addressSpace == AddressSpaceValues::TraceLocal;
+    uint64_t memSize = isLocalMemory ? sharedMemoryInfo->localMemSize : sharedMemoryInfo->sysMemSize;
     for (auto &entry : writeInfoTable) {
+        size_t destSize = mode == aub_stream::mode::tbxShm ? static_cast<size_t>(memSize - entry.physicalAddress) : sizeof(entry.tableEntry);
         if (isLocalMemory) {
-            memcpy_s((void *)(sharedMemoryInfo->localMemBase + entry.physicalAddress), static_cast<size_t>(sharedMemoryInfo->localMemSize - entry.physicalAddress), &entry.tableEntry, sizeof(entry.tableEntry));
+            memcpy_s((void *)(sharedMemoryInfo->localMemBase + entry.physicalAddress), destSize, &entry.tableEntry, sizeof(entry.tableEntry));
             log << "Local Mem: \t" << std::hex << entry.physicalAddress << " \t" << std::hex << entry.tableEntry << " \t" << std::hex << sizeof(entry.tableEntry) << std::endl;
         } else {
-            memcpy_s((void *)(sharedMemoryInfo->sysMemBase + entry.physicalAddress), static_cast<size_t>(sharedMemoryInfo->sysMemSize - entry.physicalAddress), &entry.tableEntry, sizeof(entry.tableEntry));
+            memcpy_s((void *)(sharedMemoryInfo->sysMemBase + entry.physicalAddress), destSize, &entry.tableEntry, sizeof(entry.tableEntry));
             log << "System Mem: \t" << std::hex << entry.physicalAddress << " \t" << std::hex << entry.tableEntry << " \t" << std::hex << sizeof(entry.tableEntry) << std::endl;
         }
     }
@@ -153,17 +159,15 @@ void TbxShmStream::writeDiscontiguousPages(const std::vector<PageEntryInfo> &wri
 
 void TbxShmStream::writeGttPages(GGTT *ggtt, const std::vector<PageEntryInfo> &writeInfoTable) {
     uint8_t *gttBaseAddress = nullptr;
-    size_t destSize = 0;
 
     if (this->sharedMemoryInfo->localMemBase != nullptr) {
         gttBaseAddress = this->sharedMemoryInfo->localMemBase + ggtt->gttTableOffset;
-        destSize = static_cast<size_t>(this->sharedMemoryInfo->localMemSize - ggtt->gttTableOffset);
     } else {
         gttBaseAddress = this->sharedMemoryInfo->sysMemBase + ggtt->gttTableOffset;
-        destSize = static_cast<size_t>(this->sharedMemoryInfo->sysMemSize - ggtt->gttTableOffset);
     }
 
     for (auto &entry : writeInfoTable) {
+        size_t destSize = static_cast<size_t>(8 * MB - entry.physicalAddress);
         // GTT is storing a 0 based physical address natively so we can just write the entry as is
         // to the gttBaseAddress location
         memcpy_s((void *)(gttBaseAddress + entry.physicalAddress), destSize, &entry.tableEntry, sizeof(entry.tableEntry));

@@ -92,6 +92,7 @@ struct MockTbxStream : public TbxStream {
 
 struct MockTbxShmStream : public TbxShmStream {
   public:
+    MockTbxShmStream() : TbxShmStream(false) {}
     MOCK_METHOD2(init, bool(int steppingValue, const GpuDescriptor &gpu));
     MOCK_METHOD1(addComment, void(const char *message));
 

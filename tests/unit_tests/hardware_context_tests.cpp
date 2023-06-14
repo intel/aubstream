@@ -93,7 +93,7 @@ TEST_F(HardwareContextTest, ringBufferWrap) {
 }
 
 TEST_F(HardwareContextTest, pollForCompletionShouldForwardToRegisterPoll) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
@@ -104,7 +104,7 @@ TEST_F(HardwareContextTest, pollForCompletionShouldForwardToRegisterPoll) {
 }
 
 TEST_F(HardwareContextTest, submitShouldPerformAtLeastOneMMIOWrite) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
@@ -287,7 +287,7 @@ TEST_F(HardwareContextTest, givenHardwareContextWhenCallingDumpBufferRedirectsTo
 }
 
 TEST_F(HardwareContextTest, pollForFenceCompletionShouldForwardToReadMemory) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
@@ -298,7 +298,7 @@ TEST_F(HardwareContextTest, pollForFenceCompletionShouldForwardToReadMemory) {
 }
 
 TEST_F(HardwareContextTest, checkContextIdIsUnique) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
@@ -319,7 +319,7 @@ TEST_F(HardwareContextTest, checkContextIdIsUnique) {
 TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExeclist) {
     TEST_REQUIRES(gpu->gfxCoreFamily >= CoreFamily::XeHpcCore);
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);

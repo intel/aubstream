@@ -37,10 +37,11 @@ TEST(Gpu, givenMtlWhenInitializeDefaultMemoryPoolsThenFileStreamNotInitializeFla
     TEST_REQUIRES(gpu->productFamily == ProductFamily::Mtl);
 
     MockAubFileStream stream;
+    auto sm = StolenMemory::CreateStolenMemory(false, 1, 1);
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
     EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(0);
 
-    gpu->initializeDefaultMemoryPools(stream, 1, 1);
+    gpu->initializeDefaultMemoryPools(stream, 1, 1, *sm);
 }
 
 TEST(Gpu, givenMtlWhenInitializingGlobalMmiosThenProgramPatIndex) {
@@ -62,10 +63,11 @@ TEST(Gpu, givenMtlAndTbxStreamWhenInitializeDefaultMemoryPoolsThenNotInitializeF
     TEST_REQUIRES(gpu->productFamily == ProductFamily::Mtl);
 
     MockTbxStream stream;
+    auto sm = StolenMemory::CreateStolenMemory(false, 1, 1);
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
     EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(0);
 
-    gpu->initializeDefaultMemoryPools(stream, 1, 1);
+    gpu->initializeDefaultMemoryPools(stream, 1, 1, *sm);
 }
 
 TEST(Gpu, givenMtlWhenInitializeDefaultMemoryPoolsThenNotInitializeFlatCcsBaseAddressPtr) {
@@ -87,7 +89,8 @@ TEST(Gpu, givenMtlWhenInitializeDefaultMemoryPoolsThenNotInitializeFlatCcsBaseAd
         EXPECT_CALL(stream, writeMMIO((i * mmioDeviceOffset) + 0x00004910, mmioValue)).Times(0);
     }
 
-    gpu->initializeDefaultMemoryPools(stream, numDevices, perDeviceHbmSize);
+    auto sm = StolenMemory::CreateStolenMemory(false, numDevices, perDeviceHbmSize);
+    gpu->initializeDefaultMemoryPools(stream, numDevices, perDeviceHbmSize, *sm);
 }
 
 TEST(PageTableTestsMtl, givenPageTableInSystemMemoryWhenCallingGetEntryValueThenCorrectBitsAreSet) {

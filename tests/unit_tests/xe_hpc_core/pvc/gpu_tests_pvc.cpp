@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -22,7 +22,7 @@ TEST(Gpu, gpuPvcReturnsCorrectDeviceId) {
 
 TEST(Pvc, allocatePML5) {
     TEST_REQUIRES(gpu->productFamily == ProductFamily::Pvc);
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
 
     auto ppgtt = std::unique_ptr<PageTable>(gpu->allocatePPGTT(&allocator, MEMORY_BANK_0, maxNBitValue(57)));
     EXPECT_EQ(57u, ppgtt->getNumAddressBits());

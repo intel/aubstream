@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -25,6 +25,7 @@ struct AubTbxStream;
 struct TbxShmStream;
 
 struct Gpu;
+struct StolenMemory;
 struct PageInfo;
 struct HardwareContext;
 struct HardwareContextImp;
@@ -76,6 +77,7 @@ class AubManagerImp : public AubManager {
     const uint32_t stepping;
     uint64_t gpuAddressSpace;
 
+    std::unique_ptr<StolenMemory> stolenMem;
     std::unique_ptr<AubFileStream> streamAub;
     std::unique_ptr<TbxStream> streamTbx;
     std::unique_ptr<AubTbxStream> streamAubTbx;

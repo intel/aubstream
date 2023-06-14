@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -52,7 +52,7 @@ static uint32_t allMemoryBanks[] = {
 };
 
 TEST_P(PML4LegacyTest, ctor) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPML4 pageTable(*gpu, &allocator, memoryBank);
     EXPECT_NE(0u, pageTable.getPhysicalAddress());
 }
@@ -62,7 +62,7 @@ INSTANTIATE_TEST_SUITE_P(LegacyPML4,
                          ::testing::ValuesIn(allMemoryBanks));
 
 TEST(LegacyPML4, getEntryValue) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPML4 pageTable(*gpu, &allocator, defaultMemoryBank);
 
     auto expectedEntryValue = pageTable.getPhysicalAddress() | toBitValue(PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
@@ -70,7 +70,7 @@ TEST(LegacyPML4, getEntryValue) {
 }
 
 TEST(LegacyPML4, getIndex) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPML4 pageTable(*gpu, &allocator, defaultMemoryBank);
     EXPECT_EQ(0u, pageTable.getIndex(0x000000000000));
     EXPECT_EQ(130u, pageTable.getIndex(0x412345674123));
@@ -79,7 +79,7 @@ TEST(LegacyPML4, getIndex) {
 }
 
 TEST(LegacyPDP4, getEntryValue) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPDP4 pageTable(*gpu, &allocator, defaultMemoryBank);
 
     auto expectedEntryValue = pageTable.getPhysicalAddress() | toBitValue(PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
@@ -87,7 +87,7 @@ TEST(LegacyPDP4, getEntryValue) {
 }
 
 TEST(LegacyPDP4, getIndex) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPDP4 pageTable(*gpu, &allocator, MEMORY_BANK_0);
     EXPECT_EQ(0u, pageTable.getIndex(0u));
     EXPECT_EQ(1u, pageTable.getIndex(0x41234567));
@@ -96,7 +96,7 @@ TEST(LegacyPDP4, getIndex) {
 }
 
 TEST(LegacyPDP4, allocateChildReturnsNonNullPointer) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPDP4 pageTable(*gpu, &allocator, MEMORY_BANK_0);
     auto child = pageTable.allocateChild(*gpu, 4096, pageTable.getMemoryBank());
     EXPECT_NE(nullptr, child);
@@ -104,7 +104,7 @@ TEST(LegacyPDP4, allocateChildReturnsNonNullPointer) {
 }
 
 TEST_P(PDP4LegacyTest, ctor) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPDP4 pageTable(*gpu, &allocator, memoryBank);
     EXPECT_EQ(0u, pageTable.getPhysicalAddress());
 }
@@ -114,7 +114,7 @@ INSTANTIATE_TEST_SUITE_P(LegacyPDP4,
                          ::testing::ValuesIn(allMemoryBanks));
 
 TEST(LegacyPDP, getEntryValue) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPDP pageTable(*gpu, &allocator, defaultMemoryBank);
 
     auto expectedEntryValue = pageTable.getPhysicalAddress() | toBitValue(PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
@@ -122,7 +122,7 @@ TEST(LegacyPDP, getEntryValue) {
 }
 
 TEST_P(PDPLegacyTest, ctor) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPDP pageTable(*gpu, &allocator, memoryBank);
     EXPECT_NE(0u, pageTable.getPhysicalAddress());
 }
@@ -132,7 +132,7 @@ INSTANTIATE_TEST_SUITE_P(LegacyPDP,
                          ::testing::ValuesIn(allMemoryBanks));
 
 TEST(LegacyPDE, getEntryValue) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPDE pageTable(*gpu, &allocator, defaultMemoryBank);
 
     auto expectedEntryValue = pageTable.getPhysicalAddress() | toBitValue(PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
@@ -140,7 +140,7 @@ TEST(LegacyPDE, getEntryValue) {
 }
 
 TEST(LegacyPDE, getIndex) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPDE pageTable(*gpu, &allocator, MEMORY_BANK_0);
     EXPECT_EQ(0u, pageTable.getIndex(0x000000000000));
     EXPECT_EQ(43u, pageTable.getIndex(0x412345674123));
@@ -149,7 +149,7 @@ TEST(LegacyPDE, getIndex) {
 }
 
 TEST_P(PDELegacyTest, ctor) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPDE pageTable(*gpu, &allocator, memoryBank);
     EXPECT_NE(0u, pageTable.getPhysicalAddress());
 }
@@ -159,7 +159,7 @@ INSTANTIATE_TEST_SUITE_P(LegacyPDE,
                          ::testing::ValuesIn(allMemoryBanks));
 
 TEST(LegacyPTE64KB, getEntryValue) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPTE64KB pageTable(*gpu, &allocator, defaultMemoryBank);
 
     auto expectedEntryValue = pageTable.getPhysicalAddress() | toBitValue(PpgttEntryBits::legacyIntermediatePageSizeBit, PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
@@ -167,7 +167,7 @@ TEST(LegacyPTE64KB, getEntryValue) {
 }
 
 TEST(LegacyPTE64KB, getIndex) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPTE64KB pageTable(*gpu, &allocator, MEMORY_BANK_0);
     EXPECT_EQ(0x00, pageTable.getIndex(0x000000000000));
     EXPECT_EQ(0x70, pageTable.getIndex(0x412345674123));
@@ -176,7 +176,7 @@ TEST(LegacyPTE64KB, getIndex) {
 }
 
 TEST_P(PTE64KBLegacyTest, ctor) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPTE64KB pageTable(*gpu, &allocator, memoryBank);
     EXPECT_NE(0u, pageTable.getPhysicalAddress());
 }
@@ -186,7 +186,7 @@ INSTANTIATE_TEST_SUITE_P(LegacyPTE64KB,
                          ::testing::ValuesIn(allMemoryBanks));
 
 TEST_F(LegacyPageTableTest, GivenHBMTableAndSystemLastLevelPageVerifyMemoryLocation) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
 
     uint32_t data = 0xabcdabcd;
@@ -212,7 +212,7 @@ TEST_F(LegacyPageTableTest, GivenHBMTableAndSystemLastLevelPageVerifyMemoryLocat
 }
 
 TEST_F(LegacyPageTableTest, Write4KBFollowedBy64KBPageSizeShouldNotChange) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
 
     size_t size1 = 0x2000;
@@ -243,7 +243,7 @@ TEST_F(LegacyPageTableTest, Write4KBFollowedBy64KBPageSizeShouldNotChange) {
 }
 
 TEST_F(LegacyPageTableTest, Write64KBFollowedBy4KBPageSizeShouldNotChange) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
 
     size_t size1 = 0x2000;
@@ -274,7 +274,7 @@ TEST_F(LegacyPageTableTest, Write64KBFollowedBy4KBPageSizeShouldNotChange) {
 }
 
 TEST_F(LegacyPageTableTest, GivenHBMPML4LegacyTableAndLastLevelPageSystemPageVerifyNewPageTableHintsAreUsed) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
 
     EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel4)).Times(1);
@@ -287,7 +287,7 @@ TEST_F(LegacyPageTableTest, GivenHBMPML4LegacyTableAndLastLevelPageSystemPageVer
 }
 
 TEST_F(LegacyPageTableTest, GivenHBMPML4LegacyTableAndSystemLastLevel64KBPageVerifyReserveContiguousPagesIsCalled) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     LegacyPML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
 
     EXPECT_CALL(stream, reserveContiguousPages(_)).Times(1);
@@ -297,7 +297,7 @@ TEST_F(LegacyPageTableTest, GivenHBMPML4LegacyTableAndSystemLastLevel64KBPageVer
 }
 
 TEST_F(LegacyPageTableTest, GivenHBMGGTTAubStreamWriteMemoryVerifyChildPageAttributes) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, MEMORY_BANK_0);
 
     uint32_t data = 0xabcdabcd;
@@ -311,7 +311,7 @@ TEST_F(LegacyPageTableTest, GivenHBMGGTTAubStreamWriteMemoryVerifyChildPageAttri
 }
 
 TEST_F(LegacyPageTableTest, GivenSystemmemGGTTAubStreamWriteMemoryVerifyChildPageAttributes) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
 
     uint32_t data = 0xabcdabcd;
@@ -325,7 +325,7 @@ TEST_F(LegacyPageTableTest, GivenSystemmemGGTTAubStreamWriteMemoryVerifyChildPag
 }
 
 TEST_F(LegacyPageTableTest, GivenLocalMemoryGGTTWhenCallingExpectMemoryThenExpectMemoryTableGetsCalled) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, MEMORY_BANK_0);
 
     EXPECT_CALL(stream, expectMemoryTable(_, _, _, _)).Times(1);

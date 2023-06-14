@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022 Intel Corporation
+# Copyright (C) 2022-2023 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -16,6 +16,8 @@ add_executable(${TARGET_NAME}
                ${CMAKE_CURRENT_SOURCE_DIR}/command_stream_helper_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/command_stream_helper_tests.h
                ${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests.cpp
+               ${CMAKE_CURRENT_SOURCE_DIR}/stolen_memory_tests.cpp
+               ${CMAKE_CURRENT_SOURCE_DIR}/mock_stolen_memory.h
                ${CMAKE_CURRENT_SOURCE_DIR}/hardware_context_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/legacy_page_table_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/memory_bank_helper_tests.cpp

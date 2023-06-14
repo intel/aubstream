@@ -114,6 +114,37 @@ TEST(AubManagerImp, givenInvalidStreamModeAndExceptionsEnabledWhenAubManagerIsCr
     EXPECT_THROW(AubManager::create(options), std::runtime_error);
 }
 
+TEST(AubManagerImp, givenInvalidSHMPointersForSHMModeAndExceptionsEnabledWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse) {
+    AubManagerOptions options;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = defaultHBMSizePerDevice;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = mode::tbxShm;
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = true;
+
+    EXPECT_THROW(AubManager::create(options), std::logic_error);
+}
+
+TEST(AubManagerImp, givenInvalidSHMPointersForSHMModeWhenAubManagerCreateCalledThenNullptrReturned) {
+    AubManagerOptions options;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = defaultHBMSizePerDevice;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = mode::tbxShm;
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = false;
+
+    auto aubManager = AubManager::create(options);
+    EXPECT_EQ(nullptr, aubManager);
+}
+
 TEST(AubManagerImp, whenAubManagerIsCreatedWithAubFileModeAndOpenIsCalledThenItInitializesAubFileStream) {
     MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     EXPECT_NE(nullptr, aubManager.streamAub.get());
@@ -143,6 +174,36 @@ TEST(AubManagerImp, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxStream
     EXPECT_TRUE(aubManager.getFileName().empty());
 }
 
+TEST(AubManagerImp, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxShmStream) {
+    uint8_t sysMem[0x1000];
+    uint8_t lMem[0x1000];
+    SharedMemoryInfo sharedMemoryInfo = {sysMem, 0x1000, lMem, 0x1000};
+    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::tbxShm, sharedMemoryInfo);
+
+    EXPECT_NE(nullptr, aubManager.streamTbxShm.get());
+    EXPECT_TRUE(static_cast<TbxShmStream *>(aubManager.streamTbxShm.get())->socket);
+    EXPECT_EQ(nullptr, aubManager.streamAub.get());
+    EXPECT_EQ(nullptr, aubManager.streamTbx.get());
+    EXPECT_EQ(nullptr, aubManager.streamAubTbx.get());
+    EXPECT_FALSE(aubManager.isOpen());
+    EXPECT_TRUE(aubManager.getFileName().empty());
+}
+
+TEST(AubManagerImp, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxShm3Stream) {
+    if (gpu->gfxCoreFamily <= CoreFamily::Gen12lp) {
+        GTEST_SKIP();
+    }
+    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::tbxShm3);
+
+    EXPECT_NE(nullptr, aubManager.streamTbxShm.get());
+    EXPECT_TRUE(static_cast<TbxShmStream *>(aubManager.streamTbxShm.get())->socket);
+    EXPECT_EQ(nullptr, aubManager.streamAub.get());
+    EXPECT_EQ(nullptr, aubManager.streamTbx.get());
+    EXPECT_EQ(nullptr, aubManager.streamAubTbx.get());
+    EXPECT_FALSE(aubManager.isOpen());
+    EXPECT_TRUE(aubManager.getFileName().empty());
+}
+
 TEST(AubManagerImp, whenAubManagerIsCreatedWithAubFileAndTbxModeThenItInitializesAubAndTbxStreams) {
     MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::aubFileAndTbx);
     aubManager.open("test.aub");
@@ -166,14 +227,99 @@ TEST(AubManagerImp, whenAubManagerIsCreatedWithAubFileModeAndSteppingParamThenSt
 
 using AubManagerTest = ::testing::Test;
 
+HWTEST_F(AubManagerTest, givenInvalidSHMPointersForSHM3ModeAndExceptionsEnabledWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse, HwMatcher::coreAboveEqualXeHp) {
+    uint8_t sysMem[0x1000];
+    uint8_t lMem[0x1000];
+    AubManagerOptions options;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = defaultHBMSizePerDevice;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = mode::tbxShm3;
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = true;
+    options.sharedMemoryInfo = {sysMem, 0x1000, lMem, 0x1000};
+
+    EXPECT_THROW(AubManager::create(options), std::logic_error);
+
+    options.sharedMemoryInfo = {nullptr, 0, lMem, 0x1000};
+    EXPECT_THROW(AubManager::create(options), std::logic_error);
+
+    options.sharedMemoryInfo = {sysMem, 0x1000, nullptr, 0};
+    EXPECT_THROW(AubManager::create(options), std::logic_error);
+}
+
+HWTEST_F(AubManagerTest, givenInvalidSHMPointersForSHM3ModeWhenAubManagerCreateCalledThenNullptrReturned, HwMatcher::coreAboveEqualXeHp) {
+    uint8_t sysMem[0x1000];
+    uint8_t lMem[0x1000];
+    AubManagerOptions options;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = defaultHBMSizePerDevice;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = mode::tbxShm3;
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = false;
+    options.sharedMemoryInfo = {sysMem, 0x1000, lMem, 0x1000};
+
+    auto aubManager = AubManager::create(options);
+    EXPECT_EQ(nullptr, aubManager);
+
+    options.sharedMemoryInfo = {nullptr, 0, lMem, 0x1000};
+    aubManager = AubManager::create(options);
+    EXPECT_EQ(nullptr, aubManager);
+
+    options.sharedMemoryInfo = {sysMem, 0x1000, nullptr, 0};
+    aubManager = AubManager::create(options);
+    EXPECT_EQ(nullptr, aubManager);
+}
+
+HWTEST_F(AubManagerTest, givenInvalidProductFamilyForSHM3AndExceptionsEnabledWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse, HwMatcher::coreBelowEqualGen12Core) {
+    AubManagerOptions options;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = defaultHBMSizePerDevice;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = mode::tbxShm3;
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = true;
+    options.sharedMemoryInfo = {nullptr, 0x1000, nullptr, 0x1000};
+
+    EXPECT_THROW(AubManager::create(options), std::logic_error);
+}
+
+HWTEST_F(AubManagerTest, givenInvalidProductFamilyForSHM3WhenAubManagerCreateCalledThenNullptrReturned, HwMatcher::coreBelowEqualGen12Core) {
+    AubManagerOptions options;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = defaultHBMSizePerDevice;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = mode::tbxShm3;
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = false;
+    options.sharedMemoryInfo = {nullptr, 0x1000, nullptr, 0x1000};
+
+    auto aubManager = AubManager::create(options);
+    EXPECT_EQ(nullptr, aubManager);
+}
+
 HWTEST_F(AubManagerTest, ggttBaseAddressIsCorrect, HwMatcher::coreAboveEqualXeHp) {
 
     bool localMemorySupport = false;
     MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::aubFile);
+    auto sm = StolenMemory::CreateStolenMemory(false, 1, defaultHBMSizePerDevice);
 
     EXPECT_EQ(1u, aubManager.ggtts.size());
     if (!gpu->requireLocalMemoryForPageTables()) {
-        EXPECT_EQ(gpu->getGGTTBaseAddress(0, defaultHBMSizePerDevice), aubManager.ggtts[0].get()->gttTableOffset);
+        EXPECT_EQ(gpu->getGGTTBaseAddress(0, defaultHBMSizePerDevice, sm->getBaseAddress(0)), aubManager.ggtts[0].get()->gttTableOffset);
     }
 }
 
@@ -303,7 +449,7 @@ TEST(AubManager, initializeAlsoSetsGGTTBaseAddresses) {
     MockGpu mockGpu;
     bool localMemorySupport = defaultMemoryBank != MEMORY_BANK_SYSTEM;
 
-    EXPECT_CALL(mockGpu, setGGTTBaseAddresses(_, gpu->deviceCount, defaultHBMSizePerDevice));
+    EXPECT_CALL(mockGpu, setGGTTBaseAddresses(_, gpu->deviceCount, defaultHBMSizePerDevice, _));
 
     MockAubManager aubManager(mockGpu, gpu->deviceCount, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::tbx);
     aubManager.open("test.aub");

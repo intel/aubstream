@@ -170,14 +170,11 @@ CommandStreamerHelper &GpuXeHpgCore::getCommandStreamerHelper(uint32_t device, E
     csh->gpu = this;
     return *csh;
 }
-void GpuXeHpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize) const {
-    if ((stream.getStreamMode() == aub_stream::mode::tbx || stream.getStreamMode() == aub_stream::mode::aubFileAndTbx || stream.getStreamMode() == aub_stream::mode::tbxShm)) {
-        auto flatCcsSize = memoryBankSize / 256;
+void GpuXeHpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {
+    if (IsAnyTbxMode(stream.getStreamMode())) {
         for (uint32_t i = 0; i < devicesCount; i++) {
-            // put flat ccs at the end of memory bank (minus 9MB)
-            uint64_t flatCcsBaseAddr = memoryBankSize * (i + 1);
-            flatCcsBaseAddr -= flatCcsSize;
-            flatCcsBaseAddr -= 9 * MB; // // wopcm and ggtt - match aub file mode
+            // put flat ccs at the beginning of stolen memory
+            uint64_t flatCcsBaseAddr = stolenMemory.getBaseAddress(i);
             initializeFlatCcsBaseAddressMmio(stream, i, flatCcsBaseAddr);
         }
     }
@@ -391,7 +388,7 @@ void GpuXeHpgCore::setMemoryBankSize(AubStream &stream, uint32_t deviceCount, ui
     }
 }
 
-void GpuXeHpgCore::setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize) const {
+void GpuXeHpgCore::setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {
     assert(deviceCount > 0u);
     assert(deviceCount <= this->deviceCount);
     assert(GpuXeHpgCore::numSupportedDevices == this->deviceCount);
@@ -401,32 +398,32 @@ void GpuXeHpgCore::setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount,
     const uint32_t gsmBaseRem1 = 0x108108;
     const uint32_t gsmBaseRem2 = 0x108110;
     const uint32_t gsmBaseRem3 = 0x108118;
-
     for (auto device = 0u; device < deviceCount; ++device) {
-        uint64_t gttBase = getGGTTBaseAddress(device, memoryBankSize);
+        uint64_t gttBase = getGGTTBaseAddress(device, memoryBankSize, stolenMemory.getBaseAddress(device));
         stream.writeMMIO(mmioDevice[device] + gsmBase + 4, static_cast<uint32_t>(gttBase >> 32));
         stream.writeMMIO(mmioDevice[device] + gsmBase + 0, static_cast<uint32_t>(gttBase & 0xFFF00000));
 
         if (1 == device) {
-            uint64_t gttBaseRem1 = getGGTTBaseAddress(1, memoryBankSize);
+            uint64_t gttBaseRem1 = gttBase;
             stream.writeMMIO(mmioDevice[0] + gsmBaseRem1 + 4, static_cast<uint32_t>(gttBaseRem1 >> 32));
             stream.writeMMIO(mmioDevice[0] + gsmBaseRem1 + 0, static_cast<uint32_t>(gttBaseRem1 & 0xFFF00000));
         }
         if (2 == device) {
-            uint64_t gttBaseRem2 = getGGTTBaseAddress(2, memoryBankSize);
+            uint64_t gttBaseRem2 = gttBase;
             stream.writeMMIO(mmioDevice[0] + gsmBaseRem2 + 4, static_cast<uint32_t>(gttBaseRem2 >> 32));
             stream.writeMMIO(mmioDevice[0] + gsmBaseRem2 + 0, static_cast<uint32_t>(gttBaseRem2 & 0xFFF00000));
         }
         if (3 == device) {
-            uint64_t gttBaseRem3 = getGGTTBaseAddress(3, memoryBankSize);
+            uint64_t gttBaseRem3 = gttBase;
             stream.writeMMIO(mmioDevice[0] + gsmBaseRem3 + 4, static_cast<uint32_t>(gttBaseRem3 >> 32));
             stream.writeMMIO(mmioDevice[0] + gsmBaseRem3 + 0, static_cast<uint32_t>(gttBaseRem3 & 0xFFF00000));
         }
     }
 }
 
-uint64_t GpuXeHpgCore::getGGTTBaseAddress(uint32_t device, uint64_t memoryBankSize) const {
-    return (device * memoryBankSize) - (8 * MB) + memoryBankSize;
+uint64_t GpuXeHpgCore::getGGTTBaseAddress(uint32_t device, uint64_t memoryBankSize, uint64_t stolenMemoryBaseAddress) const {
+    const auto flatCcsSize = memoryBankSize / 256;
+    return stolenMemoryBaseAddress + 1 * MB + flatCcsSize;
 }
 
 PageTable *GpuXeHpgCore::allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const {

@@ -16,6 +16,7 @@ struct AubTbxStream;
 class TbxSockets;
 
 struct TbxShmStream : public AubStream {
+    TbxShmStream(bool isVersion3) : mode(isVersion3 ? aub_stream::mode::tbxShm3 : aub_stream::mode::tbxShm) {}
     virtual ~TbxShmStream();
 
     void addComment(const char *message) override;
@@ -35,7 +36,7 @@ struct TbxShmStream : public AubStream {
     std::vector<PageInfo> writeMemory(GGTT *ggtt, uint64_t gfxAddress, const void *memory, size_t size, uint32_t memoryBanks, int hint, size_t pageSize = 4096);
     std::vector<PageInfo> writeMemory(PageTable *ppgtt, uint64_t gfxAddress, const void *memory, size_t size, uint32_t memoryBanks, int hint, size_t pageSize = 4096);
 
-    uint32_t getStreamMode() const override { return aub_stream::mode::tbxShm; };
+    uint32_t getStreamMode() const override { return mode; };
 
     TbxSockets *socket = nullptr;
     friend AubTbxStream;
@@ -54,6 +55,8 @@ struct TbxShmStream : public AubStream {
 
     std::chrono::time_point<std::chrono::steady_clock> lastTimeCheck{};
     void checkSocketAlive();
+
+    uint32_t mode;
 };
 
 } // namespace aub_stream

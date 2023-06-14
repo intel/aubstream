@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -15,15 +15,22 @@ struct MockSimpleAllocator : public SimpleAllocator<AddressType> {
     using SimpleAllocator<AddressType>::nextAddress;
 };
 
-struct MockPhysicalAddressAllocator : public PhysicalAddressAllocator {
-    MockPhysicalAddressAllocator() : PhysicalAddressAllocator() {
+struct MockPhysicalAddressAllocatorSimple : public PhysicalAddressAllocatorSimple {
+    MockPhysicalAddressAllocatorSimple() : PhysicalAddressAllocatorSimple() {
     }
 
-    MockPhysicalAddressAllocator(uint32_t numberOfAllocators, size_t singleAllocatorSize, bool localMemorySupport) : PhysicalAddressAllocator(numberOfAllocators, singleAllocatorSize, localMemorySupport) {
+    MockPhysicalAddressAllocatorSimple(uint32_t numberOfAllocators, size_t singleAllocatorSize, bool localMemorySupport) : PhysicalAddressAllocatorSimple(numberOfAllocators, singleAllocatorSize, localMemorySupport) {
     }
 
-    using PhysicalAddressAllocator::allocators;
-    using PhysicalAddressAllocator::numberOfAllocators;
-    using PhysicalAddressAllocator::PhysicalAddressAllocator;
+    using PhysicalAddressAllocatorSimple::allocators;
+    using PhysicalAddressAllocatorSimple::numberOfAllocators;
+    using PhysicalAddressAllocatorSimple::PhysicalAddressAllocatorSimple;
+};
+
+struct MockPhysicalAddressAllocatorHeap : public PhysicalAddressAllocatorHeap {
+    MockPhysicalAddressAllocatorHeap() : PhysicalAddressAllocatorHeap() {
+    }
+
+    using PhysicalAddressAllocatorHeap::storage;
 };
 } // namespace aub_stream

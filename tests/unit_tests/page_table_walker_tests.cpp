@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -21,12 +21,12 @@ struct PageTableWalkerFixture : public ::testing::Test {
     using PPGTTType = Type;
 
     void SetUp() override {
-        allocator = std::make_unique<PhysicalAddressAllocator>(memoryBanksCount, aub_stream::GB, true);
+        allocator = std::make_unique<PhysicalAddressAllocatorSimple>(memoryBanksCount, aub_stream::GB, true);
         ggtt = std::make_unique<GGTT>(*gpu, allocator.get(), defaultMemoryBank);
         ppgtt = std::make_unique<PPGTTType>(*gpu, allocator.get(), defaultMemoryBank);
     }
 
-    std::unique_ptr<PhysicalAddressAllocator> allocator;
+    std::unique_ptr<PhysicalAddressAllocatorSimple> allocator;
     std::unique_ptr<GGTT> ggtt;
     std::unique_ptr<PPGTTType> ppgtt;
 };

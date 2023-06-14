@@ -1,15 +1,17 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
  */
 
 #pragma once
+#include "alloc_tools.h"
 #include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <list>
 #include <vector>
 
 namespace aub_stream {
@@ -27,10 +29,8 @@ struct SimpleAllocator {
         std::lock_guard<std::mutex> guard(mutex);
         nextAddress += alignment - 1;
         nextAddress &= ~(alignment - 1);
-
         auto physicalAddress = nextAddress;
         nextAddress += AddressType(size);
-
         return physicalAddress;
     }
 
@@ -40,29 +40,34 @@ struct SimpleAllocator {
 };
 
 struct PhysicalAddressAllocator {
-    PhysicalAddressAllocator() : mainAllocator(reservedGGTTSpace) {
-    }
+    virtual ~PhysicalAddressAllocator() = default;
+    virtual uint64_t reservePhysicalMemory(uint32_t memoryBank, size_t size, size_t alignment) = 0;
 
-    PhysicalAddressAllocator(uint32_t numberOfAllocators, uint64_t singleAllocatorSize, bool localMemorySupport) : mainAllocator(reservedGGTTSpace),
-                                                                                                                   numberOfAllocators(numberOfAllocators),
-                                                                                                                   allocatorSize(singleAllocatorSize) {
-        allocators.resize(numberOfAllocators);
-
-        uint64_t startAddress = localMemorySupport ? allocatorSize / 256 : 0;
-        for (auto &allocator : allocators) {
-            allocator = std::make_unique<SimpleAllocator<uint64_t>>(std::max(startAddress, uint64_t(0x1000u)));
-            startAddress += allocatorSize;
-        }
-    }
-    uint64_t reservePhysicalMemory(uint32_t memoryBank, size_t size, size_t alignment);
-
+    static std::unique_ptr<PhysicalAddressAllocator> CreatePhysicalAddressAllocator(bool inHeap, uint32_t numberOfAllocators, uint64_t singleAllocatorSize, bool localMemorySupport);
     static constexpr uint32_t mainBank = 0;
+};
+
+struct PhysicalAddressAllocatorSimple : public PhysicalAddressAllocator {
+    PhysicalAddressAllocatorSimple() : mainAllocator(reservedGGTTSpace) {
+    }
+
+    PhysicalAddressAllocatorSimple(uint32_t numberOfAllocators, uint64_t singleAllocatorSize, bool localMemorySupport);
+    uint64_t reservePhysicalMemory(uint32_t memoryBank, size_t size, size_t alignment) override;
 
   protected:
     SimpleAllocator<uint64_t> mainAllocator;
     uint32_t numberOfAllocators = 0;
     uint64_t allocatorSize = 0x80000000;
     std::vector<std::unique_ptr<SimpleAllocator<uint64_t>>> allocators;
+};
+
+struct PhysicalAddressAllocatorHeap : public PhysicalAddressAllocator {
+    PhysicalAddressAllocatorHeap() {
+    }
+    uint64_t reservePhysicalMemory(uint32_t memoryBank, size_t size, size_t alignment) override;
+
+  protected:
+    std::list<std::unique_ptr<uint8_t, decltype(&aligned_free)>> storage;
 };
 
 } // namespace aub_stream

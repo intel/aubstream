@@ -32,7 +32,7 @@ TEST_F(AubStreamTest, multipleWriteMemoryShouldKeepSamePhysicalAddress) {
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     auto gfxAddress = 0xbadddadcu;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt1(*gpu, &allocator, defaultMemoryBank);
 
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 65536});
@@ -69,7 +69,7 @@ TEST_F(AubStreamTest, expectMemoryShouldntAlterPageTable) {
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     auto gfxAddress = 0xbadddadcu;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt1(*gpu, &allocator, defaultMemoryBank);
 
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 65536});
@@ -106,7 +106,7 @@ TEST_F(AubStreamTest, writeMemoryAndClonePageTablesShouldOnlyShareSamePagesForLa
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     auto gfxAddress = 0xbadddadcu;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt1(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt2(*gpu, &allocator, defaultMemoryBank);
 
@@ -138,7 +138,7 @@ TEST_F(AubStreamTest, clonePageTablesShouldSetCorrectPageSize) {
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x5009000;
 
-    PhysicalAddressAllocator allocator(2, 1, localMemorySupportedInTests);
+    PhysicalAddressAllocatorSimple allocator(2, 1, localMemorySupportedInTests);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     size_t pageSize = 4096;
 
@@ -170,7 +170,7 @@ TEST_F(AubStreamTest, writeMemoryReturnsPageTableEntriesWritten) {
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
 
-    PhysicalAddressAllocator allocator(2, 1, localMemorySupportedInTests);
+    PhysicalAddressAllocatorSimple allocator(2, 1, localMemorySupportedInTests);
     PML4 ppgtt1(*gpu, &allocator, MEMORY_BANK_0);
 
     auto entriesWritten = stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, 65536});
@@ -189,7 +189,7 @@ TEST_F(AubStreamTest, freeMemoryShouldRemovePTEEntriesLocalMemory) {
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt1(*gpu, &allocator, MEMORY_BANK_0);
 
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 65536});
@@ -207,7 +207,7 @@ TEST_F(AubStreamTest, freeMemoryShouldRemovePTEEntriesSystemMemory) {
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt1(*gpu, &allocator, MEMORY_BANK_SYSTEM);
 
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 65536});
@@ -225,7 +225,7 @@ TEST_F(AubStreamTest, givenLocalMemoryWhenCloningMemoryThenPageWalkEntriesAreWri
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
     bool isLocalMemoryPage = true;
 
@@ -248,7 +248,7 @@ TEST_F(AubStreamTest, givenSystemMemoryWhenCloningMemoryThenPageWalkEntriesAreWr
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
     bool isLocalMemoryPage = false;
 
@@ -271,7 +271,7 @@ TEST_F(AubStreamTest, givenLocalMemoryWhenWriteMemoryAndClonePageTablesIsCalledT
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     auto gfxAddress = 0x1000;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
     PML4 ppgttCloned(*gpu, &allocator, MEMORY_BANK_1);
 
@@ -287,13 +287,26 @@ TEST_F(AubStreamTest, givenLocalMemoryWhenWriteMemoryAndClonePageTablesIsCalledT
     stream.writeMemoryAndClonePageTables(&ppgtt, ppgttForCloning, 1, gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, 65536);
 }
 
+TEST_F(AubStreamTest, givenAllPossibilitiesToTbxTools) {
+    EXPECT_EQ(IsAnyTbxMode(mode::aubFile), false);
+    EXPECT_EQ(IsAnyTbxMode(mode::tbx), true);
+    EXPECT_EQ(IsAnyTbxMode(mode::aubFileAndTbx), true);
+    EXPECT_EQ(IsAnyTbxMode(mode::tbxShm), true);
+    EXPECT_EQ(IsAnyTbxMode(mode::tbxShm3), true);
+    EXPECT_EQ(IsAnyTbxShmMode(mode::aubFile), false);
+    EXPECT_EQ(IsAnyTbxShmMode(mode::tbx), false);
+    EXPECT_EQ(IsAnyTbxShmMode(mode::aubFileAndTbx), false);
+    EXPECT_EQ(IsAnyTbxShmMode(mode::tbxShm), true);
+    EXPECT_EQ(IsAnyTbxShmMode(mode::tbxShm3), true);
+}
+
 using AubStreamTest32 = AubStreamTest;
 
 TEST_F(AubStreamTest32, freeMemoryShouldRemovePTEEntries) {
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PDP4 ppgtt1(*gpu, &allocator, defaultMemoryBank);
 
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 65536});
@@ -310,7 +323,7 @@ TEST_F(AubStreamTest32, freeMemoryShouldRemovePTEEntries) {
 TEST_F(AubStreamTest32, writeMemoryWithNullPointerReservesMemoryInPPGTT) {
     uint64_t gfxAddress = 0x1000;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PDP4 ppgtt1(*gpu, &allocator, defaultMemoryBank);
 
     // Shouldnt be writing any memory only reserving GPUVA
@@ -325,7 +338,7 @@ TEST_F(AubStreamTest32, writeMemoryWithNullPointerReservesMemoryInPPGTT) {
 TEST_F(AubStreamTest32, writeMemoryWithNullPointerReservesMemoryInGGTT) {
     auto gfxAddress = 0x1000;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
 
     // Shouldnt be writing any memory only reserving GPUVA
@@ -340,7 +353,7 @@ TEST_F(AubStreamTest32, writeMemoryWithNullPointerReservesMemoryInGGTT) {
 TEST_F(AubStreamTest, givenGGTT64KBPageEntriesAre4KBAndArePhysicallyContiguous) {
     auto gfxAddress = 0x00000000;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
 
     // Force misalignment

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -123,6 +123,10 @@ struct MatchMemory {
 struct HwMatcher {
     static bool coreBelowGen12Core(const aub_stream::Gpu *gpu) {
         return gpu->gfxCoreFamily < aub_stream::CoreFamily::Gen12lp;
+    }
+
+    static bool coreBelowEqualGen12Core(const aub_stream::Gpu *gpu) {
+        return gpu->gfxCoreFamily <= aub_stream::CoreFamily::Gen12lp;
     }
 
     static bool coreAboveEqualXeHp(const aub_stream::Gpu *gpu) {

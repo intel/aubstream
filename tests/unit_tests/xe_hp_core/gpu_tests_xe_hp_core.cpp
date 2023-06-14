@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -60,19 +60,21 @@ TEST(Gpu, XeHpGivenFourDeviceSetMemoryBankSizeDefinesAllBanks) {
 TEST(Gpu, XeHpFileStreamInitializeGlobalMMIOWritesFlatCcsBaseAddress) {
     TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
     MockAubFileStream stream;
+    auto sm = StolenMemory::CreateStolenMemory(false, 1, 1);
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
     EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(0);
 
-    gpu->initializeDefaultMemoryPools(stream, 1, 1);
+    gpu->initializeDefaultMemoryPools(stream, 1, 1, *sm);
 }
 
 TEST(Gpu, XeHpTbxStreamInitializeGlobalMMIOWritesFlatCcsBaseAddress) {
     TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpCore);
     MockTbxStream stream;
+    auto sm = StolenMemory::CreateStolenMemory(false, 1, 1);
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
     EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(1);
 
-    gpu->initializeDefaultMemoryPools(stream, 1, 1);
+    gpu->initializeDefaultMemoryPools(stream, 1, 1, *sm);
 }
 
 TEST(Gpu, XeHpInitializeGlobalMMIOWritesFlatCcsBaseAddressPtr) {
@@ -82,6 +84,7 @@ TEST(Gpu, XeHpInitializeGlobalMMIOWritesFlatCcsBaseAddressPtr) {
     constexpr uint64_t perDeviceHbmSize = 8llu * GB;
 
     MockTbxStream stream;
+    auto sm = StolenMemory::CreateStolenMemory(false, numDevices, perDeviceHbmSize);
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
 
     for (uint32_t i = 0; i > numDevices; i++) {
@@ -94,7 +97,7 @@ TEST(Gpu, XeHpInitializeGlobalMMIOWritesFlatCcsBaseAddressPtr) {
         EXPECT_CALL(stream, writeMMIO((i * mmioDeviceOffset) + 0x00004910, mmioValue)).Times(1);
     }
 
-    gpu->initializeDefaultMemoryPools(stream, numDevices, perDeviceHbmSize);
+    gpu->initializeDefaultMemoryPools(stream, numDevices, perDeviceHbmSize, *sm);
 }
 
 TEST(Gpu, XeHpGivenOneDeviceThenGGTTBaseAddressIsProgrammedForOneTile) {
@@ -117,7 +120,8 @@ TEST(Gpu, XeHpGivenOneDeviceThenGGTTBaseAddressIsProgrammedForOneTile) {
 
     auto deviceCount = 1;
     auto memoryBankSize = 32ull * GB;
-    gpu->setGGTTBaseAddresses(stream, deviceCount, memoryBankSize);
+    auto sm = StolenMemory::CreateStolenMemory(false, deviceCount, memoryBankSize);
+    gpu->setGGTTBaseAddresses(stream, deviceCount, memoryBankSize, *sm);
 }
 
 TEST(Gpu, XeHpGivenTwoDevicesThenGGTTBaseAddressesAreProgrammedForTwoTiles) {
@@ -141,7 +145,8 @@ TEST(Gpu, XeHpGivenTwoDevicesThenGGTTBaseAddressesAreProgrammedForTwoTiles) {
 
     auto deviceCount = 2;
     auto memoryBankSize = 16ull * GB;
-    gpu->setGGTTBaseAddresses(stream, deviceCount, memoryBankSize);
+    auto sm = StolenMemory::CreateStolenMemory(false, deviceCount, memoryBankSize);
+    gpu->setGGTTBaseAddresses(stream, deviceCount, memoryBankSize, *sm);
 }
 
 TEST(Gpu, XeHpGivenFourDevicesThenGGTTBaseAddressesAreProgrammedForFourTiles) {
@@ -165,5 +170,6 @@ TEST(Gpu, XeHpGivenFourDevicesThenGGTTBaseAddressesAreProgrammedForFourTiles) {
 
     auto deviceCount = 4;
     auto memoryBankSize = 8ull * GB;
-    gpu->setGGTTBaseAddresses(stream, deviceCount, memoryBankSize);
+    auto sm = StolenMemory::CreateStolenMemory(false, deviceCount, memoryBankSize);
+    gpu->setGGTTBaseAddresses(stream, deviceCount, memoryBankSize, *sm);
 }

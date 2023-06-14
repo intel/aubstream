@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -19,7 +19,7 @@ using namespace aub_stream;
 using ::testing::_;
 
 TEST(PML5, ctorTest) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML5 pageTable(*gpu, &allocator, MEMORY_BANK_0);
 
     EXPECT_TRUE(pageTable.isLocalMemory());
@@ -28,7 +28,7 @@ TEST(PML5, ctorTest) {
 }
 
 TEST(PML5, getEntryValue) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML5 pageTable(*gpu, &allocator, defaultMemoryBank);
 
     auto expectedEntryValue = pageTable.getPhysicalAddress() | toBitValue(PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
@@ -36,7 +36,7 @@ TEST(PML5, getEntryValue) {
 }
 
 TEST(PML5, getIndex) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML5 pageTable(*gpu, &allocator, defaultMemoryBank);
     EXPECT_EQ(0u, pageTable.getIndex(0x000000000000));
     EXPECT_EQ(0u, pageTable.getIndex(1ull << 16));
@@ -48,7 +48,7 @@ TEST(PML5, getIndex) {
 }
 
 TEST(PML5, GivenHBMTableAndSystemLastLevelPageWalkPageTables) {
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML5 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
 
     PageTableWalker pageWalker;
@@ -82,7 +82,7 @@ TEST(PML5, givenSystemMemoryWhenCloningMemoryThenPageWalkEntriesAreWrittenToStre
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML5 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
     bool isLocalMemoryPage = false;
 

@@ -27,7 +27,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
     rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
 
@@ -39,7 +39,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
     rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
 
@@ -51,7 +51,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
     rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
 
@@ -64,7 +64,7 @@ TEST_F(CommandStreamerHelperTest, givenGroupContextWhenCommandStreamHelperIsInit
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
     rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, true);
 
@@ -77,7 +77,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedWithFlagsT
     auto sizeLRCA = rcs.sizeLRCA;
     uint32_t additionalFlags = 0x800080;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
     rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, additionalFlags, false);
 
@@ -86,7 +86,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedWithFlagsT
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesPDPRegisters) {
     auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PDP4 pageTable(*gpu, &allocator, MEMORY_BANK_SYSTEM);
 
     auto sizeLRCA = rcs.sizeLRCA;
@@ -112,7 +112,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesPML4Register) {
     auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PDP4 pageTable(*gpu, &allocator, MEMORY_BANK_SYSTEM);
 
     // Initialize page table to a known state

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -54,7 +54,8 @@ TEST(Gpu, givenOneDeviceWhenSetGGTTBaseAddressThenIsProgrammedForOneTile) {
 
     auto deviceCount = 1;
     auto memoryBankSize = 32ull * GB;
-    gpu->setGGTTBaseAddresses(stream, deviceCount, memoryBankSize);
+    auto sm = StolenMemory::CreateStolenMemory(false, deviceCount, memoryBankSize);
+    gpu->setGGTTBaseAddresses(stream, deviceCount, memoryBankSize, *sm);
 }
 
 struct XeHPGCoreMatcher {
@@ -67,7 +68,7 @@ using XeHpgCoreCsTest = CommandStreamerHelperTest;
 HWTEST_F(XeHpgCoreCsTest, GivenCcsEngineWhenInitializingEngineThenMiModeNestedBBIsSetToZero, XeHPGCoreMatcher::isXeHpgCore) {
     auto &ccs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_CCS);
 
-    PhysicalAddressAllocator allocator;
+    PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
 
     EXPECT_CALL(stream, writeMMIO(_, _)).WillRepeatedly(Return());

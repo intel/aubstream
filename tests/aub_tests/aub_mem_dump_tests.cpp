@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -26,7 +26,7 @@ struct AubTests : public ::testing::Test {
     void TearDown() override;
 
     AubFileStream stream;
-    PhysicalAddressAllocator allocator;
+    std::unique_ptr<PhysicalAddressAllocator> allocator;
     GGTT *ggtt = nullptr;
     PPGTTType *ppgtt = nullptr;
 
@@ -43,8 +43,7 @@ struct AubTwoMemoryBanksTests : public AubTests<PPGTTType> {
 
     void SetUp() override {
         AubTests<PPGTTType>::SetUp();
-
-        multiBankAllocator = std::make_unique<PhysicalAddressAllocator>(2, 2, localMemorySupportedInTests);
+        multiBankAllocator = PhysicalAddressAllocator::CreatePhysicalAddressAllocator(false, 2, 2, localMemorySupportedInTests);
 
         ppgtt1 = std::make_unique<PPGTTType>(*gpu, multiBankAllocator.get(), defaultMemoryBank);
         ppgtt2 = std::make_unique<PPGTTType>(*gpu, multiBankAllocator.get(), defaultMemoryBank + 1);
@@ -60,8 +59,9 @@ struct AubTwoMemoryBanksTests : public AubTests<PPGTTType> {
 
 template <typename PPGTTType>
 void AubTests<PPGTTType>::SetUp() {
-    ggtt = new GGTT(*gpu, &allocator, defaultMemoryBank);
-    ppgtt = new PPGTTType(*gpu, &allocator, defaultMemoryBank);
+    allocator = PhysicalAddressAllocator::CreatePhysicalAddressAllocator(false, 0, 0x80000000, false);
+    ggtt = new GGTT(*gpu, allocator.get(), defaultMemoryBank);
+    ppgtt = new PPGTTType(*gpu, allocator.get(), defaultMemoryBank);
 
     initializeAubStream(stream);
 }

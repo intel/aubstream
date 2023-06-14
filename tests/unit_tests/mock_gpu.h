@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -18,14 +18,14 @@ struct MockGpuBase : public Gpu {
     MOCK_CONST_METHOD2(isMemorySupported, bool(uint32_t memoryBanks, uint32_t alignment));
     MOCK_CONST_METHOD1(isEngineSupported, bool(uint32_t engine));
     MOCK_CONST_METHOD3(setMemoryBankSize, void(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize));
-    MOCK_CONST_METHOD3(setGGTTBaseAddresses, void(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize));
+    MOCK_CONST_METHOD4(setGGTTBaseAddresses, void(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory));
     MOCK_CONST_METHOD2(getCommandStreamerHelper, CommandStreamerHelper &(uint32_t device, EngineType engineType));
     MOCK_CONST_METHOD3(allocateGGTT, GGTT *(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gttBaseAddress));
     MOCK_CONST_METHOD3(allocatePPGTT, PageTable *(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace));
     MOCK_CONST_METHOD0(requireLocalMemoryForPageTables, bool());
     MOCK_CONST_METHOD0(getGlobalMMIO, const MMIOList());
     MOCK_CONST_METHOD0(getSupportedEngines, const std::vector<EngineType>());
-    MOCK_CONST_METHOD2(getGGTTBaseAddress, uint64_t(uint32_t device, uint64_t memoryBankSize));
+    MOCK_CONST_METHOD3(getGGTTBaseAddress, uint64_t(uint32_t device, uint64_t memoryBankSize, uint64_t stolenMemoryBaseAddress));
 };
 
 using MockGpu = ::testing::NiceMock<MockGpuBase>;

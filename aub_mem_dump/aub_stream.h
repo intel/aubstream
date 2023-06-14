@@ -85,4 +85,12 @@ struct AubStream {
     bool dumpSurfaceSupported = false;
 };
 
+inline bool IsAnyTbxShmMode(uint32_t m) {
+    return m == aub_stream::mode::tbxShm || m == aub_stream::mode::tbxShm3;
+}
+
+inline bool IsAnyTbxMode(uint32_t m) {
+    return m == aub_stream::mode::tbx || m == aub_stream::mode::aubFileAndTbx || IsAnyTbxShmMode(m);
+}
+
 } // namespace aub_stream
