@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -10,5 +10,7 @@
 #include "aubstream/product_family.h"
 
 namespace aub_stream {
+#ifdef SUPPORT_XE_HP_SDV
 static RegisterFamily<ProductFamily::XeHpSdv> registerFamilyXeHp;
+#endif
 } // namespace aub_stream
