@@ -6,7 +6,10 @@
  */
 
 #pragma once
+
 #include <cstdint>
+
+namespace aub_stream {
 
 enum mem_types : uint32_t {
     MEM_TYPE_SYSTEM = 0,
@@ -707,3 +710,5 @@ struct HAS_MSG {
     struct HAS_HDR hdr;
     union HAS_MSG_BODY u;
 };
+
+} // namespace aub_stream
