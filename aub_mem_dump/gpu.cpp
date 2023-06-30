@@ -10,6 +10,7 @@
 #include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/alloc_tools.h"
+#include "aub_mem_dump/align_helpers.h"
 #include <memory>
 
 namespace aub_stream {
@@ -46,8 +47,10 @@ void Gpu::initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount, uint64_
 
 StolenMemoryInHeap::StolenMemoryInHeap(uint32_t deviceCount, uint64_t memoryBankSize) {
     const uint64_t flatCcsSize = memoryBankSize / 256;
+    // Flat CCS buffer size must be 1MB aligned to make sure that there is enough space to make GTT base address to be also aligned to 1MB
+    const uint64_t flatCcsSizeAligned = alignUp(flatCcsSize, 20);
     for (uint32_t d = 0; d < deviceCount; ++d) {
-        auto p = std::unique_ptr<uint8_t, decltype(&aligned_free)>(reinterpret_cast<uint8_t *>(aligned_alloc(static_cast<size_t>(flatCcsSize + 8 * MB + 1 * MB), static_cast<size_t>(MB))), &aligned_free);
+        auto p = std::unique_ptr<uint8_t, decltype(&aligned_free)>(reinterpret_cast<uint8_t *>(aligned_alloc(static_cast<size_t>(flatCcsSizeAligned + 8 * MB + 1 * MB), static_cast<size_t>(MB))), &aligned_free);
         localStolenStorage.push_back(std::move(p));
     }
 }
@@ -61,13 +64,16 @@ StolenMemoryInStaticStorage::StolenMemoryInStaticStorage(uint64_t memoryBankSize
 
 uint64_t StolenMemoryInStaticStorage::getBaseAddress(uint32_t device) const {
     const uint64_t flatCcsSize = staticMemoryBankSize / 256;
+    // Flat CCS buffer size must be 1MB aligned to make sure that there is enough space to make GTT base address to be also aligned to 1MB
+    const uint64_t flatCcsSizeAligned = alignUp(flatCcsSize, 20);
     const uint64_t ggttSize = 8 * MB;
     const uint64_t wopcmSize = 1 * MB;
     uint64_t baseAddr = staticMemoryBankSize * (device + 1);
-    baseAddr -= flatCcsSize;
+    baseAddr -= flatCcsSizeAligned;
     baseAddr -= ggttSize;
     baseAddr -= wopcmSize;
-    return baseAddr;
+    // Base address must be 1MB aligned to make GTT base address also 1MB aligned
+    return alignDown(baseAddr, 20);
 }
 
 std::unique_ptr<StolenMemory> StolenMemory::CreateStolenMemory(bool inHeap, uint32_t deviceCount, uint64_t memoryBankSize) {

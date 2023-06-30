@@ -6,6 +6,7 @@
  */
 
 #include "aub_mem_dump/xe_hpg_core/command_streamer_helper_xe_hpg_core.h"
+#include "aub_mem_dump/align_helpers.h"
 
 namespace aub_stream {
 
@@ -423,7 +424,8 @@ void GpuXeHpgCore::setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount,
 
 uint64_t GpuXeHpgCore::getGGTTBaseAddress(uint32_t device, uint64_t memoryBankSize, uint64_t stolenMemoryBaseAddress) const {
     const auto flatCcsSize = memoryBankSize / 256;
-    return stolenMemoryBaseAddress + 1 * MB + flatCcsSize;
+    const uint64_t flatCcsSizeAligned = alignUp(flatCcsSize, 20);
+    return stolenMemoryBaseAddress + flatCcsSizeAligned + 1 * MB;
 }
 
 PageTable *GpuXeHpgCore::allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const {
