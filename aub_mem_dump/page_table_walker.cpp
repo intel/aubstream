@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -84,7 +84,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
     assert(pageSize > 0);
 
-    PageInfo clonePageInfo;
+    PageInfo clonePageInfo{};
     uint32_t clonePageInfoIndex = 0;
 
     bool isLocalMemory = memoryBanks != PhysicalAddressAllocator::mainBank;
