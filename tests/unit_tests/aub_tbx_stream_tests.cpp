@@ -167,3 +167,46 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenAubFileStreamIsPaused) {
     std::vector<PageEntryInfo> entryInfoTable;
     aubTbxStream->writeDiscontiguousPages(entryInfoTable, 0, 0);
 }
+
+using AubShmStreamTest = ::testing::Test;
+TEST(AubShmStreamTest, writeContiguousPagesInSHMModeWithCorrectValuesThenTranslateCallIsExpected) {
+    MockTbxShmStream stream(mode::tbxShm);
+    uint64_t inVal = 1977;
+    uint64_t outVal = 0;
+    stream.baseInit([&outVal, &inVal](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
+        EXPECT_EQ(physAddress, 0x1AC000);
+        EXPECT_EQ(size, sizeof(inVal));
+        p = &outVal;
+        availableSize = size;
+    });
+    stream.baseWriteContiguousPages(&inVal, sizeof(inVal), 0x1AC000, aub_stream::AddressSpaceValues::TraceNonlocal, 0);
+    EXPECT_EQ(inVal, outVal);
+}
+
+TEST(AubShmStreamTest, writeContiguousPagesInSHM3ModeWithCorrectValuesThenTranslateCallIsExpected) {
+    MockTbxShmStream stream(mode::tbxShm3);
+    uint64_t inVal = 1977;
+    uint64_t outVal = 0;
+    stream.baseInit([&outVal, &inVal](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
+        EXPECT_EQ(physAddress, 0x1AC000);
+        EXPECT_EQ(size, sizeof(inVal));
+        p = &outVal;
+        availableSize = size;
+    });
+    stream.baseWriteContiguousPages(&inVal, sizeof(inVal), 0x1AC000, aub_stream::AddressSpaceValues::TraceNonlocal, 0);
+    EXPECT_EQ(inVal, outVal);
+}
+
+TEST(AubShmStreamTest, writeContiguousPagesInSHM4ModeWithCorrectValuesThenTranslateCallIsExpected) {
+    MockTbxShmStream stream(mode::tbxShm4);
+    uint64_t inVal = 1977;
+    uint64_t outVal = 0;
+    stream.baseInit([&outVal, &inVal](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
+        EXPECT_EQ(physAddress, 0x1AB000);
+        EXPECT_EQ(size, sizeof(inVal));
+        p = &outVal;
+        availableSize = size;
+    });
+    stream.baseWriteContiguousPages(&inVal, sizeof(inVal), 0x1AB000, aub_stream::AddressSpaceValues::TraceNonlocal, 0);
+    EXPECT_EQ(inVal, outVal);
+}

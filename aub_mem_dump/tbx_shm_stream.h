@@ -9,14 +9,20 @@
 #include "aub_stream.h"
 #include "tbx_sockets.h"
 #include "aubstream/shared_mem_info.h"
+#include "alloc_tools.h"
 #include <chrono>
+#include <list>
+#include <memory>
+#include <functional>
 
 namespace aub_stream {
 struct AubTbxStream;
 class TbxSockets;
 
 struct TbxShmStream : public AubStream {
-    TbxShmStream(bool isVersion3) : mode(isVersion3 ? aub_stream::mode::tbxShm3 : aub_stream::mode::tbxShm) {}
+    typedef std::function<void(uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize)> TranslatePhysicalAddressToSystemMemoryFn;
+
+    TbxShmStream(uint32_t m) : mode(m){};
     virtual ~TbxShmStream();
 
     void addComment(const char *message) override;
@@ -29,7 +35,7 @@ struct TbxShmStream : public AubStream {
     void reserveContiguousPages(const std::vector<uint64_t> &entries) override;
     void writeMMIO(uint32_t offset, uint32_t value) override;
 
-    bool init(SharedMemoryInfo *sharedMemoryInfo);
+    bool init(TranslatePhysicalAddressToSystemMemoryFn fn);
     void readMemory(PageTable *ppgtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize);
     void readMemory(GGTT *gtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize);
 
@@ -54,8 +60,9 @@ struct TbxShmStream : public AubStream {
     void writeDiscontiguousPages(const std::vector<PageEntryInfo> &writeInfoTable, int addressSpace, int hint) override;
 
     std::chrono::time_point<std::chrono::steady_clock> lastTimeCheck{};
-    void checkSocketAlive();
+    virtual void checkSocketAlive();
 
+    TranslatePhysicalAddressToSystemMemoryFn translatePhysicalAddressToSystemMemory;
     uint32_t mode;
 };
 

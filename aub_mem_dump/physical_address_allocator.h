@@ -7,6 +7,7 @@
 
 #pragma once
 #include "alloc_tools.h"
+#include "aubstream/shared_mem_info.h"
 #include <algorithm>
 #include <cstdint>
 #include <memory>
@@ -43,7 +44,6 @@ struct PhysicalAddressAllocator {
     virtual ~PhysicalAddressAllocator() = default;
     virtual uint64_t reservePhysicalMemory(uint32_t memoryBank, size_t size, size_t alignment) = 0;
 
-    static std::unique_ptr<PhysicalAddressAllocator> CreatePhysicalAddressAllocator(bool inHeap, uint32_t numberOfAllocators, uint64_t singleAllocatorSize, bool localMemorySupport);
     static constexpr uint32_t mainBank = 0;
 };
 
@@ -67,6 +67,22 @@ struct PhysicalAddressAllocatorHeap : public PhysicalAddressAllocator {
     uint64_t reservePhysicalMemory(uint32_t memoryBank, size_t size, size_t alignment) override;
 
   protected:
+    std::list<std::unique_ptr<uint8_t, decltype(&aligned_free)>> storage;
+};
+
+struct PhysicalAddressAllocatorSimpleAndSHM4Mapper : public PhysicalAddressAllocatorSimple {
+    PhysicalAddressAllocatorSimpleAndSHM4Mapper(uint32_t numberOfAllocators, uint64_t singleAllocatorSize, bool localMemorySupport, SharedMemoryInfo *smInfo);
+    uint64_t reservePhysicalMemory(uint32_t memoryBank, size_t size, size_t alignment) override;
+
+    virtual uint64_t reserveOnlyPhysicalSpace(uint32_t memoryBank, size_t size, size_t alignment);
+    virtual void mapSystemMemoryToPhysicalAddress(uint64_t physAddress, size_t size, size_t alignment, bool isLocalMemory, const void *p);
+    virtual void translatePhysicalAddressToSystemMemory(uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize);
+
+  protected:
+    typedef uint8_t *TranslationTableElement;
+    typedef const uint8_t *ConstTranslationTableElement;
+
+    SharedMemoryInfo *sharedMemoryInfo = nullptr;
     std::list<std::unique_ptr<uint8_t, decltype(&aligned_free)>> storage;
 };
 

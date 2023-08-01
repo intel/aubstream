@@ -43,7 +43,7 @@ struct AubTwoMemoryBanksTests : public AubTests<PPGTTType> {
 
     void SetUp() override {
         AubTests<PPGTTType>::SetUp();
-        multiBankAllocator = PhysicalAddressAllocator::CreatePhysicalAddressAllocator(false, 2, 2, localMemorySupportedInTests);
+        multiBankAllocator = std::make_unique<PhysicalAddressAllocatorSimple>(2, 2, localMemorySupportedInTests);
 
         ppgtt1 = std::make_unique<PPGTTType>(*gpu, multiBankAllocator.get(), defaultMemoryBank);
         ppgtt2 = std::make_unique<PPGTTType>(*gpu, multiBankAllocator.get(), defaultMemoryBank + 1);
@@ -59,7 +59,7 @@ struct AubTwoMemoryBanksTests : public AubTests<PPGTTType> {
 
 template <typename PPGTTType>
 void AubTests<PPGTTType>::SetUp() {
-    allocator = PhysicalAddressAllocator::CreatePhysicalAddressAllocator(false, 0, 0x80000000, false);
+    allocator = std::make_unique<PhysicalAddressAllocatorSimple>(0, 0x80000000, false);
     ggtt = new GGTT(*gpu, allocator.get(), defaultMemoryBank);
     ppgtt = new PPGTTType(*gpu, allocator.get(), defaultMemoryBank);
 

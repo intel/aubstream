@@ -86,7 +86,7 @@ struct AubStream {
 };
 
 inline bool IsAnyTbxShmMode(uint32_t m) {
-    return m == aub_stream::mode::tbxShm || m == aub_stream::mode::tbxShm3;
+    return m == aub_stream::mode::tbxShm || m == aub_stream::mode::tbxShm3 || m == aub_stream::mode::tbxShm4;
 }
 
 inline bool IsAnyTbxMode(uint32_t m) {

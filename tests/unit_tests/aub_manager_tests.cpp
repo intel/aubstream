@@ -18,6 +18,7 @@
 #include "test_defaults.h"
 #include "tests/unit_tests/mock_aub_manager.h"
 #include "tests/unit_tests/mock_aub_stream.h"
+#include "tests/unit_tests/mock_physical_address_allocator.h"
 #include "tests/unit_tests/mock_gpu.h"
 #include "tests/unit_tests/page_table_helper.h"
 
@@ -145,6 +146,37 @@ TEST(AubManagerImp, givenInvalidSHMPointersForSHMModeWhenAubManagerCreateCalledT
     EXPECT_EQ(nullptr, aubManager);
 }
 
+TEST(AubManagerImp, givenInvalidSHM4PointersForSHMModeAndExceptionsEnabledWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse) {
+    AubManagerOptions options;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = defaultHBMSizePerDevice;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = mode::tbxShm4;
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = true;
+
+    EXPECT_THROW(AubManager::create(options), std::logic_error);
+}
+
+TEST(AubManagerImp, givenInvalidSHM4PointersForSHMModeWhenAubManagerCreateCalledThenNullptrReturned) {
+    AubManagerOptions options;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = defaultHBMSizePerDevice;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = mode::tbxShm4;
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = false;
+
+    auto aubManager = AubManager::create(options);
+    EXPECT_EQ(nullptr, aubManager);
+}
+
 TEST(AubManagerImp, whenAubManagerIsCreatedWithAubFileModeAndOpenIsCalledThenItInitializesAubFileStream) {
     MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     EXPECT_NE(nullptr, aubManager.streamAub.get());
@@ -189,21 +221,6 @@ TEST(AubManagerImp, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxShmStr
     EXPECT_TRUE(aubManager.getFileName().empty());
 }
 
-TEST(AubManagerImp, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxShm3Stream) {
-    if (gpu->gfxCoreFamily <= CoreFamily::Gen12lp) {
-        GTEST_SKIP();
-    }
-    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::tbxShm3);
-
-    EXPECT_NE(nullptr, aubManager.streamTbxShm.get());
-    EXPECT_TRUE(static_cast<TbxShmStream *>(aubManager.streamTbxShm.get())->socket);
-    EXPECT_EQ(nullptr, aubManager.streamAub.get());
-    EXPECT_EQ(nullptr, aubManager.streamTbx.get());
-    EXPECT_EQ(nullptr, aubManager.streamAubTbx.get());
-    EXPECT_FALSE(aubManager.isOpen());
-    EXPECT_TRUE(aubManager.getFileName().empty());
-}
-
 TEST(AubManagerImp, whenAubManagerIsCreatedWithAubFileAndTbxModeThenItInitializesAubAndTbxStreams) {
     MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::aubFileAndTbx);
     aubManager.open("test.aub");
@@ -226,6 +243,42 @@ TEST(AubManagerImp, whenAubManagerIsCreatedWithAubFileModeAndSteppingParamThenSt
 }
 
 using AubManagerTest = ::testing::Test;
+HWTEST_F(AubManagerTest, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxShm3Stream, HwMatcher::coreAboveEqualXeHp) {
+    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::tbxShm3);
+
+    EXPECT_NE(nullptr, aubManager.streamTbxShm.get());
+    EXPECT_TRUE(static_cast<TbxShmStream *>(aubManager.streamTbxShm.get())->socket);
+    EXPECT_EQ(nullptr, aubManager.streamAub.get());
+    EXPECT_EQ(nullptr, aubManager.streamTbx.get());
+    EXPECT_EQ(nullptr, aubManager.streamAubTbx.get());
+    EXPECT_FALSE(aubManager.isOpen());
+    EXPECT_TRUE(aubManager.getFileName().empty());
+}
+
+HWTEST_F(AubManagerTest, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxShm4Stream, HwMatcher::coreAboveEqualXeHp) {
+    constexpr size_t BankSize = 0x1000000;
+    uint8_t *sysMem[BankSize / 0x1000] = {0};
+    uint8_t *lMem[BankSize / 0x1000] = {0};
+    SharedMemoryInfo sharedMemoryInfo = {reinterpret_cast<uint8_t *>(sysMem), BankSize, reinterpret_cast<uint8_t *>(lMem), BankSize};
+    MockAubManager aubManager(*gpu, 1, BankSize, 0u, gpu->requireLocalMemoryForPageTables(), mode::tbxShm4, sharedMemoryInfo);
+
+    EXPECT_NE(nullptr, aubManager.streamTbxShm.get());
+    EXPECT_TRUE(static_cast<TbxShmStream *>(aubManager.streamTbxShm.get())->socket);
+    EXPECT_EQ(nullptr, aubManager.streamAub.get());
+    EXPECT_EQ(nullptr, aubManager.streamTbx.get());
+    EXPECT_EQ(nullptr, aubManager.streamAubTbx.get());
+    EXPECT_FALSE(aubManager.isOpen());
+    EXPECT_TRUE(aubManager.getFileName().empty());
+    if (gpu->requireLocalMemoryForPageTables()) {
+        EXPECT_NE(aubManager.translatePhysicalAddressToSystemMemory(BankSize - 0x1000, true), nullptr);
+        EXPECT_EQ(aubManager.translatePhysicalAddressToSystemMemory(BankSize - 0x1000, true), lMem[BankSize / 0x1000 - 1]);
+        EXPECT_EQ(aubManager.translatePhysicalAddressToSystemMemory(0, true), nullptr);
+    } else {
+        EXPECT_NE(aubManager.translatePhysicalAddressToSystemMemory(BankSize - 0x1000, false), nullptr);
+        EXPECT_EQ(aubManager.translatePhysicalAddressToSystemMemory(BankSize - 0x1000, false), sysMem[BankSize / 0x1000 - 1]);
+        EXPECT_EQ(aubManager.translatePhysicalAddressToSystemMemory(0, false), nullptr);
+    }
+}
 
 HWTEST_F(AubManagerTest, givenInvalidSHMPointersForSHM3ModeAndExceptionsEnabledWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse, HwMatcher::coreAboveEqualXeHp) {
     uint8_t sysMem[0x1000];
@@ -602,4 +655,51 @@ TEST(AubManager, givenAubManagerMapsGpuVaEachPPGTTIsMapped) {
     }
 
     aubManager.mapGpuVa(gfxAddr, size, physicalParams);
+}
+
+TEST(AubManager, givenAubManagerSHM4WhenCallingReservePhysicalMemoryRedirectsToPhysicalAllocator) {
+    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::tbxShm4);
+    MockPhysicalAddressAllocatorSimpleAndSHM4Mapper(1, defaultHBMSizePerDevice, true, nullptr);
+    auto mockPhysicalAddressAllocatorSimpleAndSHM4Mapper = new MockPhysicalAddressAllocatorSimpleAndSHM4Mapper(1, defaultHBMSizePerDevice, true, nullptr);
+    aubManager.physicalAddressAllocator.reset(mockPhysicalAddressAllocatorSimpleAndSHM4Mapper);
+
+    AllocationParams allocationParams(0, nullptr, 0x2000, MEMORY_BANK_SYSTEM, 0, 0x1000);
+    PhysicalAllocationInfo physicalAllocInfo;
+    EXPECT_CALL(*mockPhysicalAddressAllocatorSimpleAndSHM4Mapper, reservePhysicalMemory(MEMORY_BANK_SYSTEM, 0x2000, 0x1000)).Times(1);
+    aubManager.reservePhysicalMemory(allocationParams, physicalAllocInfo);
+}
+
+TEST(AubManager, givenAubManagerSHM4WhenCallingReservePhysicalMemoryRedirectsToPhysicalAllocatorAndNotAllocateMemoryOnHeap) {
+    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::tbxShm4);
+    MockPhysicalAddressAllocatorSimpleAndSHM4Mapper(1, defaultHBMSizePerDevice, true, nullptr);
+    auto mockPhysicalAddressAllocatorSimpleAndSHM4Mapper = new MockPhysicalAddressAllocatorSimpleAndSHM4Mapper(1, defaultHBMSizePerDevice, true, nullptr);
+    aubManager.physicalAddressAllocator.reset(mockPhysicalAddressAllocatorSimpleAndSHM4Mapper);
+
+    AllocationParams allocationParams(0, nullptr, 0x2000, MEMORY_BANK_SYSTEM, 0, 0x1000);
+    PhysicalAllocationInfo physicalAllocInfo;
+    EXPECT_CALL(*mockPhysicalAddressAllocatorSimpleAndSHM4Mapper, reservePhysicalMemory(MEMORY_BANK_SYSTEM, 0x2000, 0x1000)).Times(0);
+    aubManager.reserveOnlyPhysicalSpace(allocationParams, physicalAllocInfo);
+    EXPECT_EQ(mockPhysicalAddressAllocatorSimpleAndSHM4Mapper->storage.size(), 0);
+    EXPECT_EQ(physicalAllocInfo.physicalAddress, reservedGGTTSpace);
+}
+
+TEST(AubManager, givenAubManagerSHM4WhenCallingTranslatePhysicalAddressToSystemMemoryRedirectsToPhysicalAllocator) {
+    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::tbxShm4);
+    MockPhysicalAddressAllocatorSimpleAndSHM4Mapper(1, defaultHBMSizePerDevice, true, nullptr);
+    auto mockPhysicalAddressAllocatorSimpleAndSHM4Mapper = new MockPhysicalAddressAllocatorSimpleAndSHM4Mapper(1, defaultHBMSizePerDevice, true, nullptr);
+    aubManager.physicalAddressAllocator.reset(mockPhysicalAddressAllocatorSimpleAndSHM4Mapper);
+
+    EXPECT_CALL(*mockPhysicalAddressAllocatorSimpleAndSHM4Mapper, translatePhysicalAddressToSystemMemory(0x2000, 0x1000, false, _, _)).Times(1);
+    aubManager.translatePhysicalAddressToSystemMemory(0x2000, false);
+}
+
+TEST(AubManager, givenAubManagerSHMWhenCallingTranslatePhysicalAddressToSystemMemoryPointerOnSHMAreaIsReturned) {
+    constexpr size_t BankSize = 0x3000;
+    uint8_t sysMem[0x3000] = {0};
+    uint8_t lMem[0x3000] = {0};
+    SharedMemoryInfo sharedMemoryInfo = {sysMem, BankSize, lMem, BankSize};
+    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, gpu->requireLocalMemoryForPageTables(), mode::tbxShm, sharedMemoryInfo);
+
+    void *p = aubManager.translatePhysicalAddressToSystemMemory(0x2000, false);
+    EXPECT_EQ(p, sysMem + 0x2000);
 }

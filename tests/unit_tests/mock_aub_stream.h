@@ -39,6 +39,8 @@ struct MockAubStreamBase : public AubStream {
     MOCK_METHOD3(dumpSurface, void(PageTableType gttType, const SurfaceInfo &surfaceInfo, uint32_t handleDumpContext));
     MOCK_CONST_METHOD0(getStreamMode, uint32_t(void));
     MOCK_METHOD2(writeGttPages, void(GGTT *ggtt, const std::vector<PageEntryInfo> &writeInfoTable));
+    MOCK_METHOD5(phyToSys, void(uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize));
+    MOCK_METHOD5(mapMemoryToPhysicalSpace, void(uint64_t physAddress, size_t size, size_t alignment, bool isLocalMemory, const void *p));
     MOCK_METHOD3(mapGpuVa, bool(PageTable *ppgtt, AllocationParams allocationParams, uint64_t physicalAddress));
     MOCK_METHOD6(readMemory, void(GGTT *ggtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize));
 };
@@ -92,13 +94,15 @@ struct MockTbxStream : public TbxStream {
 
 struct MockTbxShmStream : public TbxShmStream {
   public:
-    MockTbxShmStream(bool shm3 = false) : TbxShmStream(shm3) {}
+    MockTbxShmStream(uint32_t mode) : TbxShmStream(mode) {}
+    bool baseInit(TranslatePhysicalAddressToSystemMemoryFn fn) { return TbxShmStream::init(fn); }
+    void baseWriteContiguousPages(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint) { TbxShmStream::writeContiguousPages(memory, size, physAddress, addressSpace, hint); }
     MOCK_METHOD2(init, bool(int steppingValue, const GpuDescriptor &gpu));
     MOCK_METHOD1(addComment, void(const char *message));
 
     MOCK_METHOD2(declareContextForDumping, void(uint32_t handleDumpContext, PageTable *pageTable));
-    MOCK_METHOD4(dumpBufferBIN, void(PageTableType gttType, uint64_t gfxAddress, size_t size, uint32_t handleDumpContext));
-    MOCK_METHOD3(dumpSurface, void(PageTableType gttType, const SurfaceInfo &surfaceInfo, uint32_t handleDumpContext));
+    MOCK_METHOD4(dumpBufferBIN, void(aub_stream::AubStream::PageTableType gttType, uint64_t gfxAddress, size_t size, uint32_t handleDumpContext));
+    MOCK_METHOD3(dumpSurface, void(aub_stream::AubStream::PageTableType gttType, const aub_stream::SurfaceInfo &surfaceInfo, uint32_t handleDumpContext));
 
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
@@ -112,6 +116,7 @@ struct MockTbxShmStream : public TbxShmStream {
     MOCK_METHOD2(writeGttPages, void(GGTT *ggtt, const std::vector<PageEntryInfo> &writeInfoTable));
     MOCK_METHOD3(mapGpuVa, bool(PageTable *ppgtt, AllocationParams allocationParams, uint64_t physicalAddress));
     MOCK_METHOD6(readMemory, void(GGTT *ggtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize));
+    MOCK_METHOD0(checkSocketAlive, void());
 };
 
 using MockAubStream = ::testing::NiceMock<MockAubStreamBase>;

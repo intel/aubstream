@@ -23,7 +23,6 @@ struct AubStream;
 struct TbxStream;
 struct AubTbxStream;
 struct TbxShmStream;
-
 struct Gpu;
 struct StolenMemory;
 struct PageInfo;
@@ -60,8 +59,11 @@ class AubManagerImp : public AubManager {
     void writePhysicalMemoryPages(const void *memory, std::vector<PageInfo> &pages, size_t size, int hint) override;
     void freeMemory(uint64_t gfxAddress, size_t size) override;
 
-    virtual bool reservePhysicalMemory(AllocationParams allocationParams, PhysicalAllocationInfo &physicalAllocInfo) override;
-    virtual bool mapGpuVa(uint64_t gfxAddress, size_t size, PhysicalAllocationInfo physicalAllocInfo) override;
+    bool reservePhysicalMemory(AllocationParams allocationParams, PhysicalAllocationInfo &physicalAllocInfo) override;
+    bool reserveOnlyPhysicalSpace(AllocationParams allocationParams, PhysicalAllocationInfo &physicalAllocInfo) override;
+    bool mapGpuVa(uint64_t gfxAddress, size_t size, PhysicalAllocationInfo physicalAllocInfo) override;
+    bool mapSystemMemoryToPhysicalAddress(uint64_t physAddress, size_t size, size_t alignment, bool isLocalMemory, const void *p) override;
+    void *translatePhysicalAddressToSystemMemory(uint64_t physicalAddress, bool isLocalMemory) override;
 
   protected:
     void initialize();

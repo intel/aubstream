@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -56,7 +56,10 @@ class AubManager {
     static AubManager *create(const struct AubManagerOptions &options);
 
     virtual bool reservePhysicalMemory(AllocationParams allocationParams, PhysicalAllocationInfo &physicalAllocInfo) = 0;
+    virtual bool reserveOnlyPhysicalSpace(AllocationParams allocationParams, PhysicalAllocationInfo &physicalAllocInfo) = 0;
     virtual bool mapGpuVa(uint64_t gfxAddress, size_t size, PhysicalAllocationInfo physicalAllocInfo) = 0;
+    virtual bool mapSystemMemoryToPhysicalAddress(uint64_t physAddress, size_t size, size_t alignment, bool isLocalMemory, const void *p) = 0;
+    virtual void *translatePhysicalAddressToSystemMemory(uint64_t physicalAddress, bool isLocalMemory) = 0;
 };
 
 } // namespace aub_stream

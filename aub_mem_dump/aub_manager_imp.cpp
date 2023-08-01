@@ -47,26 +47,42 @@ void AubManagerImp::initialize() {
     bool createTbxStream = streamMode == aub_stream::mode::tbx || streamMode == aub_stream::mode::aubFileAndTbx;
     bool createTbxShmStream = streamMode == aub_stream::mode::tbxShm;
     bool createTbxShm3Stream = streamMode == aub_stream::mode::tbxShm3;
+    bool createTbxShm4Stream = streamMode == aub_stream::mode::tbxShm4;
 
-    if (createAubFileStream) {
-        streamAub = std::make_unique<AubFileStream>();
-    }
+    if (createTbxStream || createAubFileStream) {
+        physicalAddressAllocator = std::make_unique<PhysicalAddressAllocatorSimple>(devicesCount, memoryBankSize, localMemorySupported);
+        if (createAubFileStream) {
+            streamAub = std::make_unique<AubFileStream>();
+        }
+        if (createTbxStream) {
+            streamTbx = std::make_unique<TbxStream>();
+            streamTbx->init(stepping, gpu);
 
-    if (createTbxStream) {
-        streamTbx = std::make_unique<TbxStream>();
-        streamTbx->init(stepping, gpu);
-
-        gpu.initializeGlobalMMIO(*streamTbx, devicesCount, memoryBankSize, stepping);
-        gpu.setMemoryBankSize(*streamTbx, devicesCount, memoryBankSize);
-        gpu.setGGTTBaseAddresses(*streamTbx, devicesCount, memoryBankSize, *stolenMem);
-    } else if (createTbxShmStream) {
+            gpu.initializeGlobalMMIO(*streamTbx, devicesCount, memoryBankSize, stepping);
+            gpu.setMemoryBankSize(*streamTbx, devicesCount, memoryBankSize);
+            gpu.setGGTTBaseAddresses(*streamTbx, devicesCount, memoryBankSize, *stolenMem);
+        }
+    } else if (createTbxShmStream || createTbxShm4Stream) {
         if (sharedMemoryInfo.sysMemBase == nullptr) {
             if (enableThrow) {
                 throw std::logic_error("Trying to use shared memory but no shared memory for system memory given.");
             }
         } else {
-            streamTbxShm = std::make_unique<TbxShmStream>(false);
-            streamTbxShm->init(&sharedMemoryInfo);
+            if (createTbxShmStream) {
+                streamTbxShm = std::make_unique<TbxShmStream>(aub_stream::mode::tbxShm);
+                physicalAddressAllocator = std::make_unique<PhysicalAddressAllocatorSimple>(devicesCount, memoryBankSize, localMemorySupported);
+                streamTbxShm->init([this](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
+                    uint64_t memSize = isLocalMemory ? sharedMemoryInfo.localMemSize : sharedMemoryInfo.sysMemSize;
+                    availableSize = static_cast<size_t>(memSize - physAddress);
+                    p = (isLocalMemory ? sharedMemoryInfo.localMemBase : sharedMemoryInfo.sysMemBase) + physAddress; });
+            } else {
+                streamTbxShm = std::make_unique<TbxShmStream>(aub_stream::mode::tbxShm4);
+                physicalAddressAllocator = std::make_unique<PhysicalAddressAllocatorSimpleAndSHM4Mapper>(devicesCount, memoryBankSize, localMemorySupported, &sharedMemoryInfo);
+                streamTbxShm->init([this](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
+                    static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->translatePhysicalAddressToSystemMemory(physAddress, size, isLocalMemory, p, availableSize);
+                });
+            }
+
             streamTbxShm->enableThrowOnError(enableThrow);
 
             gpu.initializeGlobalMMIO(*streamTbxShm, devicesCount, memoryBankSize, stepping);
@@ -88,8 +104,12 @@ void AubManagerImp::initialize() {
                     throw std::logic_error("Trying to use shared memory v3 for legacy core family.");
                 }
             } else {
-                streamTbxShm = std::make_unique<TbxShmStream>(true);
-                streamTbxShm->init(&sharedMemoryInfo);
+                physicalAddressAllocator = std::make_unique<PhysicalAddressAllocatorHeap>();
+
+                streamTbxShm = std::make_unique<TbxShmStream>(aub_stream::mode::tbxShm3);
+                streamTbxShm->init([](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
+                    availableSize = size;
+                    p = reinterpret_cast<void *>(physAddress); });
                 streamTbxShm->enableThrowOnError(enableThrow);
 
                 gpu.initializeGlobalMMIO(*streamTbxShm, devicesCount, memoryBankSize, stepping);
@@ -103,26 +123,28 @@ void AubManagerImp::initialize() {
         streamAubTbx = std::make_unique<AubTbxStream>(*streamAub, *streamTbx);
     }
 
-    physicalAddressAllocator = PhysicalAddressAllocator::CreatePhysicalAddressAllocator(createTbxShm3Stream, devicesCount, memoryBankSize, localMemorySupported);
+    if (!getStream()) {
+        return;
+    }
 
     ppgtts.resize(devicesCount);
     ggtts.resize(devicesCount);
 
     for (uint32_t i = 0; i < devicesCount; i++) {
+        uint64_t stolenBaseAddress = stolenMem->getBaseAddress(i);
         uint32_t memoryBank = MemoryBank::MEMORY_BANK_SYSTEM;
-        uint64_t gttBaseAddress = gpu.getGGTTBaseAddress(i, memoryBankSize, stolenMem->getBaseAddress(i));
+        uint64_t gttBaseAddress = gpu.getGGTTBaseAddress(i, memoryBankSize, stolenBaseAddress);
 
         if (localMemorySupported || gpu.requireLocalMemoryForPageTables()) {
             memoryBank = MemoryBank::MEMORY_BANK_0 << i;
         }
-
+        if (createTbxShm4Stream) {
+            static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->mapSystemMemoryToPhysicalAddress(stolenBaseAddress, static_cast<size_t>(memoryBankSize - stolenBaseAddress), 0x10000, memoryBank != MemoryBank::MEMORY_BANK_SYSTEM, nullptr);
+        }
         ppgtts[i] = std::unique_ptr<PageTable>(gpu.allocatePPGTT(physicalAddressAllocator.get(), memoryBank, gpuAddressSpace));
         ggtts[i] = std::unique_ptr<GGTT>(gpu.allocateGGTT(physicalAddressAllocator.get(), memoryBank, gttBaseAddress));
     }
 
-    if (!getStream()) {
-        return;
-    }
     gpu.initializeDefaultMemoryPools(*getStream(), devicesCount, memoryBankSize, *stolenMem);
 }
 
@@ -270,8 +292,69 @@ bool AubManagerImp::reservePhysicalMemory(AllocationParams allocationParams, Phy
     physicalAllocInfo.pageSize = pageSize;
     physicalAllocInfo.size = size;
     physicalAllocInfo.physicalAddress = physicalAddressAllocator->reservePhysicalMemory(allocationParams.memoryBanks, sizePageAligned, pageSize);
-
     return true;
+}
+
+bool AubManagerImp::reserveOnlyPhysicalSpace(AllocationParams allocationParams, PhysicalAllocationInfo &physicalAllocInfo) {
+    adjustPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
+    auto size = allocationParams.size;
+    auto memoryBanks = allocationParams.memoryBanks;
+
+    if (streamMode != mode::tbxShm4) {
+        return false;
+    }
+
+    if (size == 0) {
+        return false;
+    }
+
+    if (allocationParams.pageSize == 0) {
+        return false;
+    }
+
+    if (memoryBanks != 0) {
+        if (memoryBanks & (memoryBanks - 1)) {
+            return false;
+        }
+    }
+
+    auto pageSize = allocationParams.pageSize;
+    size_t sizePageAligned = (size + pageSize - 1) & ~(pageSize - 1);
+
+    physicalAllocInfo.memoryBank = memoryBanks;
+    physicalAllocInfo.pageSize = pageSize;
+    physicalAllocInfo.size = size;
+    physicalAllocInfo.physicalAddress = static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->reserveOnlyPhysicalSpace(allocationParams.memoryBanks, sizePageAligned, pageSize);
+    return true;
+}
+
+bool AubManagerImp::mapSystemMemoryToPhysicalAddress(uint64_t physAddress, size_t size, size_t alignment, bool isLocalMemory, const void *p) {
+    if (streamMode != mode::tbxShm4) {
+        throwErrorIfEnabled("mapSystemMemoryToPhysicalAddress is not supported for this stream mode.");
+        return false;
+    }
+    static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->mapSystemMemoryToPhysicalAddress(physAddress, size, alignment, isLocalMemory, p);
+    return true;
+}
+
+void *AubManagerImp::translatePhysicalAddressToSystemMemory(uint64_t physicalAddress, bool isLocalMemory) {
+    void *p = nullptr;
+    switch (streamMode) {
+    case mode::tbxShm4:
+        size_t s;
+        static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->translatePhysicalAddressToSystemMemory(physicalAddress, 0x1000, isLocalMemory, p, s);
+        break;
+    case mode::tbxShm3:
+        p = reinterpret_cast<void *>(physicalAddress);
+        break;
+    case mode::tbxShm:
+        p = (isLocalMemory ? sharedMemoryInfo.localMemBase : sharedMemoryInfo.sysMemBase) + physicalAddress;
+        break;
+    default:
+        throwErrorIfEnabled("translatePhysicalAddressToSystemMemory is not supported for this stream mode.");
+        break;
+    }
+    return p;
 }
 
 bool AubManagerImp::mapGpuVa(uint64_t gfxAddress, size_t size, const PhysicalAllocationInfo physicalAllocInfo) {
