@@ -46,6 +46,8 @@ void Gpu::initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount, uint64_
 }
 
 StolenMemoryInHeap::StolenMemoryInHeap(uint32_t deviceCount, uint64_t memoryBankSize) {
+    // Some platforms require to allocate 1/512th portion of mem and others
+    // require to allocate 1/256th, so allocating 1/256th will cover all needs
     const uint64_t flatCcsSize = memoryBankSize / 256;
     // Flat CCS buffer size must be 1MB aligned to make sure that there is enough space to make GTT base address to be also aligned to 1MB
     const uint64_t flatCcsSizeAligned = alignUp(flatCcsSize, 20);
@@ -63,6 +65,8 @@ StolenMemoryInStaticStorage::StolenMemoryInStaticStorage(uint64_t memoryBankSize
 }
 
 uint64_t StolenMemoryInStaticStorage::getBaseAddress(uint32_t device) const {
+    // Some platforms require to allocate 1/512th portion of mem and others
+    // require to allocate 1/256th, so allocating 1/256th will cover all needs
     const uint64_t flatCcsSize = staticMemoryBankSize / 256;
     // Flat CCS buffer size must be 1MB aligned to make sure that there is enough space to make GTT base address to be also aligned to 1MB
     const uint64_t flatCcsSizeAligned = alignUp(flatCcsSize, 20);
