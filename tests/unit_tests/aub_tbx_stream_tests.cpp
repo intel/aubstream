@@ -54,6 +54,8 @@ TEST(AubTbxStream, RedirectMethodsToAubFileAndTbxStreams) {
     EXPECT_CALL(*fileStream, writeMMIO(_, _)).Times(1);
     EXPECT_CALL(*tbxStream, writeMMIO(_, _)).Times(1);
 
+    EXPECT_CALL(*tbxStream, readMMIO(_)).Times(1);
+
     EXPECT_CALL(*fileStream, expectMemoryTable(_, _, _, _)).Times(1);
     EXPECT_CALL(*tbxStream, expectMemoryTable(_, _, _, _)).Times(1);
 
@@ -81,6 +83,7 @@ TEST(AubTbxStream, RedirectMethodsToAubFileAndTbxStreams) {
 
     aubTbxStream->registerPoll(10, 10, 10, false, 10);
     aubTbxStream->writeMMIO(20, 20);
+    aubTbxStream->readMMIO(24);
 
     std::vector<PageInfo> writeInfoTable;
     aubTbxStream->expectMemoryTable(nullptr, 0, writeInfoTable, CmdServicesMemTraceMemoryCompare::CompareOperationValues::CompareEqual);
@@ -125,6 +128,8 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenAubFileStreamIsPaused) {
     EXPECT_CALL(*fileStream, writeMMIO(_, _)).Times(0);
     EXPECT_CALL(*tbxStream, writeMMIO(_, _)).Times(1);
 
+    EXPECT_CALL(*tbxStream, readMMIO(_)).Times(1);
+
     EXPECT_CALL(*fileStream, expectMemoryTable(_, _, _, _)).Times(0);
     EXPECT_CALL(*tbxStream, expectMemoryTable(_, _, _, _)).Times(1);
 
@@ -152,6 +157,7 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenAubFileStreamIsPaused) {
 
     aubTbxStream->registerPoll(10, 10, 10, false, 10);
     aubTbxStream->writeMMIO(20, 20);
+    aubTbxStream->readMMIO(24);
 
     std::vector<PageInfo> writeInfoTable;
     aubTbxStream->expectMemoryTable(nullptr, 0, writeInfoTable, CmdServicesMemTraceMemoryCompare::CompareOperationValues::CompareEqual);

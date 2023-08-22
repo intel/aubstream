@@ -66,6 +66,10 @@ struct AubTbxStream : public AubStream {
         tbxStream.writeMMIO(offset, value);
     }
 
+    virtual uint32_t readMMIO(uint32_t offset) {
+        return tbxStream.readMMIO(offset);
+    }
+
     uint32_t getStreamMode() const override { return aub_stream::mode::aubFileAndTbx; };
 
     void pauseAubFileStream(bool onoff) { isAubFileStreamPaused = onoff; }

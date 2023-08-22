@@ -73,6 +73,12 @@ void TbxStream::writeMMIO(uint32_t offset, uint32_t value) {
     socket->writeMMIO(offset, value);
 }
 
+uint32_t TbxStream::readMMIO(uint32_t offset) {
+    uint32_t value;
+    socket->readMMIO(offset, &value);
+    return value;
+}
+
 void TbxStream::writeContiguousPages(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint) {
     bool isLocalMemory = addressSpace == AddressSpaceValues::TraceLocal;
     socket->writeMemory(physAddress, memory, size, isLocalMemory);

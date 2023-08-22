@@ -8,6 +8,7 @@
 #pragma once
 
 #include "aub_mem_dump/aub_stream.h"
+#include "aub_mem_dump/tbx_shm_stream.h"
 #include "aub_mem_dump/command_streamer_helper.h"
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/gpu.h"

@@ -80,6 +80,7 @@ struct MockTbxStream : public TbxStream {
 
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
+    MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
 
     MOCK_METHOD4(expectMemoryTable, void(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, uint32_t compareOperation));
     MOCK_METHOD1(reserveContiguousPages, void(const std::vector<uint64_t> &entries));
@@ -90,6 +91,17 @@ struct MockTbxStream : public TbxStream {
     MOCK_METHOD2(writeGttPages, void(GGTT *ggtt, const std::vector<PageEntryInfo> &writeInfoTable));
     MOCK_METHOD3(mapGpuVa, bool(PageTable *ppgtt, AllocationParams allocationParams, uint64_t physicalAddress));
     MOCK_METHOD6(readMemory, void(GGTT *ggtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize));
+};
+
+struct MockReadMMIOTbxStream : public TbxStream {
+  public:
+    MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
+};
+
+struct MockReadMMIOTbxShmStream : public TbxShmStream {
+  public:
+    MockReadMMIOTbxShmStream(uint32_t mode) : TbxShmStream(mode) {}
+    MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
 };
 
 struct MockTbxShmStream : public TbxShmStream {
@@ -106,6 +118,7 @@ struct MockTbxShmStream : public TbxShmStream {
 
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
+    MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
 
     MOCK_METHOD4(expectMemoryTable, void(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, uint32_t compareOperation));
     MOCK_METHOD1(reserveContiguousPages, void(const std::vector<uint64_t> &entries));

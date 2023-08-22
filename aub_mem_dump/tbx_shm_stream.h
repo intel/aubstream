@@ -34,6 +34,7 @@ struct TbxShmStream : public AubStream {
     void registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t value, bool pollNotEqual, uint32_t timeoutAction) override;
     void reserveContiguousPages(const std::vector<uint64_t> &entries) override;
     void writeMMIO(uint32_t offset, uint32_t value) override;
+    virtual uint32_t readMMIO(uint32_t offset);
 
     bool init(TranslatePhysicalAddressToSystemMemoryFn fn);
     void readMemory(PageTable *ppgtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize);

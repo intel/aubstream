@@ -18,6 +18,7 @@ add_executable(${TARGET_NAME}
                ${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/stolen_memory_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/test_align_helpers.cpp
+               ${CMAKE_CURRENT_SOURCE_DIR}/test_misc_helpers.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/mock_stolen_memory.h
                ${CMAKE_CURRENT_SOURCE_DIR}/hardware_context_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/legacy_page_table_tests.cpp

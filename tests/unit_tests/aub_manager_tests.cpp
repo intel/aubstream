@@ -230,6 +230,7 @@ TEST(AubManagerImp, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxShmStr
 TEST(AubManagerImp, whenAubManagerIsCreatedWithAubFileAndTbxModeThenItInitializesAubAndTbxStreams) {
     MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::aubFileAndTbx);
     aubManager.initialize();
+
     aubManager.open("test.aub");
 
     EXPECT_NE(nullptr, aubManager.streamAub.get());
@@ -608,7 +609,6 @@ TEST(AubManager, givenAubFileAndTbxModeWhenCreatingAubManagerThenAllStreamsAreCr
 
 TEST(AubManager, givenAubManagerCreatedWithAubFileAndTbxModeWhenHardwareContextIsCreatedThenAubTbxStreamIsUsed) {
     bool localMemorySupport = defaultMemoryBank != MEMORY_BANK_SYSTEM;
-
     MockAubManager aubManager(createGpuFunc(), gpu->deviceCount, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::aubFileAndTbx);
     aubManager.initialize();
 
