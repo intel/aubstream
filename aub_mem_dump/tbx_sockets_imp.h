@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -7,7 +7,6 @@
 
 #include "tbx_sockets.h"
 #include <iostream>
-#include <cstdint>
 #include <mutex>
 
 #ifdef WIN32
