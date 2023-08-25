@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022 Intel Corporation
+# Copyright (C) 2022-2023 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -14,7 +14,7 @@ else()
   SET_FLAGS_FOR("GEN11" "ICLLP")
 endif()
 SET_FLAGS_FOR("GEN12LP" "TGLLP" "ADLS" "ADLP" "DG1" "ADLN")
-SET_FLAGS_FOR("XE_HPG_CORE" "DG2" "MTL")
+SET_FLAGS_FOR("XE_HPG_CORE" "DG2" "MTL" "ARL")
 SET_FLAGS_FOR("XE_HPC_CORE" "PVC")
 
 # Add supported and tested platforms
@@ -118,9 +118,9 @@ if(SUPPORT_XE_HPG_CORE)
     endif()
   endif()
 
-  if(SUPPORT_MTL)
+  if(SUPPORT_MTL OR SUPPORT_ARL)
     ADD_PLATFORM_FOR_CORE_TYPE("SUPPORTED" "XE_HPG_CORE" "MTL")
-    if(TESTS_MTL)
+    if(TESTS_MTL OR SUPPORT_ARL)
       ADD_PLATFORM_FOR_CORE_TYPE("TESTED" "XE_HPG_CORE" "MTL")
     endif()
   endif()
