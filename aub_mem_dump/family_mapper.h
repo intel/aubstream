@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -17,7 +17,6 @@ struct Gpu;
 enum class ProductFamily : uint32_t;
 
 // Table of HW family specific Gpus
-extern const Gpu *gpuCoreFamilyTable[static_cast<uint32_t>(CoreFamily::MaxCore)];
 extern std::map<ProductFamily, const Gpu *> *productFamilyTable;
 
 // Helper method to access a productFamily Gpu
@@ -29,7 +28,6 @@ template <ProductFamily productFamily>
 struct RegisterFamily {
     RegisterFamily() {
         auto gpu = enableGpu<productFamily>();
-        gpuCoreFamilyTable[static_cast<uint32_t>(gpu->gfxCoreFamily)] = gpu;
         if (!productFamilyTable) {
             productFamilyTable = new std::map<ProductFamily, const Gpu *>;
         }

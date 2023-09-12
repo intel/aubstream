@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -11,7 +11,6 @@
 
 namespace aub_stream {
 
-const Gpu *gpuCoreFamilyTable[static_cast<uint32_t>(CoreFamily::MaxCore)] = {};
 std::map<ProductFamily, const Gpu *> *productFamilyTable = nullptr;
 
 const Gpu *getGpu(ProductFamily productFamily) {
