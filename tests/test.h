@@ -29,17 +29,17 @@
         void testBodyHw();                                                                     \
                                                                                                \
         void TestBody() override {                                                             \
-            if (matcher(::gpu))                                                                \
+            if (matcher(::gpu.get()))                                                          \
                 testBodyHw();                                                                  \
         }                                                                                      \
         void SetUp() override {                                                                \
-            if (matcher(::gpu))                                                                \
+            if (matcher(::gpu.get()))                                                          \
                 parent_class::SetUp();                                                         \
             else                                                                               \
                 GTEST_SKIP();                                                                  \
         }                                                                                      \
         void TearDown() override {                                                             \
-            if (matcher(::gpu))                                                                \
+            if (matcher(::gpu.get()))                                                          \
                 parent_class::TearDown();                                                      \
         }                                                                                      \
         static ::testing::TestInfo *const test_info_ GTEST_ATTRIBUTE_UNUSED_;                  \
@@ -72,17 +72,17 @@
       private:                                                                                                    \
         void matchBody();                                                                                         \
         void TestBody() override {                                                                                \
-            if (matcher(::gpu))                                                                                   \
+            if (matcher(::gpu.get()))                                                                             \
                 matchBody();                                                                                      \
         }                                                                                                         \
         void SetUp() override {                                                                                   \
-            if (matcher(::gpu))                                                                                   \
+            if (matcher(::gpu.get()))                                                                             \
                 test_suite_name::SetUp();                                                                         \
             else                                                                                                  \
                 GTEST_SKIP();                                                                                     \
         }                                                                                                         \
         void TearDown() override {                                                                                \
-            if (matcher(::gpu))                                                                                   \
+            if (matcher(::gpu.get()))                                                                             \
                 test_suite_name::TearDown();                                                                      \
         }                                                                                                         \
         static int AddToRegistry() {                                                                              \

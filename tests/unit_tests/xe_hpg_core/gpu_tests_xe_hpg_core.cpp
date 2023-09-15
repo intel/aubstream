@@ -66,7 +66,7 @@ struct XeHPGCoreMatcher {
 
 using XeHpgCoreCsTest = CommandStreamerHelperTest;
 HWTEST_F(XeHpgCoreCsTest, GivenCcsEngineWhenInitializingEngineThenMiModeNestedBBIsSetToZero, XeHPGCoreMatcher::isXeHpgCore) {
-    auto &ccs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_CCS);
+    auto &ccs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
 
     PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);

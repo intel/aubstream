@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -33,6 +33,7 @@ struct SimpleBatchBuffer : public ::testing::TestWithParam<uint32_t> {
     }
 
     void initializeStream(const GpuDescriptor &desc) {
+        auto gpu = createGpuFunc();
         auto fileName = getAubFileName(desc);
         assert(!mgr);
         auto supportsLocalMemory =
@@ -45,7 +46,7 @@ struct SimpleBatchBuffer : public ::testing::TestWithParam<uint32_t> {
         internal_options.localMemorySupported = supportsLocalMemory;
         internal_options.mode = streamMode;
         internal_options.gpuAddressSpace = gpuAddressSpace48;
-        mgr = new AubManagerImp(*gpu, internal_options);
+        mgr = new AubManagerImp(std::move(gpu), internal_options);
         mgr->open(fileName);
     }
 

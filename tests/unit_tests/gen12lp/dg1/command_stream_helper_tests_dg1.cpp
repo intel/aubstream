@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -23,7 +23,7 @@ using namespace aub_stream;
 
 TEST_F(CommandStreamerHelperTest, DG1MemoryAlignment4KB) {
     TEST_REQUIRES(gpu->productAbbreviation == "dg1");
-    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
     auto pageSize = 4096u;
 
     EXPECT_TRUE(rcs.isMemorySupported(MEMORY_BANK_SYSTEM, pageSize));
@@ -36,7 +36,7 @@ TEST_F(CommandStreamerHelperTest, DG1MemoryAlignment4KB) {
 
 TEST_F(CommandStreamerHelperTest, DG1MemoryAlignment64KB) {
     TEST_REQUIRES(gpu->productAbbreviation == "dg1");
-    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
     auto pageSize = 65536u;
 
     EXPECT_TRUE(rcs.isMemorySupported(MEMORY_BANK_SYSTEM, pageSize));

@@ -19,7 +19,7 @@ class HardwareContextTest : public MockAubStreamFixture, public ::testing::Test 
   public:
     void SetUp() override {
         MockAubStreamFixture::SetUp();
-        aubManager = std::make_unique<::testing::NiceMock<MockAubManager>>(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
+        aubManager = std::make_unique<::testing::NiceMock<MockAubManager>>(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     }
 
     void TearDown() override {

@@ -182,8 +182,7 @@ struct GpuPvc : public GpuXeHpcCore {
 };
 
 template <>
-const Gpu *enableGpu<ProductFamily::Pvc>() {
-    static const GpuPvc pvc;
-    return &pvc;
+std::function<std::unique_ptr<Gpu>()> enableGpu<ProductFamily::Pvc>() {
+    return std::make_unique<GpuPvc>;
 }
 } // namespace aub_stream

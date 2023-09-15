@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -20,10 +20,9 @@ struct GpuSkl : public GpuGen9 {
         deviceCount = 1;
     }
 };
-template <>
-const Gpu *enableGpu<ProductFamily::Skl>() {
-    static const GpuSkl skl;
-    return &skl;
-}
 
+template <>
+std::function<std::unique_ptr<Gpu>()> enableGpu<ProductFamily::Skl>() {
+    return std::make_unique<GpuSkl>;
+}
 } // namespace aub_stream

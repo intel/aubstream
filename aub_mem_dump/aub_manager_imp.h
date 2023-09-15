@@ -32,7 +32,7 @@ struct PhysicalAddressAllocator;
 
 class AubManagerImp : public AubManager {
   public:
-    AubManagerImp(const Gpu &gpu, const struct AubManagerOptions &options);
+    AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOptions &options);
 
     ~AubManagerImp();
 
@@ -71,7 +71,7 @@ class AubManagerImp : public AubManager {
     void adjustPageSize(uint32_t memoryBanks, size_t &pageSize);
     void throwErrorIfEnabled(const std::string &);
 
-    const Gpu &gpu;
+    std::unique_ptr<Gpu> gpu;
     const uint32_t devicesCount;
     const uint64_t memoryBankSize;
     const bool localMemorySupported;

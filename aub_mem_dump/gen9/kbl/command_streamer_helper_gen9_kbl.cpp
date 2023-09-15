@@ -24,10 +24,9 @@ struct GpuKbl : public GpuGen9 {
         return memoryBanks == MEMORY_BANK_SYSTEM && (alignment == 4096);
     }
 };
-template <>
-const Gpu *enableGpu<ProductFamily::Kbl>() {
-    static const GpuKbl kbl;
-    return &kbl;
-}
 
+template <>
+std::function<std::unique_ptr<Gpu>()> enableGpu<ProductFamily::Kbl>() {
+    return std::make_unique<GpuKbl>;
+}
 } // namespace aub_stream

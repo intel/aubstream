@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -31,9 +31,7 @@ struct GpuDg2 : public GpuXeHpgCore {
 };
 
 template <>
-const Gpu *enableGpu<ProductFamily::Dg2>() {
-    static const GpuDg2 dg2;
-    return &dg2;
+std::function<std::unique_ptr<Gpu>()> enableGpu<ProductFamily::Dg2>() {
+    return std::make_unique<GpuDg2>;
 }
-
 } // namespace aub_stream

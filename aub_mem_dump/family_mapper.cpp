@@ -11,21 +11,12 @@
 
 namespace aub_stream {
 
-std::map<ProductFamily, const Gpu *> *productFamilyTable = nullptr;
+std::map<ProductFamily, std::function<std::unique_ptr<Gpu>()>> *productFamilyTable = nullptr;
 
-const Gpu *getGpu(ProductFamily productFamily) {
-    const Gpu *gpu = nullptr;
+std::function<std::unique_ptr<Gpu>()> getGpu(ProductFamily productFamily) {
     if ((*productFamilyTable).find(productFamily) != (*productFamilyTable).end()) {
-        gpu = (*productFamilyTable)[productFamily];
+        return (*productFamilyTable)[productFamily];
     }
-    return gpu;
+    return {};
 }
-
-CommandStreamerHelper &getCommandStreamerHelper(ProductFamily productFamily, uint32_t device, EngineType engine) {
-    auto gpu = getGpu(productFamily);
-    assert(gpu);
-
-    return gpu->getCommandStreamerHelper(device, engine);
-}
-
 } // namespace aub_stream

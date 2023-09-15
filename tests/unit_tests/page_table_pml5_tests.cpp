@@ -110,7 +110,7 @@ TEST_F(HardwareContextTestPML5, givenHardwareContextWhenCallingFreeMemoryThenEnt
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
 
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(1, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
     context.writeMemory2({gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, 0, defaultPageSize});

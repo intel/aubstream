@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -83,8 +83,9 @@ int main(int argc, char **argv) {
         if (arg == std::string("--device")) {
             std::string argValue = argv[++i];
             for (auto const &enabledGpu : *productFamilyTable) {
-                if (argValue == enabledGpu.second->productAbbreviation) {
-                    gpu = enabledGpu.second;
+                createGpuFunc = enabledGpu.second;
+                gpu = createGpuFunc();
+                if (argValue == gpu->productAbbreviation) {
                     break;
                 }
             }
@@ -92,14 +93,15 @@ int main(int argc, char **argv) {
     }
 
     if (gpu != nullptr) {
-        result = runTests(gpu);
+        result = runTests(gpu.get());
     } else {
         for (auto const &enabledGpu : *productFamilyTable) {
-            gpu = enabledGpu.second;
+            createGpuFunc = enabledGpu.second;
+            gpu = createGpuFunc();
 
             assert(testTraits[static_cast<uint32_t>(gpu->productFamily)]);
 
-            result = runTests(gpu);
+            result = runTests(gpu.get());
 
             if (result != 0)
                 break;

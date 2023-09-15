@@ -29,13 +29,13 @@ TEST_F(HardwareContextTest, whenHardwareContextIsCreatedThenItHasCorrectDeviceIn
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
 
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(2, stream, csHelper, ggtt, ppgtt, 0);
     EXPECT_EQ(2u, context.deviceIndex);
 }
 
 TEST_F(HardwareContextTest, whenHardwareContextIsInitializedThenItAllocatesLRCA) {
-    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
+    MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     auto context = aubManager.createHardwareContext(0, ENGINE_RCS, 0);
 
     context->initialize();
@@ -47,7 +47,7 @@ TEST_F(HardwareContextTest, whenHardwareContextIsInitializedThenItAllocatesLRCA)
 }
 
 TEST_F(HardwareContextTest, whenHardwareContextIsInitializedTwiceThenItDoesntReallocatesLRCA) {
-    MockAubManager aubManager(*gpu, 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
+    MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     auto context = aubManager.createHardwareContext(0, ENGINE_RCS, 0);
 
     context->initialize();
@@ -68,7 +68,7 @@ TEST_F(HardwareContextTest, whenHardwareContextIsInitializedTwiceThenItDoesntRea
 TEST_F(HardwareContextTest, ringBufferWrap) {
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
 
     context.initialize();
@@ -96,7 +96,7 @@ TEST_F(HardwareContextTest, pollForCompletionShouldForwardToRegisterPoll) {
     PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
 
     EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(1);
@@ -107,7 +107,7 @@ TEST_F(HardwareContextTest, submitShouldPerformAtLeastOneMMIOWrite) {
     PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
 
@@ -121,7 +121,7 @@ TEST_F(HardwareContextTest, submitShouldPerformAtLeastOneMMIOWrite) {
 TEST_F(HardwareContextTest, submitBatchBufferShouldPerformAtLeastOneMMIOWriteAndDiscontiguousPageWrites) {
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
 
@@ -151,7 +151,7 @@ TEST_F(HardwareContextTest, givenHardwareContextWhenCallingFreeMemoryThenEntries
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
 
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(1, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
     context.writeMemory2({gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, 0, defaultPageSize});
@@ -173,7 +173,7 @@ TEST_F(HardwareContextTest, givenHardwareContextWhenCallingFreeMemoryOnNonExisti
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     auto gfxAddress = 0x1000;
 
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(1, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
 
@@ -189,7 +189,7 @@ TEST_F(HardwareContextTest, givenHardwareContextWhenCallingExpectMemoryRedirects
     uint64_t gfxAddress = 0x1000;
     uint32_t compareOperation = 0;
 
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(1, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
     context.writeMemory2({gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, 0, defaultPageSize});
@@ -207,7 +207,7 @@ TEST_F(HardwareContextTest, givenHardwareContextWhenCallingReadMemoryRedirectsTo
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
 
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(1, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
     context.writeMemory2({gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, 0, defaultPageSize});
@@ -231,7 +231,7 @@ TEST_F(HardwareContextTest, givenHardwareContextWhenCallingWriteMMIORedirectsToA
     uint32_t offset = 0x01234567;
     uint32_t value = 0x89ABCDEF;
 
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(1, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
 
@@ -248,7 +248,7 @@ TEST_F(HardwareContextTest, givenHardwareContextWhenCallingDumpBufferBINRedirect
     auto gfxAddress = 0x1000;
     auto size = 100;
 
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(1, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
 
@@ -265,7 +265,7 @@ TEST_F(HardwareContextTest, givenHardwareContextWhenCallingDumpBufferRedirectsTo
     auto gfxAddress = 0x1000;
     auto size = 100;
 
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(1, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
 
@@ -290,7 +290,7 @@ TEST_F(HardwareContextTest, pollForFenceCompletionShouldForwardToReadMemory) {
     PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
 
     EXPECT_CALL(stream, readDiscontiguousPages(_, _, _)).Times(1);
@@ -301,7 +301,7 @@ TEST_F(HardwareContextTest, checkContextIdIsUnique) {
     PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     // Depending which tests ran before this we will have created contexts for those,
     // thus take note of where we are starting  from
     const uint32_t contextIdBase = HardwareContextImp::globalContextId;
@@ -322,7 +322,7 @@ TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExec
     PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
-    auto &csHelper = getCommandStreamerHelper(gpu->productFamily, defaultDevice, defaultEngine);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
 
     HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
     context0.initialize();

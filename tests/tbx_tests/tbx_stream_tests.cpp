@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -33,6 +33,7 @@ struct TbxSimpleBatchBuffer : public ::testing::Test {
 };
 
 void TbxSimpleBatchBuffer::initializeStream(const GpuDescriptor &desc) {
+    auto gpu = createGpuFunc();
     assert(!mgr);
     AubManagerOptions internal_options;
     internal_options.devicesCount = gpu->deviceCount;
@@ -41,7 +42,7 @@ void TbxSimpleBatchBuffer::initializeStream(const GpuDescriptor &desc) {
     internal_options.localMemorySupported = true;
     internal_options.mode = mode::tbx;
     internal_options.gpuAddressSpace = gpuAddressSpace48;
-    mgr = new AubManagerImp(*gpu, internal_options);
+    mgr = new AubManagerImp(std::move(gpu), internal_options);
 }
 
 void TbxSimpleBatchBuffer::SetUp() {

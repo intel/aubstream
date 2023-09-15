@@ -27,16 +27,16 @@
 
 namespace aub_stream {
 
-AubManagerImp::AubManagerImp(const Gpu &gpu, const struct AubManagerOptions &options) : gpu(gpu),
-                                                                                        devicesCount(options.devicesCount),
-                                                                                        localMemorySupported(options.localMemorySupported),
-                                                                                        stepping(options.stepping),
-                                                                                        memoryBankSize(options.memoryBankSize),
-                                                                                        streamMode(options.mode),
-                                                                                        gpuAddressSpace(options.gpuAddressSpace),
-                                                                                        stolenMem(StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3, options.devicesCount, options.memoryBankSize)),
-                                                                                        sharedMemoryInfo(options.sharedMemoryInfo),
-                                                                                        enableThrow(options.throwOnError) {
+AubManagerImp::AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOptions &options) : gpu(std::move(gpu)),
+                                                                                                  devicesCount(options.devicesCount),
+                                                                                                  localMemorySupported(options.localMemorySupported),
+                                                                                                  stepping(options.stepping),
+                                                                                                  memoryBankSize(options.memoryBankSize),
+                                                                                                  streamMode(options.mode),
+                                                                                                  gpuAddressSpace(options.gpuAddressSpace),
+                                                                                                  stolenMem(StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3, options.devicesCount, options.memoryBankSize)),
+                                                                                                  sharedMemoryInfo(options.sharedMemoryInfo),
+                                                                                                  enableThrow(options.throwOnError) {
     initialize();
 }
 
@@ -56,11 +56,11 @@ void AubManagerImp::initialize() {
         }
         if (createTbxStream) {
             streamTbx = std::make_unique<TbxStream>();
-            streamTbx->init(stepping, gpu);
+            streamTbx->init(stepping, *gpu);
 
-            gpu.initializeGlobalMMIO(*streamTbx, devicesCount, memoryBankSize, stepping);
-            gpu.setMemoryBankSize(*streamTbx, devicesCount, memoryBankSize);
-            gpu.setGGTTBaseAddresses(*streamTbx, devicesCount, memoryBankSize, *stolenMem);
+            gpu->initializeGlobalMMIO(*streamTbx, devicesCount, memoryBankSize, stepping);
+            gpu->setMemoryBankSize(*streamTbx, devicesCount, memoryBankSize);
+            gpu->setGGTTBaseAddresses(*streamTbx, devicesCount, memoryBankSize, *stolenMem);
         }
     } else if (createTbxShmStream || createTbxShm4Stream) {
         if (sharedMemoryInfo.sysMemBase == nullptr) {
@@ -85,9 +85,9 @@ void AubManagerImp::initialize() {
 
             streamTbxShm->enableThrowOnError(enableThrow);
 
-            gpu.initializeGlobalMMIO(*streamTbxShm, devicesCount, memoryBankSize, stepping);
-            gpu.setMemoryBankSize(*streamTbxShm, devicesCount, memoryBankSize);
-            gpu.setGGTTBaseAddresses(*streamTbxShm, devicesCount, memoryBankSize, *stolenMem);
+            gpu->initializeGlobalMMIO(*streamTbxShm, devicesCount, memoryBankSize, stepping);
+            gpu->setMemoryBankSize(*streamTbxShm, devicesCount, memoryBankSize);
+            gpu->setGGTTBaseAddresses(*streamTbxShm, devicesCount, memoryBankSize, *stolenMem);
         }
     } else if (createTbxShm3Stream) {
         if (sharedMemoryInfo.sysMemBase != nullptr || sharedMemoryInfo.localMemBase != nullptr) {
@@ -99,7 +99,7 @@ void AubManagerImp::initialize() {
                 }
             }
         } else {
-            if (gpu.gfxCoreFamily <= CoreFamily::Gen12lp) {
+            if (gpu->gfxCoreFamily <= CoreFamily::Gen12lp) {
                 if (enableThrow) {
                     throw std::logic_error("Trying to use shared memory v3 for legacy core family.");
                 }
@@ -112,9 +112,9 @@ void AubManagerImp::initialize() {
                     p = reinterpret_cast<void *>(physAddress); });
                 streamTbxShm->enableThrowOnError(enableThrow);
 
-                gpu.initializeGlobalMMIO(*streamTbxShm, devicesCount, memoryBankSize, stepping);
-                gpu.setMemoryBankSize(*streamTbxShm, devicesCount, memoryBankSize);
-                gpu.setGGTTBaseAddresses(*streamTbxShm, devicesCount, memoryBankSize, *stolenMem);
+                gpu->initializeGlobalMMIO(*streamTbxShm, devicesCount, memoryBankSize, stepping);
+                gpu->setMemoryBankSize(*streamTbxShm, devicesCount, memoryBankSize);
+                gpu->setGGTTBaseAddresses(*streamTbxShm, devicesCount, memoryBankSize, *stolenMem);
             }
         }
     }
@@ -133,27 +133,27 @@ void AubManagerImp::initialize() {
     for (uint32_t i = 0; i < devicesCount; i++) {
         uint64_t stolenBaseAddress = stolenMem->getBaseAddress(i);
         uint32_t memoryBank = MemoryBank::MEMORY_BANK_SYSTEM;
-        uint64_t gttBaseAddress = gpu.getGGTTBaseAddress(i, memoryBankSize, stolenBaseAddress);
+        uint64_t gttBaseAddress = gpu->getGGTTBaseAddress(i, memoryBankSize, stolenBaseAddress);
 
-        if (localMemorySupported || gpu.requireLocalMemoryForPageTables()) {
+        if (localMemorySupported || gpu->requireLocalMemoryForPageTables()) {
             memoryBank = MemoryBank::MEMORY_BANK_0 << i;
         }
         if (createTbxShm4Stream) {
             static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->mapSystemMemoryToPhysicalAddress(stolenBaseAddress, static_cast<size_t>(memoryBankSize - stolenBaseAddress), 0x10000, memoryBank != MemoryBank::MEMORY_BANK_SYSTEM, nullptr);
         }
-        ppgtts[i] = std::unique_ptr<PageTable>(gpu.allocatePPGTT(physicalAddressAllocator.get(), memoryBank, gpuAddressSpace));
-        ggtts[i] = std::unique_ptr<GGTT>(gpu.allocateGGTT(physicalAddressAllocator.get(), memoryBank, gttBaseAddress));
+        ppgtts[i] = std::unique_ptr<PageTable>(gpu->allocatePPGTT(physicalAddressAllocator.get(), memoryBank, gpuAddressSpace));
+        ggtts[i] = std::unique_ptr<GGTT>(gpu->allocateGGTT(physicalAddressAllocator.get(), memoryBank, gttBaseAddress));
     }
 
-    gpu.initializeDefaultMemoryPools(*getStream(), devicesCount, memoryBankSize, *stolenMem);
+    gpu->initializeDefaultMemoryPools(*getStream(), devicesCount, memoryBankSize, *stolenMem);
 }
 
 void AubManagerImp::open(const std::string &aubFileName) {
     if (streamMode == aub_stream::mode::aubFile || streamMode == aub_stream::mode::aubFileAndTbx) {
         streamAub->open(aubFileName.c_str());
-        streamAub->init(stepping, gpu);
-        gpu.initializeGlobalMMIO(*streamAub, devicesCount, memoryBankSize, stepping);
-        gpu.setMemoryBankSize(*streamAub, devicesCount, memoryBankSize);
+        streamAub->init(stepping, *gpu);
+        gpu->initializeGlobalMMIO(*streamAub, devicesCount, memoryBankSize, stepping);
+        gpu->setMemoryBankSize(*streamAub, devicesCount, memoryBankSize);
     }
 
     for (auto &ctxt : hwContexts) {
@@ -199,7 +199,7 @@ void AubManagerImp::addComment(const char *message) {
 }
 
 HardwareContext *AubManagerImp::createHardwareContext(uint32_t device, uint32_t engine, uint32_t flags) {
-    auto &csTraits = gpu.getCommandStreamerHelper(device, static_cast<EngineType>(engine));
+    auto &csTraits = gpu->getCommandStreamerHelper(device, static_cast<EngineType>(engine));
     AubStream *stream = getStream();
 
     auto ctxt = new HardwareContextImp(device, *stream, csTraits, *ggtts[device], *ppgtts[device], flags);
@@ -210,7 +210,7 @@ HardwareContext *AubManagerImp::createHardwareContext(uint32_t device, uint32_t 
 }
 
 void AubManagerImp::adjustPageSize(uint32_t memoryBanks, size_t &pageSize) {
-    auto &csTraits = gpu.getCommandStreamerHelper(0, static_cast<EngineType>(ENGINE_RCS));
+    auto &csTraits = gpu->getCommandStreamerHelper(0, static_cast<EngineType>(ENGINE_RCS));
 
     if (!csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize))) {
         pageSize = pageSize == 65536u ? 4096u : 65536u;
@@ -388,12 +388,15 @@ AubStream *AubManagerImp::getStream() {
 }
 
 AubManager *AubManager::create(const struct AubManagerOptions &options) {
-    const Gpu *gpu = nullptr;
+    std::unique_ptr<Gpu> gpu;
     if (options.version == 1) {
-        gpu = getGpu(static_cast<ProductFamily>(options.productFamily));
+        auto createGpuFunc = getGpu(static_cast<ProductFamily>(options.productFamily));
+        if (createGpuFunc) {
+            gpu = createGpuFunc();
+        }
     }
     if (nullptr != gpu) {
-        auto aubManager = new AubManagerImp(*gpu, options);
+        auto aubManager = new AubManagerImp(std::move(gpu), options);
         if (aubManager->isInitialized()) {
             return aubManager;
         }

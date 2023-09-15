@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -21,8 +21,7 @@ struct GpuAdln : public GpuGen12LP {
 };
 
 template <>
-const Gpu *enableGpu<ProductFamily::Adln>() {
-    static const GpuAdln gpu;
-    return &gpu;
+std::function<std::unique_ptr<Gpu>()> enableGpu<ProductFamily::Adln>() {
+    return std::make_unique<GpuAdln>;
 }
 } // namespace aub_stream

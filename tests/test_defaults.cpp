@@ -21,7 +21,8 @@
 
 namespace aub_stream {
 
-const Gpu *gpu = nullptr;
+std::unique_ptr<Gpu> gpu;
+std::function<std::unique_ptr<Gpu>()> createGpuFunc = nullptr;
 
 uint32_t defaultDevice = 0;
 uint32_t defaultStepping = 0;

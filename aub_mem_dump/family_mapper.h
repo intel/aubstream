@@ -9,6 +9,8 @@
 #include "gfx_core_family.h"
 #include "aubstream/engine_node.h"
 #include <map>
+#include <functional>
+#include <memory>
 
 namespace aub_stream {
 
@@ -17,28 +19,24 @@ struct Gpu;
 enum class ProductFamily : uint32_t;
 
 // Table of HW family specific Gpus
-extern std::map<ProductFamily, const Gpu *> *productFamilyTable;
+extern std::map<ProductFamily, std::function<std::unique_ptr<Gpu>()>> *productFamilyTable;
 
 // Helper method to access a productFamily Gpu
 template <ProductFamily>
-const Gpu *enableGpu();
+std::function<std::unique_ptr<Gpu>()> enableGpu();
 
 // Helper to register product families
 template <ProductFamily productFamily>
 struct RegisterFamily {
     RegisterFamily() {
-        auto gpu = enableGpu<productFamily>();
+        auto createGpuFunc = enableGpu<productFamily>();
         if (!productFamilyTable) {
-            productFamilyTable = new std::map<ProductFamily, const Gpu *>;
+            productFamilyTable = new std::map<ProductFamily, std::function<std::unique_ptr<Gpu>()>>;
         }
-        (*productFamilyTable)[productFamily] = gpu;
+        (*productFamilyTable)[productFamily] = createGpuFunc;
     }
 };
 
 // Main accessor to get a Gpu
-const Gpu *getGpu(ProductFamily productFamily);
-
-// Main accessor to get a CommandStreamerHelper
-CommandStreamerHelper &getCommandStreamerHelper(ProductFamily productFamily, uint32_t device, EngineType engine);
-
+std::function<std::unique_ptr<Gpu>()> getGpu(ProductFamily productFamily);
 } // namespace aub_stream

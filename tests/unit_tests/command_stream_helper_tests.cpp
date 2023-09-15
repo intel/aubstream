@@ -23,7 +23,7 @@
 using namespace aub_stream;
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesLRISettingDebugMode) {
-    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
@@ -35,7 +35,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 }
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesContextSRWithInhibitContextRestoreAndSynchronousContextSwitch) {
-    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
@@ -47,7 +47,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 }
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesBbCurrentHeadReg) {
-    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
@@ -60,7 +60,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 }
 
 TEST_F(CommandStreamerHelperTest, givenGroupContextWhenCommandStreamHelperIsInitializedThenLRCAIncludesContextFlags) {
-    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
@@ -72,7 +72,7 @@ TEST_F(CommandStreamerHelperTest, givenGroupContextWhenCommandStreamHelperIsInit
 }
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedWithFlagsThenLRCAIncludesContextSRWithSpecidfiedFlags) {
-    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
 
     auto sizeLRCA = rcs.sizeLRCA;
     uint32_t additionalFlags = 0x800080;
@@ -85,7 +85,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedWithFlagsT
 }
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesPDPRegisters) {
-    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
     PhysicalAddressAllocatorSimple allocator;
     PDP4 pageTable(*gpu, &allocator, MEMORY_BANK_SYSTEM);
 
@@ -111,7 +111,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 }
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesPML4Register) {
-    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
     PhysicalAddressAllocatorSimple allocator;
     PDP4 pageTable(*gpu, &allocator, MEMORY_BANK_SYSTEM);
 
@@ -136,7 +136,7 @@ TEST_F(CommandStreamerHelperTest, csHelperHasValidParams) {
             continue;
         }
 
-        auto &cs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, engines[i]);
+        auto &cs = gpu->getCommandStreamerHelper(defaultDevice, engines[i]);
 
         if (EngineType::ENGINE_RCS == engines[i]) {
             EXPECT_EQ(DataTypeHintValues::TraceLogicalRingContextRcs, cs.aubHintLRCA);
@@ -166,7 +166,7 @@ TEST_F(CommandStreamerHelperTest, csHelperHasValidParams) {
 
 TEST_F(CommandStreamerHelperTest, CheckRCSFlushCommands) {
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
-    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
     std::vector<uint32_t> testRingBuffer{};
 
     rcs.addFlushCommands(testRingBuffer);
@@ -211,7 +211,7 @@ TEST_F(CommandStreamerHelperTest, CheckRCSFlushCommands) {
 
 TEST_F(CommandStreamerHelperTest, CheckBCSFlushCommands) {
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_BCS));
-    auto &bcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_BCS);
+    auto &bcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_BCS);
     std::vector<uint32_t> testRingBuffer{};
 
     bcs.addFlushCommands(testRingBuffer);
@@ -228,7 +228,7 @@ TEST_F(CommandStreamerHelperTest, CheckBCSFlushCommands) {
 
 TEST_F(CommandStreamerHelperTest, CheckVCSFlushCommands) {
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_VCS));
-    auto &vcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_VCS);
+    auto &vcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_VCS);
     std::vector<uint32_t> testRingBuffer{};
 
     vcs.addFlushCommands(testRingBuffer);
@@ -245,7 +245,7 @@ TEST_F(CommandStreamerHelperTest, CheckVCSFlushCommands) {
 
 TEST_F(CommandStreamerHelperTest, CheckVECSFlushCommands) {
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_VECS));
-    auto &vecs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_VECS);
+    auto &vecs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_VECS);
     std::vector<uint32_t> testRingBuffer{};
 
     vecs.addFlushCommands(testRingBuffer);
@@ -262,7 +262,7 @@ TEST_F(CommandStreamerHelperTest, CheckVECSFlushCommands) {
 
 TEST_F(CommandStreamerHelperTest, CheckCCSFlushCommands) {
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS));
-    auto &ccs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_CCS);
+    auto &ccs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
     std::vector<uint32_t> testRingBuffer{};
 
     ccs.addFlushCommands(testRingBuffer);
@@ -305,7 +305,7 @@ TEST_F(CommandStreamerHelperTest, CheckCCSFlushCommands) {
 TEST_F(CommandStreamerHelperTest, CheckStoreFence) {
     // The function is the same for all engines so far
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
-    auto &rcs = getCommandStreamerHelper(gpu->productFamily, defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
     std::vector<uint32_t> testRingBuffer{};
 
     rcs.storeFenceValue(testRingBuffer, 0x0badc0fedeadbeefull, 0x8086);
@@ -341,7 +341,7 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, initializeEngineMMIO) {
     auto deviceBase = device * 16 * MB;
     auto csBase = std::get<1>(GetParam()).second + 0x2000;
     auto mmioBase = deviceBase + csBase;
-    auto &cs = getCommandStreamerHelper(gpu->productFamily, device, engine);
+    auto &cs = gpu->getCommandStreamerHelper(device, engine);
     VerifyMmioAubStream stream(mmioBase, mmioBase + 0x7ff);
 
     cs.initializeEngineMMIO(stream);
@@ -356,7 +356,7 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, submit) {
     auto deviceBase = device * 16 * MB;
     auto csBase = std::get<1>(GetParam()).second + 0x2000;
     auto mmioBase = deviceBase + csBase;
-    auto &cs = getCommandStreamerHelper(gpu->productFamily, device, engine);
+    auto &cs = gpu->getCommandStreamerHelper(device, engine);
     VerifyMmioAubStream stream(mmioBase, mmioBase + 0x7ff);
 
     auto ggttFakeLRCA = 0x1000;
@@ -372,7 +372,7 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, pollForCompletion) {
     auto deviceBase = device * 16 * MB;
     auto csBase = std::get<1>(GetParam()).second + 0x2000;
     auto mmioBase = deviceBase + csBase;
-    auto &cs = getCommandStreamerHelper(gpu->productFamily, device, engine);
+    auto &cs = gpu->getCommandStreamerHelper(device, engine);
     VerifyMmioAubStream stream(mmioBase, mmioBase + 0x7ff);
 
     cs.pollForCompletion(stream);
@@ -387,7 +387,7 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, CheckBatchBufferStart) {
     auto deviceBase = device * 16 * MB;
     auto csBase = std::get<1>(GetParam()).second + 0x2000;
     auto mmioBase = deviceBase + csBase;
-    auto &cs = getCommandStreamerHelper(gpu->productFamily, device, engine);
+    auto &cs = gpu->getCommandStreamerHelper(device, engine);
 
     std::vector<uint32_t> testRingBuffer{};
     const uint64_t bufferAddress = 0x0badc0fedeadbeefull;
@@ -418,7 +418,7 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, givenGroupContextWhenAddingBbS
     auto deviceBase = device * 16 * MB;
     auto csBase = std::get<1>(GetParam()).second + 0x2000;
     auto mmioBase = deviceBase + csBase;
-    auto &cs = getCommandStreamerHelper(gpu->productFamily, device, engine);
+    auto &cs = gpu->getCommandStreamerHelper(device, engine);
 
     std::vector<uint32_t> testRingBuffer{};
     const uint64_t bufferAddress = 0x0badc0fedeadbeefull;

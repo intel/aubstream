@@ -54,6 +54,7 @@ struct GpuDescriptor {
     std::string productAbbreviation;
     uint32_t deviceId{};
     uint32_t deviceCount{};
+    virtual ~GpuDescriptor() = default;
 };
 
 struct Gpu : public GpuDescriptor {

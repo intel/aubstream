@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -12,6 +12,8 @@
 #include "gfx_core_family.h"
 #include "aubstream/product_family.h"
 #include "aub_mem_dump/gpu.h"
+#include <memory>
+#include <functional>
 
 namespace aub_stream {
 
@@ -21,7 +23,8 @@ constexpr uint64_t maxNBitValue(uint32_t N) {
 
 constexpr uint64_t gpuAddressSpace48 = maxNBitValue(48);
 
-extern const Gpu *gpu;
+extern std::unique_ptr<Gpu> gpu;
+extern std::function<std::unique_ptr<Gpu>()> createGpuFunc;
 
 extern uint32_t defaultDevice;
 extern uint32_t defaultStepping;

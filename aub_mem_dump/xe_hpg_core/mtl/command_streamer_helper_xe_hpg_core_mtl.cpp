@@ -55,9 +55,7 @@ struct GpuMtl : public GpuXeHpgCore {
 };
 
 template <>
-const Gpu *enableGpu<ProductFamily::Mtl>() {
-    static const GpuMtl mtl;
-    return &mtl;
+std::function<std::unique_ptr<Gpu>()> enableGpu<ProductFamily::Mtl>() {
+    return std::make_unique<GpuMtl>;
 }
-
 } // namespace aub_stream
