@@ -39,12 +39,11 @@ struct CommandStreamerHelperXeHpgCore : public Helper {
 };
 
 struct GpuXeHpgCore : public Gpu {
+    GpuXeHpgCore();
     static const uint32_t numSupportedDevices = 1;
     static constexpr uint64_t patIndexBit1 = toBitValue(4);
     static constexpr uint64_t patIndex0 = 0;            // 0b0000
     static constexpr uint64_t patIndex2 = patIndexBit1; // 0b0010
-
-    CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const override;
 
     const std::vector<EngineType> getSupportedEngines() const override;
 

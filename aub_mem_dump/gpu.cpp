@@ -11,9 +11,13 @@
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/alloc_tools.h"
 #include "aub_mem_dump/align_helpers.h"
+#include "aub_mem_dump/command_streamer_helper.h"
 #include <memory>
 
 namespace aub_stream {
+
+Gpu::Gpu() = default;
+Gpu::~Gpu() = default;
 
 bool Gpu::isEngineSupported(uint32_t engine) const {
     auto &supportedEngines = getSupportedEngines();
@@ -43,6 +47,12 @@ void Gpu::initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount, uint64_
     for (const auto &mmioPair : MMIOListInjected) {
         stream.writeMMIO(mmioPair.first, mmioPair.second);
     }
+}
+
+CommandStreamerHelper &Gpu::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
+    auto &csh = commandStreamerHelperTable[device][engineType];
+    csh->gpu = this;
+    return *csh;
 }
 
 StolenMemoryInHeap::StolenMemoryInHeap(uint32_t deviceCount, uint64_t memoryBankSize) {

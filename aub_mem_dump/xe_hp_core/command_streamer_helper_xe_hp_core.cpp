@@ -192,15 +192,6 @@ struct PopulateXeHpCore {
     }
 } populateXeHpCore;
 
-CommandStreamerHelper &GpuXeHpCore::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
-    assert(device < GpuXeHpCore::numSupportedDevices);
-    assert(isEngineSupported(engineType));
-    auto csh = commandStreamerHelperTable[device][engineType];
-    assert(csh);
-    csh->gpu = this;
-    return *csh;
-}
-
 void GpuXeHpCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {
     if (IsAnyTbxMode(stream.getStreamMode())) {
         for (uint32_t i = 0; i < devicesCount; i++) {

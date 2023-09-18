@@ -122,61 +122,26 @@ const MMIOList CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs>::get
     return engineMMIO;
 }
 
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperRcs> rcsDevices[GpuXeHpCore::numSupportedDevices] = {{0}, {1}, {2}, {3}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperBcs> bcsDevices[GpuXeHpCore::numSupportedDevices] = {{0}, {1}, {2}, {3}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperVcs> vcsDevices[GpuXeHpCore::numSupportedDevices] = {{0}, {1}, {2}, {3}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperVecs> vecsDevices[GpuXeHpCore::numSupportedDevices] = {{0}, {1}, {2}, {3}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperCcs> ccs0Devices[GpuXeHpCore::numSupportedDevices] = {{0, 0}, {1, 0}, {2, 0}, {3, 0}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperCcs> ccs1Devices[GpuXeHpCore::numSupportedDevices] = {{0, 1}, {1, 1}, {2, 1}, {3, 1}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperCcs> ccs2Devices[GpuXeHpCore::numSupportedDevices] = {{0, 2}, {1, 2}, {2, 2}, {3, 2}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperCcs> ccs3Devices[GpuXeHpCore::numSupportedDevices] = {{0, 3}, {1, 3}, {2, 3}, {3, 3}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperCccs> cccsDevices[GpuXeHpCore::numSupportedDevices] = {{0}, {1}, {2}, {3}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs> bcs1Devices[GpuXeHpCore::numSupportedDevices] = {{0, 1}, {1, 1}, {2, 1}, {3, 1}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs> bcs2Devices[GpuXeHpCore::numSupportedDevices] = {{0, 2}, {1, 2}, {2, 2}, {3, 2}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs> bcs3Devices[GpuXeHpCore::numSupportedDevices] = {{0, 3}, {1, 3}, {2, 3}, {3, 3}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs> bcs4Devices[GpuXeHpCore::numSupportedDevices] = {{0, 4}, {1, 4}, {2, 4}, {3, 4}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs> bcs5Devices[GpuXeHpCore::numSupportedDevices] = {{0, 5}, {1, 5}, {2, 5}, {3, 5}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs> bcs6Devices[GpuXeHpCore::numSupportedDevices] = {{0, 6}, {1, 6}, {2, 6}, {3, 6}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs> bcs7Devices[GpuXeHpCore::numSupportedDevices] = {{0, 7}, {1, 7}, {2, 7}, {3, 7}};
-static CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs> bcs8Devices[GpuXeHpCore::numSupportedDevices] = {{0, 8}, {1, 8}, {2, 8}, {3, 8}};
-
-static CommandStreamerHelper *commandStreamerHelperTable[GpuXeHpcCore::numSupportedDevices][EngineType::NUM_ENGINES] = {};
-
-struct PopulateXeHpcCore {
-    PopulateXeHpcCore() {
-        auto fillEngine = [](EngineType engineType, CommandStreamerHelper *csHelper) {
-            for (uint32_t i = 0; i < GpuXeHpcCore::numSupportedDevices; i++) {
-                commandStreamerHelperTable[i][engineType] = &csHelper[i];
-            }
-        };
-
-        fillEngine(EngineType::ENGINE_RCS, rcsDevices);
-        fillEngine(EngineType::ENGINE_BCS, bcsDevices);
-        fillEngine(EngineType::ENGINE_VCS, vcsDevices);
-        fillEngine(EngineType::ENGINE_VECS, vecsDevices);
-        fillEngine(EngineType::ENGINE_CCS, ccs0Devices);
-        fillEngine(EngineType::ENGINE_CCS1, ccs1Devices);
-        fillEngine(EngineType::ENGINE_CCS2, ccs2Devices);
-        fillEngine(EngineType::ENGINE_CCS3, ccs3Devices);
-        fillEngine(EngineType::ENGINE_CCCS, cccsDevices);
-        fillEngine(EngineType::ENGINE_BCS1, bcs1Devices);
-        fillEngine(EngineType::ENGINE_BCS2, bcs2Devices);
-        fillEngine(EngineType::ENGINE_BCS3, bcs3Devices);
-        fillEngine(EngineType::ENGINE_BCS4, bcs4Devices);
-        fillEngine(EngineType::ENGINE_BCS5, bcs5Devices);
-        fillEngine(EngineType::ENGINE_BCS6, bcs6Devices);
-        fillEngine(EngineType::ENGINE_BCS7, bcs7Devices);
-        fillEngine(EngineType::ENGINE_BCS8, bcs8Devices);
+GpuXeHpcCore::GpuXeHpcCore() {
+    for (auto deviceId = 0; deviceId < GpuXeHpCore::numSupportedDevices; deviceId++) {
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_CCCS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperCccs>>(deviceId);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_RCS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperRcs>>(deviceId);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperBcs>>(deviceId);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_VCS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperVcs>>(deviceId);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_VECS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperVecs>>(deviceId);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_CCS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperCcs>>(deviceId, 0);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_CCS1] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperCcs>>(deviceId, 1);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_CCS2] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperCcs>>(deviceId, 2);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_CCS3] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperCcs>>(deviceId, 3);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS1] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs>>(deviceId, 1);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS2] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs>>(deviceId, 2);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS3] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs>>(deviceId, 3);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS4] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs>>(deviceId, 4);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS5] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs>>(deviceId, 5);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS6] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs>>(deviceId, 6);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS7] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs>>(deviceId, 7);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS8] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs>>(deviceId, 8);
     }
-} populateXeHpcCore;
-
-CommandStreamerHelper &GpuXeHpcCore::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
-    assert(device < GpuXeHpcCore::numSupportedDevices);
-    assert(isEngineSupported(engineType));
-    auto csh = commandStreamerHelperTable[device][engineType];
-    assert(csh);
-    csh->gpu = this;
-    return *csh;
 }
 
 PageTable *GpuXeHpcCore::allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const {

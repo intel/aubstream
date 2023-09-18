@@ -145,32 +145,11 @@ const MMIOList CommandStreamerHelperGen12LP<CommandStreamerHelperCcs>::getEngine
     return engineMMIO;
 }
 
-static CommandStreamerHelperGen12LP<CommandStreamerHelperRcs> rcs(0);
-static CommandStreamerHelperGen12LP<CommandStreamerHelperBcs> bcs(0);
-static CommandStreamerHelperGen12LP<CommandStreamerHelperVcs> vcs(0);
-static CommandStreamerHelperGen12LP<CommandStreamerHelperVecs> vecs(0);
-static CommandStreamerHelperGen12LP<CommandStreamerHelperCcs> ccs(0, 0);
-
-static CommandStreamerHelper *commandStreamerHelperTable[EngineType::NUM_ENGINES] = {};
-
-struct PopulateGen12LP {
-    PopulateGen12LP() {
-        commandStreamerHelperTable[EngineType::ENGINE_RCS] = &rcs;
-        commandStreamerHelperTable[EngineType::ENGINE_BCS] = &bcs;
-        commandStreamerHelperTable[EngineType::ENGINE_VCS] = &vcs;
-        commandStreamerHelperTable[EngineType::ENGINE_VECS] = &vecs;
-        commandStreamerHelperTable[EngineType::ENGINE_CCS] = &ccs;
-    }
-} populateGen12LP;
-
-CommandStreamerHelper &
-GpuGen12LP::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
-    assert(device == 0);
-    assert(isEngineSupported(engineType));
-    auto csh = commandStreamerHelperTable[engineType];
-    assert(csh);
-    csh->gpu = this;
-    return *csh;
+GpuGen12LP::GpuGen12LP() {
+    commandStreamerHelperTable[0][EngineType::ENGINE_RCS] = std::make_unique<CommandStreamerHelperGen12LP<CommandStreamerHelperRcs>>(0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_BCS] = std::make_unique<CommandStreamerHelperGen12LP<CommandStreamerHelperBcs>>(0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_VCS] = std::make_unique<CommandStreamerHelperGen12LP<CommandStreamerHelperVcs>>(0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_VECS] = std::make_unique<CommandStreamerHelperGen12LP<CommandStreamerHelperVecs>>(0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_CCS] = std::make_unique<CommandStreamerHelperGen12LP<CommandStreamerHelperCcs>>(0, 0);
 }
-
 } // namespace aub_stream

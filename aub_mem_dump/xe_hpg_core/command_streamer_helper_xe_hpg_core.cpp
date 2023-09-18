@@ -137,40 +137,17 @@ const MMIOList CommandStreamerHelperXeHpgCore<CommandStreamerHelperLinkBcs>::get
     return engineMMIO;
 }
 
-static CommandStreamerHelperXeHpgCore<CommandStreamerHelperRcs> rcsDevices[GpuXeHpgCore::numSupportedDevices] = {{0}};
-static CommandStreamerHelperXeHpgCore<CommandStreamerHelperBcs> bcsDevices[GpuXeHpgCore::numSupportedDevices] = {{0}};
-static CommandStreamerHelperXeHpgCore<CommandStreamerHelperCcs> ccs0Devices[GpuXeHpgCore::numSupportedDevices] = {{0, 0}};
-static CommandStreamerHelperXeHpgCore<CommandStreamerHelperCcs> ccs1Devices[GpuXeHpgCore::numSupportedDevices] = {{0, 1}};
-static CommandStreamerHelperXeHpgCore<CommandStreamerHelperCcs> ccs2Devices[GpuXeHpgCore::numSupportedDevices] = {{0, 2}};
-static CommandStreamerHelperXeHpgCore<CommandStreamerHelperCcs> ccs3Devices[GpuXeHpgCore::numSupportedDevices] = {{0, 3}};
-
-static CommandStreamerHelper *commandStreamerHelperTable[GpuXeHpgCore::numSupportedDevices][EngineType::NUM_ENGINES] = {};
-
-struct PopulateXeHpgCore {
-    PopulateXeHpgCore() {
-        auto fillEngine = [](EngineType engineType, CommandStreamerHelper *csHelper) {
-            for (uint32_t i = 0; i < GpuXeHpgCore::numSupportedDevices; i++) {
-                commandStreamerHelperTable[i][engineType] = &csHelper[i];
-            }
-        };
-
-        fillEngine(EngineType::ENGINE_RCS, rcsDevices);
-        fillEngine(EngineType::ENGINE_BCS, bcsDevices);
-        fillEngine(EngineType::ENGINE_CCS, ccs0Devices);
-        fillEngine(EngineType::ENGINE_CCS1, ccs1Devices);
-        fillEngine(EngineType::ENGINE_CCS2, ccs2Devices);
-        fillEngine(EngineType::ENGINE_CCS3, ccs3Devices);
-    }
-} populateXeHpgCore;
-
-CommandStreamerHelper &GpuXeHpgCore::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
-    assert(device < GpuXeHpgCore::numSupportedDevices);
-    assert(isEngineSupported(engineType));
-    auto csh = commandStreamerHelperTable[device][engineType];
-    assert(csh);
-    csh->gpu = this;
-    return *csh;
+GpuXeHpgCore::GpuXeHpgCore() {
+    commandStreamerHelperTable[0][EngineType::ENGINE_RCS] = std::make_unique<CommandStreamerHelperXeHpgCore<CommandStreamerHelperRcs>>(0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_BCS] = std::make_unique<CommandStreamerHelperXeHpgCore<CommandStreamerHelperBcs>>(0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_VCS] = std::make_unique<CommandStreamerHelperXeHpgCore<CommandStreamerHelperVcs>>(0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_VECS] = std::make_unique<CommandStreamerHelperXeHpgCore<CommandStreamerHelperVecs>>(0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_CCS] = std::make_unique<CommandStreamerHelperXeHpgCore<CommandStreamerHelperCcs>>(0, 0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_CCS1] = std::make_unique<CommandStreamerHelperXeHpgCore<CommandStreamerHelperCcs>>(0, 1);
+    commandStreamerHelperTable[0][EngineType::ENGINE_CCS2] = std::make_unique<CommandStreamerHelperXeHpgCore<CommandStreamerHelperCcs>>(0, 2);
+    commandStreamerHelperTable[0][EngineType::ENGINE_CCS3] = std::make_unique<CommandStreamerHelperXeHpgCore<CommandStreamerHelperCcs>>(0, 3);
 }
+
 void GpuXeHpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {
     if (IsAnyTbxMode(stream.getStreamMode())) {
         for (uint32_t i = 0; i < devicesCount; i++) {

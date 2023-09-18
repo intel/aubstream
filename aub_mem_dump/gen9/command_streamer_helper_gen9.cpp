@@ -46,29 +46,10 @@ const MMIOList CommandStreamerHelperGen9<CommandStreamerHelperVecs>::getEngineMM
     return engineMMIO;
 }
 
-static CommandStreamerHelperGen9<CommandStreamerHelperRcs> rcs(0);
-static CommandStreamerHelperGen9<CommandStreamerHelperBcs> bcs(0);
-static CommandStreamerHelperGen9<CommandStreamerHelperVcs> vcs(0);
-static CommandStreamerHelperGen9<CommandStreamerHelperVecs> vecs(0);
-
-static CommandStreamerHelper *commandStreamerHelperTable[EngineType::NUM_ENGINES] = {};
-
-struct PopulateGen9 {
-    PopulateGen9() {
-        commandStreamerHelperTable[EngineType::ENGINE_RCS] = &rcs;
-        commandStreamerHelperTable[EngineType::ENGINE_BCS] = &bcs;
-        commandStreamerHelperTable[EngineType::ENGINE_VCS] = &vcs;
-        commandStreamerHelperTable[EngineType::ENGINE_VECS] = &vecs;
-    }
-} populateGen9;
-
-CommandStreamerHelper &GpuGen9::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
-    assert(device == 0);
-    assert(isEngineSupported(engineType));
-    auto csh = commandStreamerHelperTable[engineType];
-    assert(csh);
-    csh->gpu = this;
-    return *csh;
+GpuGen9::GpuGen9() {
+    commandStreamerHelperTable[0][EngineType::ENGINE_RCS] = std::make_unique<CommandStreamerHelperGen9<CommandStreamerHelperRcs>>(0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_BCS] = std::make_unique<CommandStreamerHelperGen9<CommandStreamerHelperBcs>>(0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_VCS] = std::make_unique<CommandStreamerHelperGen9<CommandStreamerHelperVcs>>(0);
+    commandStreamerHelperTable[0][EngineType::ENGINE_VECS] = std::make_unique<CommandStreamerHelperGen9<CommandStreamerHelperVecs>>(0);
 }
-
 } // namespace aub_stream

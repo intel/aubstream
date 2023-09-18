@@ -16,6 +16,7 @@
 #include <array>
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace aub_stream {
 
@@ -58,7 +59,10 @@ struct GpuDescriptor {
 };
 
 struct Gpu : public GpuDescriptor {
-    virtual CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const = 0;
+    Gpu();
+    ~Gpu() override;
+    static constexpr uint32_t numSupportedDevices = 4;
+    CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const;
     virtual const MMIOList getGlobalMMIO() const = 0;
     virtual bool isMemorySupported(uint32_t memoryBanks, uint32_t alignment) const = 0;
     virtual const std::vector<EngineType> getSupportedEngines() const = 0;
@@ -78,6 +82,7 @@ struct Gpu : public GpuDescriptor {
     virtual PageTable *allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const;
 
     virtual uint64_t getGGTTBaseAddress(uint32_t device, uint64_t memoryBankSize, uint64_t stolenMemoryBaseAddress) const = 0;
+    std::unique_ptr<CommandStreamerHelper> commandStreamerHelperTable[Gpu::numSupportedDevices][EngineType::NUM_ENGINES];
 };
 
 } // namespace aub_stream

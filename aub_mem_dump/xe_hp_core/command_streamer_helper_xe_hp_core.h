@@ -42,8 +42,6 @@ struct CommandStreamerHelperXeHpCore : public Helper {
 struct GpuXeHpCore : public Gpu {
     static const uint32_t numSupportedDevices = 4;
 
-    CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const override;
-
     const std::vector<EngineType> getSupportedEngines() const override;
 
     const MMIOList getGlobalMMIO() const override;

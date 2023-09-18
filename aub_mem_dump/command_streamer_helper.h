@@ -62,6 +62,7 @@ struct CommandStreamerHelper {
     using DataTypeHintValues = CmdServicesMemTraceMemoryWrite::DataTypeHintValues;
 
     CommandStreamerHelper() = default;
+    virtual ~CommandStreamerHelper() = default;
     CommandStreamerHelper(uint32_t deviceIndex, uint32_t offsetEngine) {
         mmioDevice = deviceIndex * 0x1000000;
         mmioEngine = mmioDevice + offsetEngine;
