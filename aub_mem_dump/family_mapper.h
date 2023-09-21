@@ -19,7 +19,7 @@ struct Gpu;
 enum class ProductFamily : uint32_t;
 
 // Table of HW family specific Gpus
-extern std::map<ProductFamily, std::function<std::unique_ptr<Gpu>()>> *productFamilyTable;
+extern std::unique_ptr<std::map<ProductFamily, std::function<std::unique_ptr<Gpu>()>>> productFamilyTable;
 
 // Helper method to access a productFamily Gpu
 template <ProductFamily>
@@ -31,9 +31,9 @@ struct RegisterFamily {
     RegisterFamily() {
         auto createGpuFunc = enableGpu<productFamily>();
         if (!productFamilyTable) {
-            productFamilyTable = new std::map<ProductFamily, std::function<std::unique_ptr<Gpu>()>>;
+            productFamilyTable = std::make_unique<std::map<ProductFamily, std::function<std::unique_ptr<Gpu>()>>>();
         }
-        (*productFamilyTable)[productFamily] = createGpuFunc;
+        (*productFamilyTable.get())[productFamily] = std::move(createGpuFunc);
     }
 };
 

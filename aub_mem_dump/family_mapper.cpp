@@ -11,11 +11,11 @@
 
 namespace aub_stream {
 
-std::map<ProductFamily, std::function<std::unique_ptr<Gpu>()>> *productFamilyTable = nullptr;
+std::unique_ptr<std::map<ProductFamily, std::function<std::unique_ptr<Gpu>()>>> productFamilyTable;
 
 std::function<std::unique_ptr<Gpu>()> getGpu(ProductFamily productFamily) {
-    if ((*productFamilyTable).find(productFamily) != (*productFamilyTable).end()) {
-        return (*productFamilyTable)[productFamily];
+    if (productFamilyTable.get()->find(productFamily) != productFamilyTable.get()->end()) {
+        return (*productFamilyTable.get())[productFamily];
     }
     return {};
 }
