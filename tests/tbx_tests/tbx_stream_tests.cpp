@@ -43,6 +43,7 @@ void TbxSimpleBatchBuffer::initializeStream(const GpuDescriptor &desc) {
     internal_options.mode = mode::tbx;
     internal_options.gpuAddressSpace = gpuAddressSpace48;
     mgr = new AubManagerImp(std::move(gpu), internal_options);
+    mgr->initialize();
 }
 
 void TbxSimpleBatchBuffer::SetUp() {

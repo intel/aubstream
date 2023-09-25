@@ -37,12 +37,40 @@ AubManagerImp::AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOp
                                                                                                   stolenMem(StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3, options.devicesCount, options.memoryBankSize)),
                                                                                                   sharedMemoryInfo(options.sharedMemoryInfo),
                                                                                                   enableThrow(options.throwOnError) {
-    initialize();
 }
 
 AubManagerImp::~AubManagerImp() = default;
 
 void AubManagerImp::initialize() {
+
+    createStream();
+
+    if (!getStream()) {
+        return;
+    }
+
+    ppgtts.resize(devicesCount);
+    ggtts.resize(devicesCount);
+
+    for (uint32_t i = 0; i < devicesCount; i++) {
+        uint64_t stolenBaseAddress = stolenMem->getBaseAddress(i);
+        uint32_t memoryBank = MemoryBank::MEMORY_BANK_SYSTEM;
+        uint64_t gttBaseAddress = gpu->getGGTTBaseAddress(i, memoryBankSize, stolenBaseAddress);
+
+        if (localMemorySupported || gpu->requireLocalMemoryForPageTables()) {
+            memoryBank = MemoryBank::MEMORY_BANK_0 << i;
+        }
+        if (streamMode == aub_stream::mode::tbxShm4) {
+            static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->mapSystemMemoryToPhysicalAddress(stolenBaseAddress, static_cast<size_t>(memoryBankSize - stolenBaseAddress), 0x10000, memoryBank != MemoryBank::MEMORY_BANK_SYSTEM, nullptr);
+        }
+        ppgtts[i] = std::unique_ptr<PageTable>(gpu->allocatePPGTT(physicalAddressAllocator.get(), memoryBank, gpuAddressSpace));
+        ggtts[i] = std::unique_ptr<GGTT>(gpu->allocateGGTT(physicalAddressAllocator.get(), memoryBank, gttBaseAddress));
+    }
+
+    gpu->initializeDefaultMemoryPools(*getStream(), devicesCount, memoryBankSize, *stolenMem);
+}
+
+void AubManagerImp::createStream() {
     bool createAubFileStream = streamMode == aub_stream::mode::aubFile || streamMode == aub_stream::mode::aubFileAndTbx;
     bool createTbxStream = streamMode == aub_stream::mode::tbx || streamMode == aub_stream::mode::aubFileAndTbx;
     bool createTbxShmStream = streamMode == aub_stream::mode::tbxShm;
@@ -118,34 +146,9 @@ void AubManagerImp::initialize() {
             }
         }
     }
-
     if (streamMode == aub_stream::mode::aubFileAndTbx) {
         streamAubTbx = std::make_unique<AubTbxStream>(*streamAub, *streamTbx);
     }
-
-    if (!getStream()) {
-        return;
-    }
-
-    ppgtts.resize(devicesCount);
-    ggtts.resize(devicesCount);
-
-    for (uint32_t i = 0; i < devicesCount; i++) {
-        uint64_t stolenBaseAddress = stolenMem->getBaseAddress(i);
-        uint32_t memoryBank = MemoryBank::MEMORY_BANK_SYSTEM;
-        uint64_t gttBaseAddress = gpu->getGGTTBaseAddress(i, memoryBankSize, stolenBaseAddress);
-
-        if (localMemorySupported || gpu->requireLocalMemoryForPageTables()) {
-            memoryBank = MemoryBank::MEMORY_BANK_0 << i;
-        }
-        if (createTbxShm4Stream) {
-            static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->mapSystemMemoryToPhysicalAddress(stolenBaseAddress, static_cast<size_t>(memoryBankSize - stolenBaseAddress), 0x10000, memoryBank != MemoryBank::MEMORY_BANK_SYSTEM, nullptr);
-        }
-        ppgtts[i] = std::unique_ptr<PageTable>(gpu->allocatePPGTT(physicalAddressAllocator.get(), memoryBank, gpuAddressSpace));
-        ggtts[i] = std::unique_ptr<GGTT>(gpu->allocateGGTT(physicalAddressAllocator.get(), memoryBank, gttBaseAddress));
-    }
-
-    gpu->initializeDefaultMemoryPools(*getStream(), devicesCount, memoryBankSize, *stolenMem);
 }
 
 void AubManagerImp::open(const std::string &aubFileName) {
@@ -397,6 +400,7 @@ AubManager *AubManager::create(const struct AubManagerOptions &options) {
     }
     if (nullptr != gpu) {
         auto aubManager = new AubManagerImp(std::move(gpu), options);
+        aubManager->initialize();
         if (aubManager->isInitialized()) {
             return aubManager;
         }

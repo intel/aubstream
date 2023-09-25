@@ -64,9 +64,10 @@ class AubManagerImp : public AubManager {
     bool mapGpuVa(uint64_t gfxAddress, size_t size, PhysicalAllocationInfo physicalAllocInfo) override;
     bool mapSystemMemoryToPhysicalAddress(uint64_t physAddress, size_t size, size_t alignment, bool isLocalMemory, const void *p) override;
     void *translatePhysicalAddressToSystemMemory(uint64_t physicalAddress, bool isLocalMemory) override;
+    void initialize();
 
   protected:
-    void initialize();
+    virtual void createStream();
     AubStream *getStream();
     void adjustPageSize(uint32_t memoryBanks, size_t &pageSize);
     void throwErrorIfEnabled(const std::string &);

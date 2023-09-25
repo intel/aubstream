@@ -47,6 +47,7 @@ struct SimpleBatchBuffer : public ::testing::TestWithParam<uint32_t> {
         internal_options.mode = streamMode;
         internal_options.gpuAddressSpace = gpuAddressSpace48;
         mgr = new AubManagerImp(std::move(gpu), internal_options);
+        mgr->initialize();
         mgr->open(fileName);
     }
 
