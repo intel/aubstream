@@ -9,6 +9,7 @@
 #include "aub_mem_dump/gpu.h"
 #include "aubstream/aubstream.h"
 #include "gfx_core_family.h"
+#include "options.h"
 
 #include <cassert>
 #include <string.h>
@@ -164,11 +165,34 @@ bool AubFileStream::init(int stepping, const GpuDescriptor &gpu) {
     if (gpu.deviceId == 0) {
         memcpy(header.deviceAbbreviation, gpu.productAbbreviation.c_str(), std::min(size_t(8), gpu.productAbbreviation.length()));
     }
-    memcpy(header.commandLine, "NEO", 4);
+    getHeaderStr(aubStreamCaller, header.commandLine);
 
     fileHandle.write(reinterpret_cast<char *>(&header), sizeof(header));
     fileHandle.flush();
     return true;
+}
+
+void getHeaderStr(uint32_t caller, char *header) {
+    switch (caller) {
+    case ((AUBSTREAM_CALLER_RL << 4) + AUBSTREAM_EXEC_R):
+        memcpy(header, "RLR", 4);
+        break;
+    case ((AUBSTREAM_CALLER_RL << 4) + AUBSTREAM_EXEC_C):
+        memcpy(header, "RLC", 4);
+        break;
+    case ((AUBSTREAM_CALLER_RL << 4) + AUBSTREAM_EXEC_CL):
+        memcpy(header, "RLL", 4);
+        break;
+    case ((AUBSTREAM_CALLER_RL << 4)):
+        memcpy(header, "RL", 3);
+        break;
+    case ((AUBSTREAM_CALLER_N << 4)):
+        memcpy(header, "NEO", 4);
+        break;
+    default:
+        memcpy(header, "UNK", 4);
+        break;
+    }
 }
 
 void AubFileStream::expectMemoryTable(const void *memory, size_t size, const std::vector<PageInfo> &entries, uint32_t compareOperation) {

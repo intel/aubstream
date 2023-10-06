@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -8,6 +8,7 @@
 #include "gtest/gtest.h"
 #include "aub_mem_dump/options.h"
 #include "aubstream/aubstream.h"
+#include "aub_mem_dump/aub_file_stream.h"
 
 using namespace aub_stream;
 
@@ -55,4 +56,76 @@ TEST(OptionsTest, whenInjectMMIOListIsCalledThenMMIOsAreInjected) {
     injectMMIOList(list);
 
     EXPECT_EQ(2u, list.size());
+}
+
+TEST(OptionsTest, whenSetAubStreamCallerIsNEOThenCorrectStringIsSet) {
+    GlobalVariableRestorer<uint32_t> aubStreamCallerRestorer(&aubStreamCaller);
+
+    char str[4] = {};
+
+    setAubStreamCaller(16u);
+    EXPECT_EQ(16u, aubStreamCaller);
+
+    getHeaderStr(aubStreamCaller, str);
+    EXPECT_STREQ(str, "NEO");
+}
+
+TEST(OptionsTest, whenSetAubStreamCallerIsRLThenCorrectStringIsSet) {
+    GlobalVariableRestorer<uint32_t> aubStreamCallerRestorer(&aubStreamCaller);
+
+    char str[4] = {};
+
+    setAubStreamCaller(32u);
+    EXPECT_EQ(32u, aubStreamCaller);
+
+    getHeaderStr(aubStreamCaller, str);
+    EXPECT_STREQ(str, "RL");
+}
+
+TEST(OptionsTest, whenSetAubStreamCallerIsRLCThenCorrectStringIsSet) {
+    GlobalVariableRestorer<uint32_t> aubStreamCallerRestorer(&aubStreamCaller);
+
+    char str[4] = {};
+
+    setAubStreamCaller(34u);
+    EXPECT_EQ(34u, aubStreamCaller);
+
+    getHeaderStr(aubStreamCaller, str);
+    EXPECT_STREQ(str, "RLC");
+}
+
+TEST(OptionsTest, whenSetAubStreamCallerIsRLRThenCorrectStringIsSet) {
+    GlobalVariableRestorer<uint32_t> aubStreamCallerRestorer(&aubStreamCaller);
+
+    char str[4] = {};
+
+    setAubStreamCaller(33u);
+    EXPECT_EQ(33u, aubStreamCaller);
+
+    getHeaderStr(aubStreamCaller, str);
+    EXPECT_STREQ(str, "RLR");
+}
+
+TEST(OptionsTest, whenSetAubStreamCallerIsRLLThenCorrectStringIsSet) {
+    GlobalVariableRestorer<uint32_t> aubStreamCallerRestorer(&aubStreamCaller);
+
+    char str[4] = {};
+
+    setAubStreamCaller(35u);
+    EXPECT_EQ(35u, aubStreamCaller);
+
+    getHeaderStr(aubStreamCaller, str);
+    EXPECT_STREQ(str, "RLL");
+}
+
+TEST(OptionsTest, whenSetAubStreamCallerIsUnknownThenCorrectStringIsSet) {
+    GlobalVariableRestorer<uint32_t> aubStreamCallerRestorer(&aubStreamCaller);
+
+    char str[4] = {};
+
+    setAubStreamCaller(0u);
+    EXPECT_EQ(0u, aubStreamCaller);
+
+    getHeaderStr(aubStreamCaller, str);
+    EXPECT_STREQ(str, "UNK");
 }

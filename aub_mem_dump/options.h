@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -19,5 +19,6 @@ extern std::string tbxServerIp;
 extern uint16_t tbxServerPort;
 extern bool tbxFrontdoorMode;
 extern MMIOList MMIOListInjected;
+extern uint32_t aubStreamCaller;
 
 } // namespace aub_stream

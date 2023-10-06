@@ -50,4 +50,6 @@ struct AubFileStream : public AubStream {
     void writeDiscontiguousPages(const std::vector<PageEntryInfo> &writeInfoTable, int addressSpace, int hint) override;
 };
 
+void getHeaderStr(uint32_t caller, char *header);
+
 } // namespace aub_stream

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -24,6 +24,7 @@ std::string tbxServerIp = "127.0.0.1";
 uint16_t tbxServerPort = 4321;
 bool tbxFrontdoorMode = false;
 MMIOList MMIOListInjected;
+uint32_t aubStreamCaller = 0xFFFFFFFF;
 
 extern "C" {
 void injectMMIOList(MMIOList mmioList) {
@@ -42,6 +43,10 @@ void setTbxServerIp(std::string server) {
 
 void setTbxFrontdoorMode(bool frontdoor) {
     tbxFrontdoorMode = frontdoor;
+}
+
+void setAubStreamCaller(uint32_t caller) {
+    aubStreamCaller = caller;
 }
 }
 } // namespace aub_stream
