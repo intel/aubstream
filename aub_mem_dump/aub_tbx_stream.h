@@ -66,7 +66,7 @@ struct AubTbxStream : public AubStream {
         tbxStream.writeMMIO(offset, value);
     }
 
-    virtual uint32_t readMMIO(uint32_t offset) {
+    uint32_t readMMIO(uint32_t offset) override {
         return tbxStream.readMMIO(offset);
     }
 

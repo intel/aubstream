@@ -58,6 +58,7 @@ struct AubStream {
     virtual bool init(int steppingValue, const GpuDescriptor &gpu) = 0;
     virtual void registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction) = 0;
     virtual void writeMMIO(uint32_t offset, uint32_t value) = 0;
+    virtual uint32_t readMMIO(uint32_t offset) = 0;
     virtual void declareContextForDumping(uint32_t handleDumpContext, PageTable *pageTable) = 0;
     virtual void dumpBufferBIN(PageTableType gttType, uint64_t gfxAddress, size_t size, uint32_t handleDumpContext) = 0;
     virtual void dumpSurface(PageTableType gttType, const SurfaceInfo &surfaceInfo, uint32_t handleDumpContext) = 0;

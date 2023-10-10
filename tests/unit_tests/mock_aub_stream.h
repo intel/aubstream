@@ -29,6 +29,7 @@ struct MockAubStreamBase : public AubStream {
     MOCK_METHOD2(init, bool(int steppingValue, const GpuDescriptor &gpu));
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
+    MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
     MOCK_METHOD5(writeContiguousPages, void(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint));
     MOCK_METHOD1(reserveContiguousPages, void(const std::vector<uint64_t> &entries));
     MOCK_METHOD3(readDiscontiguousPages, void(void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable));
