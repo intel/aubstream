@@ -24,7 +24,7 @@ std::string tbxServerIp = "127.0.0.1";
 uint16_t tbxServerPort = 4321;
 bool tbxFrontdoorMode = false;
 MMIOList MMIOListInjected;
-uint32_t aubStreamCaller = 0xFFFFFFFF;
+uint32_t aubStreamCaller = std::numeric_limits<uint32_t>::max();
 
 extern "C" {
 void injectMMIOList(MMIOList mmioList) {

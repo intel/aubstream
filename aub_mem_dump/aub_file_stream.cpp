@@ -174,19 +174,19 @@ bool AubFileStream::init(int stepping, const GpuDescriptor &gpu) {
 
 void getHeaderStr(uint32_t caller, char *header) {
     switch (caller) {
-    case ((AUBSTREAM_CALLER_RL << 4) + AUBSTREAM_EXEC_R):
+    case caller::rlr:
         memcpy(header, "RLR", 4);
         break;
-    case ((AUBSTREAM_CALLER_RL << 4) + AUBSTREAM_EXEC_C):
+    case caller::rlc:
         memcpy(header, "RLC", 4);
         break;
-    case ((AUBSTREAM_CALLER_RL << 4) + AUBSTREAM_EXEC_CL):
+    case caller::rll:
         memcpy(header, "RLL", 4);
         break;
-    case ((AUBSTREAM_CALLER_RL << 4)):
+    case caller::rl:
         memcpy(header, "RL", 3);
         break;
-    case ((AUBSTREAM_CALLER_N << 4)):
+    case caller::neo:
         memcpy(header, "NEO", 4);
         break;
     default:

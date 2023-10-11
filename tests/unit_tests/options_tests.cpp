@@ -63,8 +63,8 @@ TEST(OptionsTest, whenSetAubStreamCallerIsNEOThenCorrectStringIsSet) {
 
     char str[4] = {};
 
-    setAubStreamCaller(16u);
-    EXPECT_EQ(16u, aubStreamCaller);
+    setAubStreamCaller(caller::neo);
+    EXPECT_EQ(0u, aubStreamCaller);
 
     getHeaderStr(aubStreamCaller, str);
     EXPECT_STREQ(str, "NEO");
@@ -75,8 +75,8 @@ TEST(OptionsTest, whenSetAubStreamCallerIsRLThenCorrectStringIsSet) {
 
     char str[4] = {};
 
-    setAubStreamCaller(32u);
-    EXPECT_EQ(32u, aubStreamCaller);
+    setAubStreamCaller(caller::rl);
+    EXPECT_EQ(4u, aubStreamCaller);
 
     getHeaderStr(aubStreamCaller, str);
     EXPECT_STREQ(str, "RL");
@@ -87,8 +87,8 @@ TEST(OptionsTest, whenSetAubStreamCallerIsRLCThenCorrectStringIsSet) {
 
     char str[4] = {};
 
-    setAubStreamCaller(34u);
-    EXPECT_EQ(34u, aubStreamCaller);
+    setAubStreamCaller(caller::rlc);
+    EXPECT_EQ(2u, aubStreamCaller);
 
     getHeaderStr(aubStreamCaller, str);
     EXPECT_STREQ(str, "RLC");
@@ -99,8 +99,8 @@ TEST(OptionsTest, whenSetAubStreamCallerIsRLRThenCorrectStringIsSet) {
 
     char str[4] = {};
 
-    setAubStreamCaller(33u);
-    EXPECT_EQ(33u, aubStreamCaller);
+    setAubStreamCaller(caller::rlr);
+    EXPECT_EQ(1u, aubStreamCaller);
 
     getHeaderStr(aubStreamCaller, str);
     EXPECT_STREQ(str, "RLR");
@@ -111,8 +111,8 @@ TEST(OptionsTest, whenSetAubStreamCallerIsRLLThenCorrectStringIsSet) {
 
     char str[4] = {};
 
-    setAubStreamCaller(35u);
-    EXPECT_EQ(35u, aubStreamCaller);
+    setAubStreamCaller(caller::rll);
+    EXPECT_EQ(3u, aubStreamCaller);
 
     getHeaderStr(aubStreamCaller, str);
     EXPECT_STREQ(str, "RLL");
@@ -123,8 +123,8 @@ TEST(OptionsTest, whenSetAubStreamCallerIsUnknownThenCorrectStringIsSet) {
 
     char str[4] = {};
 
-    setAubStreamCaller(0u);
-    EXPECT_EQ(0u, aubStreamCaller);
+    setAubStreamCaller(std::numeric_limits<uint32_t>::max());
+    EXPECT_EQ(std::numeric_limits<uint32_t>::max(), aubStreamCaller);
 
     getHeaderStr(aubStreamCaller, str);
     EXPECT_STREQ(str, "UNK");
