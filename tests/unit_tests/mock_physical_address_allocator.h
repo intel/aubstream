@@ -13,7 +13,24 @@ namespace aub_stream {
 
 template <typename AddressType>
 struct MockSimpleAllocator : public SimpleAllocator<AddressType> {
+    using BaseClass = SimpleAllocator<AddressType>;
     using SimpleAllocator<AddressType>::nextAddress;
+
+    explicit MockSimpleAllocator(AddressType firstAddress)
+        : BaseClass(firstAddress) {
+    }
+
+    virtual AddressType alignedAlloc(size_t size, AddressType alignment) override {
+        alignedAllocCalled = true;
+        return BaseClass::alignedAlloc(size, alignment);
+    }
+
+    virtual void alignedFree(uint64_t address) override {
+        alignedFreeCalled = true;
+        return BaseClass::alignedFree(address);
+    }
+    bool alignedAllocCalled = false;
+    bool alignedFreeCalled = false;
 };
 
 struct MockPhysicalAddressAllocatorSimple : public PhysicalAddressAllocatorSimple {

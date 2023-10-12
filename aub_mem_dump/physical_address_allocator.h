@@ -24,7 +24,7 @@ struct SimpleAllocator {
         : nextAddress(firstAddress) {
     }
 
-    AddressType alignedAlloc(size_t size, AddressType alignment) {
+    virtual AddressType alignedAlloc(size_t size, AddressType alignment) {
         alignment = std::max(alignment, AddressType(4096u));
 
         std::lock_guard<std::mutex> guard(mutex);
@@ -35,6 +35,8 @@ struct SimpleAllocator {
         return physicalAddress;
     }
 
+    virtual void alignedFree(uint64_t address) {}
+
   protected:
     std::mutex mutex;
     AddressType nextAddress;
@@ -43,6 +45,7 @@ struct SimpleAllocator {
 struct PhysicalAddressAllocator {
     virtual ~PhysicalAddressAllocator() = default;
     virtual uint64_t reservePhysicalMemory(uint32_t memoryBank, size_t size, size_t alignment) = 0;
+    virtual void freePhysicalMemory(uint32_t memoryBank, uint64_t address) = 0;
 
     static constexpr uint32_t mainBank = 0;
 };
@@ -53,6 +56,7 @@ struct PhysicalAddressAllocatorSimple : public PhysicalAddressAllocator {
 
     PhysicalAddressAllocatorSimple(uint32_t numberOfAllocators, uint64_t singleAllocatorSize, bool localMemorySupport);
     uint64_t reservePhysicalMemory(uint32_t memoryBank, size_t size, size_t alignment) override;
+    void freePhysicalMemory(uint32_t memoryBank, uint64_t address) override;
 
   protected:
     SimpleAllocator<uint64_t> mainAllocator;
@@ -65,6 +69,7 @@ struct PhysicalAddressAllocatorHeap : public PhysicalAddressAllocator {
     PhysicalAddressAllocatorHeap() {
     }
     uint64_t reservePhysicalMemory(uint32_t memoryBank, size_t size, size_t alignment) override;
+    void freePhysicalMemory(uint32_t memoryBank, uint64_t address) override;
 
   protected:
     std::list<std::unique_ptr<uint8_t, decltype(&aligned_free)>> storage;
@@ -77,6 +82,7 @@ struct PhysicalAddressAllocatorSimpleAndSHM4Mapper : public PhysicalAddressAlloc
     virtual uint64_t reserveOnlyPhysicalSpace(uint32_t memoryBank, size_t size, size_t alignment);
     virtual void mapSystemMemoryToPhysicalAddress(uint64_t physAddress, size_t size, size_t alignment, bool isLocalMemory, const void *p);
     virtual void translatePhysicalAddressToSystemMemory(uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize);
+    void freePhysicalMemory(uint32_t memoryBank, uint64_t address) override;
 
   protected:
     typedef uint8_t *TranslationTableElement;

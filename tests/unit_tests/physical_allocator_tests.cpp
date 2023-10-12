@@ -41,6 +41,30 @@ TEST(PhysicalAddressAllocator, givenAllocatorWithTwoAllocatorsWhenPhysicalMemory
     EXPECT_EQ(allocatorSize, physicalMemory2);
 }
 
+TEST(PhysicalAddressAllocator, givenAllocatorWithTwoAllocatorsWhenPhysicalMemoryForMemoryBanksIsFreedThenCorrectAllocatorIsUsed) {
+    const auto allocatorSize = 1 * GB;
+
+    MockPhysicalAddressAllocatorSimple allocator(2, allocatorSize, false);
+
+    auto simpleAllocator0 = new MockSimpleAllocator<uint64_t>(0x4000);
+    allocator.allocators[0].reset(simpleAllocator0);
+
+    auto simpleAllocator1 = new MockSimpleAllocator<uint64_t>(0x16000);
+    allocator.allocators[1].reset(simpleAllocator1);
+
+    auto physicalMemory = allocator.reservePhysicalMemory(MemoryBank::MEMORY_BANK_SYSTEM, 4096, 4096);
+    auto physicalMemory1 = allocator.reservePhysicalMemory(MemoryBank::MEMORY_BANK_0, 4096, 4096);
+    auto physicalMemory2 = allocator.reservePhysicalMemory(MemoryBank::MEMORY_BANK_1, 4096, 4096);
+
+    allocator.freePhysicalMemory(MemoryBank::MEMORY_BANK_SYSTEM, physicalMemory);
+
+    allocator.freePhysicalMemory(MemoryBank::MEMORY_BANK_0, physicalMemory1);
+    EXPECT_TRUE(simpleAllocator0->alignedFreeCalled);
+
+    allocator.freePhysicalMemory(MemoryBank::MEMORY_BANK_1, physicalMemory2);
+    EXPECT_TRUE(simpleAllocator1->alignedFreeCalled);
+}
+
 TEST(PhysicalAddressAllocator, givenPhysicalAllocatorWithSpecifiedMemoryBankSizeWhenMemoryFromBanksIsReservedThenCorrectAddressesAreReturned) {
     const auto allocatorSize = 1 * GB;
 

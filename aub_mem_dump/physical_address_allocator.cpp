@@ -38,6 +38,22 @@ uint64_t PhysicalAddressAllocatorSimple::reservePhysicalMemory(uint32_t memoryBa
     return allocators[allocatorIndex]->alignedAlloc(size, alignment);
 }
 
+void PhysicalAddressAllocatorSimple::freePhysicalMemory(uint32_t memoryBank, uint64_t address) {
+    if (memoryBank == 0 || numberOfAllocators == 0) {
+        return mainAllocator.alignedFree(address);
+    }
+
+    uint32_t allocatorIndex = 0;
+    while ((memoryBank & 1u) == 0) {
+        memoryBank >>= 1;
+        allocatorIndex++;
+    }
+
+    assert(allocatorIndex < allocators.size());
+
+    return allocators[allocatorIndex]->alignedFree(address);
+}
+
 uint64_t PhysicalAddressAllocatorHeap::reservePhysicalMemory(uint32_t memoryBank, size_t size, size_t alignment) {
     auto p = std::unique_ptr<uint8_t, decltype(&aligned_free)>(reinterpret_cast<uint8_t *>(aligned_alloc(size, alignment)), &aligned_free);
     assert(p);
@@ -45,6 +61,9 @@ uint64_t PhysicalAddressAllocatorHeap::reservePhysicalMemory(uint32_t memoryBank
     uint64_t res = reinterpret_cast<uint64_t>(p.get());
     storage.push_back(std::move(p));
     return res;
+}
+
+void PhysicalAddressAllocatorHeap::freePhysicalMemory(uint32_t memoryBank, uint64_t address) {
 }
 
 void PhysicalAddressAllocatorSimpleAndSHM4Mapper::translatePhysicalAddressToSystemMemory(uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
@@ -106,6 +125,9 @@ void PhysicalAddressAllocatorSimpleAndSHM4Mapper::mapSystemMemoryToPhysicalAddre
         size -= 0x1000;
         p = reinterpret_cast<const uint8_t *>(p) + 0x1000;
     }
+}
+
+void PhysicalAddressAllocatorSimpleAndSHM4Mapper::freePhysicalMemory(uint32_t memoryBank, uint64_t address) {
 }
 
 } // namespace aub_stream
