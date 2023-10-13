@@ -110,7 +110,6 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
         if (mode == WalkMode::Clone) {
             clonePageInfo = (*pageInfos)[clonePageInfoIndex++];
         }
-
         PTE *pte = nullptr;
         while (level >= 0) {
             parent = child;
@@ -128,7 +127,6 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             child = parent->getChild(index);
             if (!child) {
                 assert(mode != WalkMode::Expect);
-
                 if (level == 0 && mode == WalkMode::Clone) {
                     const auto physicalAddressAligned = clonePageInfo.physicalAddress & ~(static_cast<uint64_t>(pageSize - 1));
                     child = new PageTableMemory(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo.memoryBank, allocationParams.additionalParams);
@@ -210,7 +208,6 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
         if (mode == WalkMode::Clone) {
             clonePageInfo = (*pageInfos)[clonePageInfoIndex++];
         }
-
         PTE *pte = nullptr;
         while (level >= 0) {
             parent = child;
@@ -229,7 +226,6 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
             if (!child) {
                 assert(mode != WalkMode::Expect);
-
                 if (level == 0 && mode == WalkMode::Clone) {
                     const auto physicalAddressAligned = clonePageInfo.physicalAddress & ~(static_cast<uint64_t>(pte->getPageSize() - 1));
                     child = new PageTableMemory(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo.memoryBank, allocationParams.additionalParams);

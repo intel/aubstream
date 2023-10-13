@@ -670,6 +670,10 @@ TEST(AubManager, givenGfxAllocationWhenFreeMemoryIsCalledThenFreeEachPpgtt) {
     aubManager.freeMemory(gfxAddr, size);
 }
 
+MATCHER_P(EqAllocationParams, x, "Matcher for type AllocationParams") {
+    return std::tie(arg.gfxAddress, arg.size, arg.memoryBanks, arg.additionalParams.compressionEnabled) == std::tie(x.gfxAddress, x.size, x.memoryBanks, x.additionalParams.compressionEnabled);
+}
+
 TEST(AubManager, givenAubManagerMapsGpuVaEachPPGTTIsMapped) {
     MockAubManager aubManager(createGpuFunc(), 4, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     aubManager.initialize();
@@ -681,13 +685,35 @@ TEST(AubManager, givenAubManagerMapsGpuVaEachPPGTTIsMapped) {
     uint64_t physicalAddress = 0x8000;
 
     PhysicalAllocationInfo physicalParams = {physicalAddress, size, MEMORY_BANK_0, defaultPageSize};
+    AllocationParams allocationParams(gfxAddr, nullptr, size, MEMORY_BANK_0, 0, defaultPageSize);
+    allocationParams.additionalParams.compressionEnabled = false;
 
     EXPECT_EQ(4u, aubManager.ppgtts.size());
     for (auto &ppgtt : aubManager.ppgtts) {
-        EXPECT_CALL(*stream, mapGpuVa(ppgtt.get(), _, physicalAddress)).Times(1);
+        EXPECT_CALL(*stream, mapGpuVa(ppgtt.get(), EqAllocationParams(allocationParams), physicalAddress)).Times(1);
     }
 
     aubManager.mapGpuVa(gfxAddr, size, physicalParams);
+
+    gfxAddr += size;
+    allocationParams.gfxAddress = gfxAddr;
+    allocationParams.additionalParams.compressionEnabled = false;
+    allocationParams.additionalParams.uncached = false;
+    for (auto &ppgtt : aubManager.ppgtts) {
+        EXPECT_CALL(*stream, mapGpuVa(ppgtt.get(), EqAllocationParams(allocationParams), physicalAddress)).Times(1);
+    }
+
+    aubManager.mapGpuVa2(physicalAddress, allocationParams);
+
+    gfxAddr += size;
+    allocationParams.gfxAddress = gfxAddr;
+    allocationParams.additionalParams.compressionEnabled = true;
+    allocationParams.additionalParams.uncached = true;
+    for (auto &ppgtt : aubManager.ppgtts) {
+        EXPECT_CALL(*stream, mapGpuVa(ppgtt.get(), EqAllocationParams(allocationParams), physicalAddress)).Times(1);
+    }
+
+    aubManager.mapGpuVa2(physicalAddress, allocationParams);
 }
 
 TEST(AubManager, givenAubManagerSHM4WhenCallingReservePhysicalMemoryRedirectsToPhysicalAllocator) {

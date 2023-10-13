@@ -372,12 +372,16 @@ void *AubManagerImp::translatePhysicalAddressToSystemMemory(uint64_t physicalAdd
 }
 
 bool AubManagerImp::mapGpuVa(uint64_t gfxAddress, size_t size, const PhysicalAllocationInfo physicalAllocInfo) {
-    AubStream *stream = getStream();
-
     AllocationParams allocationParams(gfxAddress, nullptr, size, physicalAllocInfo.memoryBank, 0, physicalAllocInfo.pageSize);
 
+    return mapGpuVa2(physicalAllocInfo.physicalAddress, allocationParams);
+}
+
+bool AubManagerImp::mapGpuVa2(uint64_t physicalAddress, AllocationParams params) {
+    AubStream *stream = getStream();
+
     for (auto &ppgtt : ppgtts) {
-        stream->mapGpuVa(ppgtt.get(), allocationParams, physicalAllocInfo.physicalAddress);
+        stream->mapGpuVa(ppgtt.get(), params, physicalAddress);
     }
 
     return true;
