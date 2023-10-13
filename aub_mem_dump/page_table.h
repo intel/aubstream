@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -109,6 +109,15 @@ struct PageTable {
 
     const AllocationParams::AdditionalParams &peekAllocationParams() const {
         return additionalAllocParams;
+    }
+
+    bool isEmpty() const {
+        for (const auto &entry : table) {
+            if (entry != nullptr) {
+                return false;
+            }
+        }
+        return true;
     }
 
   protected:

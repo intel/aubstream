@@ -74,6 +74,7 @@ struct AubStream {
     void writePages(const PageTableWalker &pageWalker, const void *memory, size_t size, int hint, bool pageTablesInLocalMemory,
                     uint32_t numAddressBits);
     void writePageWalkEntries(const PageTableWalker &pageWalker, bool pageTablesInLocalMemory, uint32_t numAddressBits);
+    void writePpgttLevel2(const std::vector<PageEntryInfo> &pageWalkEntry, bool pageTablesInLocalMemory, uint32_t numAddressBits);
     void writePpgttLevel1(const std::vector<PageEntryInfo> &pageWalkEntry, bool pageTablesInLocalMemory, uint32_t numAddressBits);
     virtual void writeGttPages(GGTT *ggtt, const std::vector<PageEntryInfo> &writeInfoTable) = 0;
     virtual void expectMemoryTable(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, uint32_t compareOperation) = 0;

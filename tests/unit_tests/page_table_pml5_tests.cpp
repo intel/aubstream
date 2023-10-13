@@ -117,6 +117,7 @@ TEST_F(HardwareContextTestPML5, givenHardwareContextWhenCallingFreeMemoryThenEnt
 
     ::testing::Mock::VerifyAndClearExpectations(&stream);
 
+    EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceNonlocal, DataTypeHintValues::TracePpgttLevel2)).Times(1);
     EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceNonlocal, DataTypeHintValues::TracePpgttLevel1)).Times(1);
 
     context.freeMemory(gfxAddress, sizeof(bytes));

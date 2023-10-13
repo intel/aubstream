@@ -116,17 +116,20 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
     assert(size != 0);
     constexpr size_t page64kSize = 65536u;
 
-    std::vector<PageEntryInfo> pageWalkEntries[1];
+    std::vector<PageEntryInfo> pageWalkEntries[2];
 
     // Reserve minimal # of entries
     pageWalkEntries[0].reserve(2 + (uint64_t(size) / page64kSize));
+    pageWalkEntries[1].reserve(1);
 
     while (size > 0) {
         PageTable *parent = nullptr;
         PageTable *child = ppgtt;
         int level = ppgtt->getNumLevels() - 1;
 
+        PDE *pde = nullptr;
         PTE *pte = nullptr;
+
         while (level >= 0) {
             if (!child) {
                 return; // nothing to free.
@@ -134,6 +137,8 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
             parent = child;
             auto index = parent->getIndex(gfxAddress);
 
+            // PDE is only valid if level = 1
+            pde = level == 1 ? static_cast<PDE *>(parent) : pde;
             // PTE is only valid if level = 0
             pte = level ? nullptr : static_cast<PTE *>(parent);
 
@@ -146,7 +151,7 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
                 // remove page from PTE
                 pte->setChild(index, nullptr);
                 PageEntryInfo info = {
-                    parent->getPhysicalAddress() + index * sizeof(uint64_t),
+                    pte->getPhysicalAddress() + index * sizeof(uint64_t),
                     0,
                 };
                 pageWalkEntries[0].push_back(info);
@@ -161,6 +166,17 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
         // Delete physical page
         delete child;
 
+        if (pde && pte->isEmpty()) {
+            // remove PTE
+            pde->setChild(pde->getIndex(gfxAddress), nullptr);
+            PageEntryInfo info1 = {
+                pde->getPhysicalAddress() + pde->getIndex(gfxAddress) * sizeof(uint64_t),
+                0,
+            };
+            pageWalkEntries[1].push_back(info1);
+            delete pte;
+        }
+
         auto pageOffset = gfxAddress & (pageSizeThisIteration - 1);
         auto sizeThisIteration = static_cast<size_t>(pageSizeThisIteration - pageOffset);
         sizeThisIteration = std::min(size, sizeThisIteration);
@@ -169,6 +185,7 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
         size -= sizeThisIteration;
     }
 
+    writePpgttLevel2(pageWalkEntries[1], ppgtt->isLocalMemory(), ppgtt->getNumAddressBits());
     writePpgttLevel1(pageWalkEntries[0], ppgtt->isLocalMemory(), ppgtt->getNumAddressBits());
 }
 
@@ -222,6 +239,18 @@ void AubStream::writePageWalkEntries(const PageTableWalker &pageWalker, bool pag
         writeDiscontiguousPages(pageWalker.pageWalkEntries[2], addressSpace, DataTypeHintValues::TracePpgttLevel3);
         writeDiscontiguousPages(pageWalker.pageWalkEntries[1], addressSpace, DataTypeHintValues::TracePpgttLevel2);
         writeDiscontiguousPages(pageWalker.pageWalkEntries[0], addressSpace, DataTypeHintValues::TracePpgttLevel1);
+    }
+}
+
+void AubStream::writePpgttLevel2(const std::vector<PageEntryInfo> &pageWalkEntry, bool pageTablesInLocalMemory, uint32_t numAddressBits) {
+    bool usePml5 = numAddressBits > 48;
+    bool useLegacyAddressSpaces = !usePml5 && !pageTablesInLocalMemory;
+
+    if (useLegacyAddressSpaces) {
+        writeDiscontiguousPages(pageWalkEntry, AddressSpaceValues::TracePpgttPdEntry, DataTypeHintValues::TraceNotype);
+    } else {
+        auto addressSpace = pageTablesInLocalMemory ? AddressSpaceValues::TraceLocal : AddressSpaceValues::TraceNonlocal;
+        writeDiscontiguousPages(pageWalkEntry, addressSpace, DataTypeHintValues::TracePpgttLevel2);
     }
 }
 

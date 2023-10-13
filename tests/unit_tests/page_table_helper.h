@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -23,6 +23,22 @@ struct PageTableHelper {
 
         if (pageTable) {
             return pageTable->getPhysicalAddress();
+        }
+        return 0;
+    }
+
+    static inline uint64_t getPTEEntry(aub_stream::PageTable *ppgtt, uint64_t gfxAddress) {
+        aub_stream::PageTable *pageTable = ppgtt;
+
+        auto levels = ppgtt->getNumLevels() - 1;
+        while (levels > 0) {
+            EXPECT_NE(nullptr, pageTable);
+            pageTable = pageTable->getChild(pageTable->getIndex(gfxAddress));
+            levels--;
+        }
+
+        if (pageTable) {
+            return pageTable->getEntryValue();
         }
         return 0;
     }

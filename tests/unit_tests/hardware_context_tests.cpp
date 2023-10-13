@@ -161,8 +161,10 @@ TEST_F(HardwareContextTest, givenHardwareContextWhenCallingFreeMemoryThenEntries
     ::testing::Mock::VerifyAndClearExpectations(&stream);
 
     if (defaultMemoryBank == MEMORY_BANK_SYSTEM) {
+        EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TracePpgttPdEntry, DataTypeHintValues::TraceNotype)).Times(1);
         EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TracePpgttEntry, DataTypeHintValues::TraceNotype)).Times(1);
     } else {
+        EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel2)).Times(1);
         EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel1)).Times(1);
     }
 

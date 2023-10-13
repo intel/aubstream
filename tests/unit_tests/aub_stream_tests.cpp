@@ -199,8 +199,8 @@ TEST_F(AubStreamTest, freeMemoryShouldRemovePTEEntriesLocalMemory) {
 
     stream.freeMemory(&ppgtt1, gfxAddress, sizeof(bytes));
 
-    physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
-    EXPECT_EQ(0u, physicalAddress);
+    auto pteEntry = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
+    EXPECT_EQ(0u, pteEntry);
 }
 
 TEST_F(AubStreamTest, freeMemoryShouldRemovePTEEntriesSystemMemory) {
@@ -217,8 +217,63 @@ TEST_F(AubStreamTest, freeMemoryShouldRemovePTEEntriesSystemMemory) {
 
     stream.freeMemory(&ppgtt1, gfxAddress, sizeof(bytes));
 
+    auto pteEntry = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
+    EXPECT_EQ(0u, pteEntry);
+}
+
+TEST_F(AubStreamTest, givenPreviousPageTablesWhenNewPageSizeReservedWithTheSameGfxAddressThenEntryIsUpdated) {
+    uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
+    uint64_t gfxAddress = 0x1000;
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt1(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 64 * KB});
+
+    auto physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto pteEntry = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
+    EXPECT_NE(0u, physicalAddress);
+    EXPECT_TRUE(pteEntry & toBitValue(PpgttEntryBits::intermediatePageSizeBit));
+
+    stream.freeMemory(&ppgtt1, gfxAddress, sizeof(bytes));
+
+    // Change PageSize
+    stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 4 * KB});
+
+    auto physicalAddress2 = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto pteEntry2 = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
+    EXPECT_NE(0u, physicalAddress2);
+    EXPECT_NE(pteEntry, pteEntry2);
+    EXPECT_FALSE(pteEntry2 & toBitValue(PpgttEntryBits::intermediatePageSizeBit));
+}
+
+TEST_F(AubStreamTest, givenMultiplePagesInSinglePteWhenPartOfMemoryFreedThenPteIsNotDeleted) {
+    const size_t fullSize = 3 * 4 * KB;
+    const size_t halfSize = fullSize / 2;
+    auto bytes = std::make_unique<uint8_t[]>(fullSize);
+
+    uint64_t gfxAddress = (1 << 20) - halfSize;
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt1(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    stream.writeMemory(&ppgtt1, {gfxAddress, bytes.get(), fullSize, MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4 * KB});
+
+    auto physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto pteEntry = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
+    EXPECT_NE(0u, physicalAddress);
+    EXPECT_TRUE(pteEntry & toBitValue(PpgttEntryBits::presentBit));
+
+    stream.freeMemory(&ppgtt1, gfxAddress, halfSize);
+
     physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
     EXPECT_EQ(0u, physicalAddress);
+
+    auto physicalAddress2 = PageTableHelper::getEntry(&ppgtt1, gfxAddress + halfSize);
+    auto pteEntry2 = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress + halfSize);
+    EXPECT_NE(0u, physicalAddress2);
+    EXPECT_EQ(pteEntry, pteEntry2);
+    EXPECT_TRUE(pteEntry2 & toBitValue(PpgttEntryBits::presentBit));
 }
 
 TEST_F(AubStreamTest, givenLocalMemoryWhenCloningMemoryThenPageWalkEntriesAreWrittenToStreamAndPTEIsNotWrittenWithMemory) {
@@ -316,8 +371,34 @@ TEST_F(AubStreamTest32, freeMemoryShouldRemovePTEEntries) {
 
     stream.freeMemory(&ppgtt1, gfxAddress, sizeof(bytes));
 
-    physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
-    EXPECT_EQ(0u, physicalAddress);
+    auto pteEntry = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
+    EXPECT_EQ(0u, pteEntry);
+}
+
+TEST_F(AubStreamTest32, givenPreviousPageTablesWhenNewPageSizeReservedWithTheSameGfxAddressThenEntryIsUpdated) {
+    uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
+    uint64_t gfxAddress = 0x1000;
+
+    PhysicalAddressAllocatorSimple allocator;
+    PDP4 ppgtt1(*gpu, &allocator, defaultMemoryBank);
+
+    stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 64 * KB});
+
+    auto physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto pteEntry = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
+    EXPECT_NE(0u, physicalAddress);
+    EXPECT_TRUE(pteEntry & toBitValue(PpgttEntryBits::intermediatePageSizeBit));
+
+    stream.freeMemory(&ppgtt1, gfxAddress, sizeof(bytes));
+
+    // Change PageSize
+    stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 4 * KB});
+
+    auto physicalAddress2 = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto pteEntry2 = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
+    EXPECT_NE(0u, physicalAddress2);
+    EXPECT_NE(pteEntry, pteEntry2);
+    EXPECT_FALSE(pteEntry2 & toBitValue(PpgttEntryBits::intermediatePageSizeBit));
 }
 
 TEST_F(AubStreamTest32, writeMemoryWithNullPointerReservesMemoryInPPGTT) {
