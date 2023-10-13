@@ -95,12 +95,17 @@ bool TbxSocketsImp::stillConnected() {
 }
 
 void TbxSocketsImp::logErrorInfo(const char *tag) {
+    bool assertValue = false;
 #ifdef WIN32
-    cerrStream << tag << " TbxSocketsImp Error: <" << WSAGetLastError() << ">" << std::endl;
+    auto error = WSAGetLastError();
+    cerrStream << tag << " TbxSocketsImp Error: <" << error << ">" << std::endl;
+    if (m_socket != 0 && error == WSANOTINITIALISED) {
+        assertValue = true;
+    }
 #else
     cerrStream << tag << " TbxSocketsImp Error: " << strerror(errno) << std::endl;
 #endif
-    assert(false);
+    assert(assertValue);
 }
 
 bool TbxSocketsImp::init(const std::string &hostNameOrIp, uint16_t port, bool frontdoor) {
