@@ -85,7 +85,7 @@ void TbxShmStream::readDiscontiguousPages(void *memory, size_t size, const std::
 void TbxShmStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction) {
     bool matches = false;
     do {
-        uint32_t value;
+        uint32_t value = 0;
         socket->readMMIO(registerOffset, &value);
 
         matches = ((value & mask) == desiredValue);

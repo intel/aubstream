@@ -62,3 +62,10 @@ TEST_F(AubTbxSimpleBatchBuffer, simpleBatchBufferRCS) {
     addSimpleBatchBuffer(ctxt, defaultMemoryBank);
     ctxt->pollForCompletion();
 }
+
+TEST_F(AubTbxSimpleBatchBuffer, pollForCompletion) {
+    initializeStream(desc);
+
+    ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_RCS, 0);
+    ctxt->pollForCompletion();
+}
