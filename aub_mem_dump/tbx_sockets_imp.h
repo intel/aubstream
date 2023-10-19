@@ -9,9 +9,9 @@
 #include <iostream>
 #include <mutex>
 
-#ifdef WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
+#ifdef _WIN32
+#ifndef _WIN32_LEAN_AND_MEAN
+#define _WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
 #endif
 #else

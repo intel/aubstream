@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <type_traits>
 
-#ifndef WIN32
+#ifndef _WIN32
 #pragma pack(4)
 #else
 #pragma pack(push, 4)
@@ -114,7 +114,7 @@ struct AubCaptureBinaryDumpHD {
 };
 static_assert(56 == sizeof(AubCaptureBinaryDumpHD), "Invalid size for AubCaptureBinaryDumpHD");
 
-#ifndef WIN32
+#ifndef _WIN32
 #pragma pack()
 #else
 #pragma pack(pop)

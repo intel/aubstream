@@ -10,7 +10,7 @@
 #include "aub_mem_dump/aub_header.h"
 #include <cstdint>
 
-#ifndef WIN32
+#ifndef _WIN32
 #pragma pack(4)
 #else
 #pragma pack(push, 4)
@@ -1461,7 +1461,7 @@ struct CmdServicesMemTraceDumpCompress {
                TrmodeYs = 2 };
     };
 };
-#ifndef WIN32
+#ifndef _WIN32
 #pragma pack()
 #else
 #pragma pack(pop)

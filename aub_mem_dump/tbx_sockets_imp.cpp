@@ -11,9 +11,10 @@
 #include <exception>
 #include <stdexcept>
 
-#ifdef WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
+#ifdef _WIN32
+#include <winsock2.h>
+#ifndef _WIN32_LEAN_AND_MEAN
+#define _WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
 #endif
 #include "ws2tcpip.h"
@@ -41,7 +42,7 @@ TbxSocketsImp::TbxSocketsImp(std::ostream &err)
 
 void TbxSocketsImp::close() {
     if (0 != m_socket) {
-#ifdef WIN32
+#ifdef _WIN32
         ::shutdown(m_socket, 0x02 /*SD_BOTH*/);
 
         ::closesocket(m_socket);
@@ -96,7 +97,7 @@ bool TbxSocketsImp::stillConnected() {
 
 void TbxSocketsImp::logErrorInfo(const char *tag) {
     bool assertValue = false;
-#ifdef WIN32
+#ifdef _WIN32
     auto error = WSAGetLastError();
     cerrStream << tag << " TbxSocketsImp Error: <" << error << ">" << std::endl;
     if (m_socket != 0 && error == WSANOTINITIALISED) {
@@ -110,7 +111,7 @@ void TbxSocketsImp::logErrorInfo(const char *tag) {
 
 bool TbxSocketsImp::init(const std::string &hostNameOrIp, uint16_t port, bool frontdoor) {
     do {
-#ifdef WIN32
+#ifdef _WIN32
         WSADATA wsaData;
         auto iResult = ::WSAStartup(MAKEWORD(2, 2), &wsaData);
         if (iResult != NO_ERROR) {
@@ -160,7 +161,7 @@ bool TbxSocketsImp::init(const std::string &hostNameOrIp, uint16_t port, bool fr
 bool TbxSocketsImp::connectToServer(const std::string &hostNameOrIp, uint16_t port) {
     do {
         sockaddr_in clientService;
-#if WIN32
+#if _WIN32
         struct addrinfo *result = nullptr;
         struct addrinfo hint;
         memset(&hint, 0, sizeof(hint));

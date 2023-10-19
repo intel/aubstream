@@ -1,13 +1,12 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2023 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
  */
 
 #pragma once
-#ifndef WIN32
-
+#ifndef _WIN32
 #include <errno.h>
 #include <cstring>
 
