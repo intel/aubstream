@@ -185,8 +185,8 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
         size -= sizeThisIteration;
     }
 
-    writePpgttLevel2(pageWalkEntries[1], ppgtt->isLocalMemory(), ppgtt->getNumAddressBits());
     writePpgttLevel1(pageWalkEntries[0], ppgtt->isLocalMemory(), ppgtt->getNumAddressBits());
+    writePpgttLevel2(pageWalkEntries[1], ppgtt->isLocalMemory(), ppgtt->getNumAddressBits());
 }
 
 void AubStream::writePages(const PageTableWalker &pageWalker, const void *memory, size_t size, int hint, bool pageTablesInLocalMemory,
