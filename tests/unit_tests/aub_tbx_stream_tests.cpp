@@ -10,6 +10,7 @@
 #include "aubstream/aubstream.h"
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
+#include "mock_tbx_socket.h"
 
 #include "gtest/gtest.h"
 #include <memory>
@@ -172,6 +173,19 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenAubFileStreamIsPaused) {
 
     std::vector<PageEntryInfo> entryInfoTable;
     aubTbxStream->writeDiscontiguousPages(entryInfoTable, 0, 0);
+}
+
+TEST(TbxStream, GivenMmioReadFailWhenPollingForCompletionThenFunctionReturnsEarly) {
+    auto tbxStream = std::make_unique<MockTbxStream>();
+    auto socket = new MockTbxSocketsImp();
+
+    tbxStream->socket = socket;
+
+    EXPECT_CALL(*socket, readMMIO(_, _)).Times(1).WillOnce(::testing::Return(false));
+
+    EXPECT_CALL(*tbxStream, registerPoll(0x2234, 1, 1, false, _)).Times(1).WillOnce(::testing::Invoke([&](uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction) { tbxStream->TbxStream::registerPoll(registerOffset, mask, desiredValue, pollNotEqual, timeoutAction); }));
+
+    tbxStream->registerPoll(0x2234, 1, 1, false, CmdServicesMemTraceRegisterPoll::TimeoutActionValues::Abort);
 }
 
 using AubShmStreamTest = ::testing::Test;

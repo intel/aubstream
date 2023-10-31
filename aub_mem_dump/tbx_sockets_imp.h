@@ -5,6 +5,7 @@
  *
  */
 
+#pragma once
 #include "tbx_sockets.h"
 #include <iostream>
 #include <mutex>

@@ -27,6 +27,7 @@ add_executable(${TARGET_NAME}
                ${CMAKE_CURRENT_SOURCE_DIR}/mock_aub_stream.h
                ${CMAKE_CURRENT_SOURCE_DIR}/mock_gpu.h
                ${CMAKE_CURRENT_SOURCE_DIR}/mock_physical_address_allocator.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/mock_tbx_socket.h
                ${CMAKE_CURRENT_SOURCE_DIR}/options_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/page_table_helper.h
                ${CMAKE_CURRENT_SOURCE_DIR}/page_table_pml5_tests.cpp

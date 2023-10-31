@@ -60,7 +60,11 @@ void TbxStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t de
     bool matches = false;
     do {
         uint32_t value = 0;
-        socket->readMMIO(registerOffset, &value);
+        auto status = socket->readMMIO(registerOffset, &value);
+
+        if (!status) {
+            break;
+        }
 
         matches = ((value & mask) == desiredValue);
         if (value == 1) {
