@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022 Intel Corporation
+# Copyright (C) 2022-2023 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING")
 
 if(WIN32)
-  add_library(Ws2_32_stub STATIC ${CMAKE_CURRENT_SOURCE_DIR}/socket_stub.cpp)
+  add_library(Ws2_32_stub SHARED ${CMAKE_CURRENT_SOURCE_DIR}/socket_stub.cpp)
 else()
   add_library(socket_stubs STATIC ${CMAKE_CURRENT_SOURCE_DIR}/socket_stub.cpp)
 endif()
