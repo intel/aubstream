@@ -261,6 +261,7 @@ bool TbxSocketsImp::readMMIO(uint32_t offset, uint32_t *data) {
         if (resp.hdr.msg_type != HAS_MMIO_RES_TYPE || cmd.hdr.trans_id != resp.hdr.trans_id) {
             *data = 0xdeadbeef;
             success = false;
+            assert(success);
             break;
         }
 
@@ -268,7 +269,6 @@ bool TbxSocketsImp::readMMIO(uint32_t offset, uint32_t *data) {
         success = true;
     } while (false);
 
-    assert(success);
     return success;
 }
 
@@ -315,13 +315,13 @@ bool TbxSocketsImp::readPCICFG(uint32_t bus, uint32_t device, uint32_t function,
         if (resp.hdr.msg_type != HAS_PCICFG_RES_TYPE || cmd.hdr.trans_id != resp.hdr.trans_id) {
             *data = 0xdeadbeef;
             success = false;
+            assert(success);
             break;
         }
         *data = resp.u.pcicfg_res.data;
         success = true;
     } while (false);
 
-    assert(success);
     return success;
 }
 
@@ -361,13 +361,13 @@ bool TbxSocketsImp::readMemory(uint64_t addrOffset, void *data, size_t size, boo
         if (resp.hdr.msg_type != HAS_READ_DATA_RES_TYPE || resp.hdr.trans_id != cmd.hdr.trans_id) {
             cerrStream << "Out of sequence read data packet?" << std::endl;
             success = false;
+            assert(success);
             break;
         }
 
         success = getResponseData(data, size);
     } while (false);
 
-    assert(success);
     return success;
 }
 
@@ -406,7 +406,6 @@ bool TbxSocketsImp::writeMemory(uint64_t physAddr, const void *data, size_t size
         }
     } while (false);
 
-    assert(success);
     return success;
 }
 
@@ -516,13 +515,13 @@ bool TbxSocketsImp::readMemoryExt(uint64_t addrOffset, void *data, size_t size, 
         if (resp.hdr.msg_type != HAS_READ_DATA_RES_TYPE || resp.hdr.trans_id != cmd.hdr.trans_id) {
             cerrStream << "Out of sequence read data packet?" << std::endl;
             success = false;
+            assert(success);
             break;
         }
 
         success = getResponseData(data, size);
     } while (false);
 
-    assert(success);
     return success;
 }
 
@@ -561,7 +560,6 @@ bool TbxSocketsImp::writeMemoryExt(uint64_t physAddr, const void *data, size_t s
         }
     } while (false);
 
-    assert(success);
     return success;
 }
 
