@@ -366,3 +366,35 @@ TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExec
     HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter = 0;
     HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contexts = {};
 }
+
+TEST_F(HardwareContextTest, givenGroupContextWhenMainHardwareContextDestroyedThenGroupIsFreed) {
+    TEST_REQUIRES(gpu->gfxCoreFamily >= CoreFamily::XeHpcCore);
+
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    {
+        auto context0 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+        context0->initialize();
+        auto context1 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+        context1->initialize();
+        auto context2 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+        context2->initialize();
+
+        ::testing::Mock::VerifyAndClearExpectations(&stream);
+
+        context0->submitBatchBuffer(0x100, false);
+
+        context2->submitBatchBuffer(0x100, false);
+
+        EXPECT_EQ(3u, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter);
+        EXPECT_NE(nullptr, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contexts[0]);
+        EXPECT_NE(nullptr, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contexts[2]);
+    }
+
+    EXPECT_EQ(0u, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter);
+    EXPECT_EQ(nullptr, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contexts[0]);
+    EXPECT_EQ(nullptr, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contexts[2]);
+}

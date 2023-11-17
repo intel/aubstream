@@ -138,6 +138,18 @@ void HardwareContextImp::initialize() {
 void HardwareContextImp::release() {
     delete[] pLRCA;
     pLRCA = nullptr;
+
+    if (this->contextGroupId == 0) {
+        auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
+
+        for (uint32_t i = 0; i < groupContextHelper.contexts.size(); i++) {
+            if (groupContextHelper.contexts[i]) {
+                groupContextHelper.contexts[i]->contextGroupId = -1;
+                groupContextHelper.contexts[i] = nullptr;
+            }
+        }
+        groupContextHelper.contextGroupCounter = 0;
+    }
 }
 
 void HardwareContextImp::pollForCompletion() {
