@@ -10,6 +10,7 @@
 #include <iostream>
 #include <exception>
 #include <stdexcept>
+#include <chrono>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -159,7 +160,12 @@ bool TbxSocketsImp::init(const std::string &hostNameOrIp, uint16_t port, bool fr
 }
 
 bool TbxSocketsImp::connectToServer(const std::string &hostNameOrIp, uint16_t port) {
+    constexpr uint64_t timeoutInSeconds = 60;
+    std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
+    bool retryOnError = false;
+
     do {
+        retryOnError = false;
         sockaddr_in clientService;
 #if _WIN32
         struct addrinfo *result = nullptr;
@@ -197,12 +203,18 @@ bool TbxSocketsImp::connectToServer(const std::string &hostNameOrIp, uint16_t po
         clientService.sin_port = htons(port);
 
         if (::connect(m_socket, (SOCKADDR *)&clientService, sizeof(clientService)) == SOCKET_ERROR) {
+            auto timeDiff = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - startTime).count();
+            if (timeDiff < timeoutInSeconds) {
+                retryOnError = true;
+                continue;
+            }
+
             logErrorInfo("Failed to connect: ");
             cerrStream << "Is TBX server process running on host system [ " << hostNameOrIp.c_str()
                        << ", port " << port << "]?" << std::endl;
             break;
         }
-    } while (false);
+    } while (retryOnError);
 
     return !!m_socket;
 }
