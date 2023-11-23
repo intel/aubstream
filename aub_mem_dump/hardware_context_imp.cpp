@@ -33,7 +33,7 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
       ggttContextFence(0),
       contextFenceValue(0) {
 
-    constexpr uint32_t contextGroupBit = (1 << 15);
+    constexpr uint32_t contextGroupBit = hardwareContextFlags::contextGroup;
 
     if (flags & contextGroupBit) {
         auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
