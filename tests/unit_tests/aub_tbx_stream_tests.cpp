@@ -188,6 +188,19 @@ TEST(TbxStream, GivenMmioReadFailWhenPollingForCompletionThenFunctionReturnsEarl
     tbxStream->registerPoll(0x2234, 1, 1, false, CmdServicesMemTraceRegisterPoll::TimeoutActionValues::Abort);
 }
 
+TEST(TbxStream, GivenNoContextExecutedWhenPollingForCompletionThenFunctionReturnsEarly) {
+    auto tbxStream = std::make_unique<MockTbxStream>();
+    auto socket = new MockTbxSocketsImp();
+
+    tbxStream->socket = socket;
+
+    EXPECT_CALL(*socket, readMMIO(_, _)).Times(1).WillOnce(::testing::Invoke([&](uint32_t offset, uint32_t *data) { *data = 1<<12 | 1; return true; }));
+
+    EXPECT_CALL(*tbxStream, registerPoll(0x2234, 1, 1, false, _)).Times(1).WillOnce(::testing::Invoke([&](uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction) { tbxStream->TbxStream::registerPoll(registerOffset, mask, desiredValue, pollNotEqual, timeoutAction); }));
+
+    tbxStream->registerPoll(0x2234, 1, 1, false, CmdServicesMemTraceRegisterPoll::TimeoutActionValues::Abort);
+}
+
 using AubShmStreamTest = ::testing::Test;
 TEST(AubShmStreamTest, writeContiguousPagesInSHMModeWithCorrectValuesThenTranslateCallIsExpected) {
     MockTbxShmStream stream(mode::tbxShm);

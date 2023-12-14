@@ -67,7 +67,7 @@ void TbxStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t de
         }
 
         matches = ((value & mask) == desiredValue);
-        if (value == 1) {
+        if (value & 1) {
             break;
         }
     } while (matches == pollNotEqual);
