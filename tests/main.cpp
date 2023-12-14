@@ -9,6 +9,7 @@
 #include "aub_mem_dump/memory_banks.h"
 #include "gmock/gmock.h"
 #include "test_defaults.h"
+#include "tests/mock_os_calls.h"
 #include "tests/test_traits/test_traits.h"
 #include <algorithm>
 #include <stdio.h>
@@ -18,6 +19,9 @@ using namespace aub_stream;
 extern std::string getTestFilter(const Gpu &gpu);
 
 int runTests(const Gpu *gpu) {
+
+    mock_os_calls::replaceCalls();
+
     int result = 0;
 
     auto traits = testTraits[static_cast<uint32_t>(gpu->productFamily)];

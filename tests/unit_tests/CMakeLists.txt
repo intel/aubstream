@@ -34,6 +34,7 @@ add_executable(${TARGET_NAME}
                ${CMAKE_CURRENT_SOURCE_DIR}/page_table_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/page_table_walker_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/physical_allocator_tests.cpp
+               ${CMAKE_CURRENT_SOURCE_DIR}/settings_reader_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/tbx_socket_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/white_box.h
                ${CMAKE_SOURCE_DIR}/tests/empty_test_filters.cpp
