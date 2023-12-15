@@ -29,6 +29,7 @@ struct PageInfo;
 struct HardwareContext;
 struct HardwareContextImp;
 struct PhysicalAddressAllocator;
+class Settings;
 
 class AubManagerImp : public AubManager {
   public:
@@ -66,6 +67,7 @@ class AubManagerImp : public AubManager {
     bool mapSystemMemoryToPhysicalAddress(uint64_t physAddress, size_t size, size_t alignment, bool isLocalMemory, const void *p) override;
     void *translatePhysicalAddressToSystemMemory(uint64_t physicalAddress, bool isLocalMemory) override;
     void initialize();
+    void createSettings(Settings *&globalSettings);
 
   protected:
     virtual void createStream();
@@ -95,6 +97,8 @@ class AubManagerImp : public AubManager {
 
     SharedMemoryInfo sharedMemoryInfo;
     const bool enableThrow{};
+
+    std::unique_ptr<Settings> settings;
 };
 
 } // namespace aub_stream

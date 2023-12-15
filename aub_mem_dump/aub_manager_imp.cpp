@@ -17,15 +17,19 @@
 #include "aub_mem_dump/physical_address_allocator.h"
 #include "aub_mem_dump/tbx_shm_stream.h"
 #include "aub_mem_dump/tbx_stream.h"
+#include "aub_mem_dump/settings.h"
+
 #include "aubstream/aubstream.h"
 #include "aubstream/engine_node.h"
 #include "aubstream/physical_allocation_info.h"
 #include "aubstream/shared_mem_info.h"
+
 #include <cassert>
 #include <exception>
 #include <stdexcept>
 
 namespace aub_stream {
+Settings *globalSettings = nullptr;
 
 AubManagerImp::AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOptions &options) : gpu(std::move(gpu)),
                                                                                                   devicesCount(options.devicesCount),
@@ -39,7 +43,11 @@ AubManagerImp::AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOp
                                                                                                   enableThrow(options.throwOnError) {
 }
 
-AubManagerImp::~AubManagerImp() = default;
+AubManagerImp::~AubManagerImp() {
+    if (globalSettings == settings.get()) {
+        globalSettings = nullptr;
+    }
+}
 
 void AubManagerImp::initialize() {
 
@@ -416,6 +424,7 @@ AubManager *AubManager::create(const struct AubManagerOptions &options) {
     if (nullptr != gpu) {
         auto aubManager = new AubManagerImp(std::move(gpu), options);
         aubManager->initialize();
+        aubManager->createSettings(globalSettings);
         if (aubManager->isInitialized()) {
             return aubManager;
         }
@@ -428,6 +437,11 @@ void AubManagerImp::throwErrorIfEnabled(const std::string &str) {
     if (enableThrow) {
         throw std::runtime_error(str);
     }
+}
+
+void AubManagerImp::createSettings(Settings *&globalSettings) {
+    settings = std::make_unique<Settings>();
+    globalSettings = settings.get();
 }
 
 } // namespace aub_stream

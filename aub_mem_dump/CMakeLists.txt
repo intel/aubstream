@@ -44,6 +44,8 @@ add_library(${PROJECT_NAME} STATIC
             ${CMAKE_CURRENT_SOURCE_DIR}/page_table_pml5.h
             ${CMAKE_CURRENT_SOURCE_DIR}/physical_address_allocator.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/physical_address_allocator.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/settings.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/settings_reader.h
             ${CMAKE_CURRENT_SOURCE_DIR}/settings_reader.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/tbx_proto.h
             ${CMAKE_CURRENT_SOURCE_DIR}/tbx_sockets.h
@@ -59,6 +61,8 @@ add_library(${PROJECT_NAME} STATIC
             ${CMAKE_CURRENT_SOURCE_DIR}/${BRANCH_TYPE}/includes/aub_services.h
             ${CMAKE_CURRENT_SOURCE_DIR}/${BRANCH_TYPE}/includes/gfx_core_family.h
             ${CMAKE_CURRENT_SOURCE_DIR}/os_interface/os_calls.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/${BRANCH_TYPE}/includes/setting_vars.inl
+            ${CMAKE_CURRENT_SOURCE_DIR}/includes/setting_vars_base.inl
 
 )
 

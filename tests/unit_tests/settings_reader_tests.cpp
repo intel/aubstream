@@ -6,6 +6,7 @@
  */
 
 #include "gtest/gtest.h"
+#include "aub_mem_dump/settings.h"
 #include "aub_mem_dump/settings_reader.h"
 #include <string>
 #include <unordered_map>
@@ -46,4 +47,28 @@ TEST(EnvReader, givenEnvironmentWhenReadingSettingThenCorrectValuesReturned) {
     EXPECT_EQ(5, value64);
     EXPECT_TRUE(logical);
     EXPECT_STREQ("abc", test.c_str());
+}
+
+TEST(Settings, givenEnvironmentSettingPresentWhenGettingSettingThenCorrectValueReturned) {
+    mock_os_calls::environmentStrings["AUBSTREAM_PrintSettings"] = "1";
+    std::stringstream outStream;
+    Settings settings(&outStream);
+
+    EXPECT_TRUE(settings.PrintSettings.get());
+
+    EXPECT_STREQ("AUBSTREAM_PrintSettings = 1\n", outStream.str().c_str());
+
+    mock_os_calls::environmentStrings.clear();
+}
+
+TEST(Settings, givenPrintSettingsEnvWhenSettingsCreatedThenNonDefaultSettingsArePrinted) {
+    mock_os_calls::environmentStrings["AUBSTREAM_PrintSettings"] = "1";
+
+    ::testing::internal::CaptureStdout();
+    Settings settings;
+
+    std::string output = testing::internal::GetCapturedStdout();
+    EXPECT_STREQ("AUBSTREAM_PrintSettings = 1\n", output.c_str());
+
+    mock_os_calls::environmentStrings.clear();
 }
