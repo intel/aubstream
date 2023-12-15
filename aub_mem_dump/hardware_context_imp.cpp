@@ -139,16 +139,20 @@ void HardwareContextImp::release() {
     delete[] pLRCA;
     pLRCA = nullptr;
 
-    if (this->contextGroupId == 0) {
+    if (this->contextGroupId != -1) {
         auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
 
-        for (uint32_t i = 0; i < groupContextHelper.contexts.size(); i++) {
-            if (groupContextHelper.contexts[i]) {
-                groupContextHelper.contexts[i]->contextGroupId = -1;
-                groupContextHelper.contexts[i] = nullptr;
+        groupContextHelper.contexts[this->contextGroupId] = nullptr;
+
+        if (this->contextGroupId == 0) {
+            for (uint32_t i = 0; i < groupContextHelper.contexts.size(); i++) {
+                if (groupContextHelper.contexts[i]) {
+                    groupContextHelper.contexts[i]->contextGroupId = -1;
+                    groupContextHelper.contexts[i] = nullptr;
+                }
             }
+            groupContextHelper.contextGroupCounter = 0;
         }
-        groupContextHelper.contextGroupCounter = 0;
     }
 }
 
