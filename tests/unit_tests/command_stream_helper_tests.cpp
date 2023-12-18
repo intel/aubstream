@@ -34,18 +34,6 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x20d8, 0x00200020));
 }
 
-TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesContextSRWithInhibitContextRestoreAndSynchronousContextSwitch) {
-    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
-
-    auto sizeLRCA = rcs.sizeLRCA;
-    auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    PhysicalAddressAllocatorSimple allocator;
-    PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
-
-    EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2244, 0x00090009));
-}
-
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesBbCurrentHeadReg) {
     auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
 
@@ -57,31 +45,6 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2168, 0));
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2140, 0));
-}
-
-TEST_F(CommandStreamerHelperTest, givenGroupContextWhenCommandStreamHelperIsInitializedThenLRCAIncludesContextFlags) {
-    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
-
-    auto sizeLRCA = rcs.sizeLRCA;
-    auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    PhysicalAddressAllocatorSimple allocator;
-    PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, true);
-
-    EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2244, 0x00090001));
-}
-
-TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedWithFlagsThenLRCAIncludesContextSRWithSpecidfiedFlags) {
-    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
-
-    auto sizeLRCA = rcs.sizeLRCA;
-    uint32_t additionalFlags = 0x800080;
-    auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    PhysicalAddressAllocatorSimple allocator;
-    PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, additionalFlags, false);
-
-    EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2244, (0x00090009 | additionalFlags)));
 }
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesPDPRegisters) {

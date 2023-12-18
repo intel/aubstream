@@ -125,6 +125,11 @@ struct CommandStreamerHelper {
 
     void setPML(void *pLRCIn, uint64_t address) const;
 
+    virtual uint32_t getContextSaveRestoreCtrlValue(bool groupContext) const {
+        uint32_t value = groupContext ? 0x00090001 : 0x00090009; // Inhibit context-restore (if not group context) and synchronous context switch
+        return value;
+    }
+
     virtual void submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId) const;
     void submit(AubStream &stream, const std::array<HardwareContextImp *, 8> &hwContexts, bool is48Bits) const;
     virtual const uint32_t getPollForCompletionMask() const { return 0x00000100; }
@@ -135,6 +140,12 @@ struct CommandStreamerHelper {
     virtual void addBatchBufferJump(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, bool isGroupContext) const;
     virtual void addFlushCommands(std::vector<uint32_t> &ringBuffer) const = 0;
     virtual void storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const;
+
+    virtual bool isRingDataEnabled() const { return false; }
+    virtual void initializeRingData(void *pLRCIn, void *ringState, uint32_t ringData, size_t sizeRingData, uint32_t ggttRing, uint32_t ringCtrl) const {}
+    virtual uint32_t getRingDataOffset() const { return 0; }
+    virtual void setRingDataHead(void *ringData, uint32_t ringHead) const {}
+    virtual void setRingDataTail(void *ringData, uint32_t ringTail) const {}
 
   protected:
     virtual void submitContext(AubStream &stream, std::array<MiContextDescriptorReg, 8> &contextDescriptor) const = 0;

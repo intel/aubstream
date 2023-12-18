@@ -53,6 +53,10 @@ struct HardwareContextImp : public HardwareContext {
     GGTT &ggtt;
     PageTable &ppgtt;
     uint32_t ggttRing;
+
+    uint32_t ringData;
+    uint8_t *pRingData;
+
     uint32_t ggttLRCA;
     uint32_t ggttGlobalHWSP;
     uint8_t *pLRCA;

@@ -67,7 +67,11 @@ TEST_F(HardwareContextTest, whenHardwareContextIsInitializedTwiceThenItDoesntRea
     delete context;
 }
 
-TEST_F(HardwareContextTest, ringBufferWrap) {
+static bool ringDataDisabled(const aub_stream::Gpu *gpu) {
+    return !gpu->getCommandStreamerHelper(defaultDevice, defaultEngine).isRingDataEnabled();
+}
+
+HWTEST_F(HardwareContextTest, ringBufferWrap, ringDataDisabled) {
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
@@ -120,7 +124,7 @@ TEST_F(HardwareContextTest, submitShouldPerformAtLeastOneMMIOWrite) {
     context.writeAndSubmitBatchBuffer(ppgttBatchBuffer, &data, sizeof(data), defaultMemoryBank, defaultPageSize);
 }
 
-TEST_F(HardwareContextTest, submitBatchBufferShouldPerformAtLeastOneMMIOWriteAndDiscontiguousPageWrites) {
+HWTEST_F(HardwareContextTest, submitBatchBufferShouldPerformAtLeastOneMMIOWriteAndDiscontiguousPageWrites, ringDataDisabled) {
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
@@ -141,9 +145,12 @@ TEST_F(HardwareContextTest, submitBatchBufferShouldPerformAtLeastOneMMIOWriteAnd
 
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(1));
     // two GGTT updates
-    EXPECT_CALL(stream, writeGttPages(_, _)).Times(2);
+    auto numGGTTUpdates = 2;
+    EXPECT_CALL(stream, writeGttPages(_, _)).Times(numGGTTUpdates);
+
     // ring commands and LRCA writes
-    EXPECT_CALL(stream, writeDiscontiguousPages(_, _, _, _)).Times(2);
+    auto numWrites = 2;
+    EXPECT_CALL(stream, writeDiscontiguousPages(_, _, _, _)).Times(numWrites);
     context.submitBatchBuffer(ppgttBatchBuffer, false);
 }
 

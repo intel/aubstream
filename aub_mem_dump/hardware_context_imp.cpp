@@ -24,6 +24,8 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
       ggtt(ggttIN),
       ppgtt(ppgttIN),
       ggttRing(-1),
+      ringData(-1),
+      pRingData(nullptr),
       ggttLRCA(-1),
       ggttGlobalHWSP(-1),
       pLRCA(nullptr),
@@ -107,14 +109,32 @@ void HardwareContextImp::initialize() {
     auto sizeLRCA = csTraits.sizeLRCA;
 
     pLRCA = new uint8_t[sizeLRCA];
+    auto ringCtrl = static_cast<uint32_t>((ringSize - 0x1000) | 1);
     csTraits.initialize(pLRCA, &ppgtt, flags, this->contextGroupId != -1);
     csTraits.setRingHead(pLRCA, 0x0000);
     csTraits.setRingTail(pLRCA, 0x0000);
     csTraits.setRingBase(pLRCA, ggttRing);
-    auto ringCtrl = static_cast<uint32_t>((ringSize - 0x1000) | 1);
     csTraits.setRingCtrl(pLRCA, ringCtrl);
 
     ggttLRCA = allocator.alignedAlloc(sizeLRCA, alignment);
+
+    if (csTraits.isRingDataEnabled()) {
+        const size_t sizeRingData = 4096;
+        ringData = allocator.alignedAlloc(sizeRingData, alignment);
+        pRingData = new uint8_t[sizeRingData];
+
+        csTraits.initializeRingData(pLRCA, pRingData, ringData, sizeRingData, ggttRing, ringCtrl);
+
+        stream.writeMemory(
+            &ggtt,
+            ringData,
+            pRingData,
+            sizeRingData,
+            ggtt.getMemoryBank(),
+            csTraits.aubHintLRCA,
+            pageSize);
+    }
+
     stream.writeMemory(
         &ggtt,
         ggttLRCA,
@@ -139,6 +159,7 @@ void HardwareContextImp::release() {
     delete[] pLRCA;
     pLRCA = nullptr;
 
+    delete[] pRingData;
     if (this->contextGroupId != -1) {
         auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
 
@@ -239,17 +260,27 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
     ringTail += sizeCommandsInBytes;
 
     auto ringOffset = csTraits.offsetContext + csTraits.offsetRingRegisters;
+    auto ringDataOffset = csTraits.getRingDataOffset();
     auto size = 0u;
     if (overrideRingHead) {
         // Update the LRCA with the ring buffer head and tail
         csTraits.setRingHead(pLRCA, ringHead);
         csTraits.setRingTail(pLRCA, ringTail);
         ringOffset += csTraits.offsetRingHead;
+
+        csTraits.setRingDataHead(pRingData, ringHead);
+        csTraits.setRingDataTail(pRingData, ringTail);
+        ringDataOffset += csTraits.offsetRingHead;
+
         size = 4 * sizeof(uint32_t);
     } else {
         // Update the LRCA with the ring buffer tail
         csTraits.setRingTail(pLRCA, ringTail);
         ringOffset += csTraits.offsetRingTail;
+
+        csTraits.setRingDataTail(pRingData, ringTail);
+        ringDataOffset += csTraits.offsetRingTail;
+
         size = 2 * sizeof(uint32_t);
     }
 
@@ -261,6 +292,17 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
         ggtt.getMemoryBank(),
         DataTypeHintValues::TraceNotype,
         pageSize);
+
+    if (csTraits.isRingDataEnabled()) {
+        stream.writeMemory(
+            &ggtt,
+            ringData + ringDataOffset,
+            pRingData + ringDataOffset,
+            size,
+            ggtt.getMemoryBank(),
+            DataTypeHintValues::TraceNotype,
+            pageSize);
+    }
 
     if (this->contextGroupId != -1) {
         auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];

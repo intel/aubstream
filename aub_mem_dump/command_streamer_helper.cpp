@@ -120,7 +120,7 @@ void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t 
     auto pLRI = ptrOffset(pLRCA, offsetLRI0);
     auto numRegs = numRegsLRI0;
     *pLRI++ = 0x11001000 | (2 * numRegs - 1);
-    uint32_t value = isGroupContext ? 0x00090001 : 0x00090009; // Inhibit context-restore (if not group context) and synchronous context switch
+    uint32_t value = getContextSaveRestoreCtrlValue(isGroupContext);
 
     value |= flags;
     while (numRegs-- > 0) {
@@ -260,4 +260,5 @@ void CommandStreamerHelper::storeFenceValue(std::vector<uint32_t> &ringBuffer, u
     ringBuffer.push_back(0);
     ringBuffer.push_back(fenceValue);
 }
+
 } // namespace aub_stream

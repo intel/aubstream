@@ -10,11 +10,13 @@
 #include "aub_mem_dump/aub_stream.h"
 #include "aubstream/aubstream.h"
 #include "aubstream/hardware_context.h"
+#include "aub_mem_dump/settings.h"
 #include "test_defaults.h"
 #include "tests/unit_tests/mock_aub_manager.h"
 #include "gtest/gtest.h"
 
 namespace aub_stream {
+
 struct SimpleBatchBuffer : public ::testing::TestWithParam<uint32_t> {
     SimpleBatchBuffer()
         : desc(*gpu),
@@ -48,6 +50,7 @@ struct SimpleBatchBuffer : public ::testing::TestWithParam<uint32_t> {
         internal_options.gpuAddressSpace = gpuAddressSpace48;
         mgr = new AubManagerImp(std::move(gpu), internal_options);
         mgr->initialize();
+        mgr->createSettings(globalSettings);
         mgr->open(fileName);
     }
 
