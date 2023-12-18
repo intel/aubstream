@@ -50,6 +50,9 @@ TEST(EnvReader, givenEnvironmentWhenReadingSettingThenCorrectValuesReturned) {
 }
 
 TEST(Settings, givenEnvironmentSettingPresentWhenGettingSettingThenCorrectValueReturned) {
+    if (Settings::disabled()) {
+        GTEST_SKIP();
+    }
     mock_os_calls::environmentStrings["AUBSTREAM_PrintSettings"] = "1";
     std::stringstream outStream;
     Settings settings(&outStream);
@@ -62,6 +65,9 @@ TEST(Settings, givenEnvironmentSettingPresentWhenGettingSettingThenCorrectValueR
 }
 
 TEST(Settings, givenPrintSettingsEnvWhenSettingsCreatedThenNonDefaultSettingsArePrinted) {
+    if (Settings::disabled()) {
+        GTEST_SKIP();
+    }
     mock_os_calls::environmentStrings["AUBSTREAM_PrintSettings"] = "1";
 
     ::testing::internal::CaptureStdout();

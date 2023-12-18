@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022 Intel Corporation
+# Copyright (C) 2022-2023 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -102,6 +102,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
 # Setup ReleaseInternal config based on Release
 set(CMAKE_CXX_FLAGS_RELEASEINTERNAL "${CMAKE_CXX_FLAGS_RELEASE} -DRELEASEINTERNAL=1 -D_INTERNAL=1")
 set(CMAKE_LINK_FLAGS_RELEASEINTERNAL "${CMAKE_LINK_FLAGS_RELEASE}")
+
+if(MSVC)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DAUBSTREAM_SETTINGS_DISABLE=1")
+endif()
 
 option(AUBSTREAM_CCACHE_ALLOWED "allow use of ccache" TRUE)
 find_program(CCACHE_EXE_FOUND ccache)

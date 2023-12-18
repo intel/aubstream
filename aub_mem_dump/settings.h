@@ -19,6 +19,12 @@ namespace aub_stream {
 #define STRINGIFY(var) #var
 #define AUBSTREAM_PREFIX(var) STRINGIFY(AUBSTREAM_##var)
 
+#if defined AUBSTREAM_SETTINGS_DISABLE
+constexpr bool enableSettings = false;
+#else
+constexpr bool enableSettings = true;
+#endif
+
 class Settings;
 extern Settings *globalSettings;
 
@@ -46,12 +52,20 @@ class Settings {
         printSettings();
     }
 
+    static constexpr bool disabled() {
+        return !enableSettings;
+    }
+
+    static constexpr const char *getSettingName(const char *variable) {
+        return (disabled()) ? "" : variable;
+    }
+
     void readSettings() {
 #undef DECLARE_SETTING_VARIABLE
-#define DECLARE_SETTING_VARIABLE(dataType, variableName, defaultValue, description)                 \
-    {                                                                                               \
-        dataType tempData = reader->getSetting(AUBSTREAM_PREFIX(variableName), variableName.get()); \
-        variableName.set(tempData);                                                                 \
+#define DECLARE_SETTING_VARIABLE(dataType, variableName, defaultValue, description)                                 \
+    {                                                                                                               \
+        dataType tempData = reader->getSetting(getSettingName(AUBSTREAM_PREFIX(variableName)), variableName.get()); \
+        variableName.set(tempData);                                                                                 \
     }
 
 #include "setting_vars.inl"
@@ -65,11 +79,11 @@ class Settings {
 
         std::ostringstream changedSettings;
 #undef DECLARE_SETTING_VARIABLE
-#define DECLARE_SETTING_VARIABLE(dataType, variableName, defaultValue, description)                   \
-    {                                                                                                 \
-        if (variableName.get() != defaultValue) {                                                     \
-            changedSettings << AUBSTREAM_PREFIX(variableName) << " = " << variableName.get() << "\n"; \
-        }                                                                                             \
+#define DECLARE_SETTING_VARIABLE(dataType, variableName, defaultValue, description)                                   \
+    {                                                                                                                 \
+        if (variableName.get() != defaultValue && getSettingName(AUBSTREAM_PREFIX(variableName))) {                   \
+            changedSettings << getSettingName(AUBSTREAM_PREFIX(variableName)) << " = " << variableName.get() << "\n"; \
+        }                                                                                                             \
     }
 
 #include "setting_vars.inl"
