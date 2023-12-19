@@ -7,6 +7,7 @@
 
 #pragma once
 #include "aubstream/hardware_context.h"
+#include "aubstream/engine_node.h"
 #include "page_table.h"
 #include <type_traits>
 #include <array>

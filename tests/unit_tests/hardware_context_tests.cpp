@@ -328,7 +328,7 @@ TEST_F(HardwareContextTest, checkContextIdIsUnique) {
 }
 
 TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExeclist) {
-    TEST_REQUIRES(gpu->gfxCoreFamily >= CoreFamily::XeHpcCore);
+    TEST_REQUIRES(gpu->gfxCoreFamily >= CoreFamily::Gen12lp && gpu->gfxCoreFamily <= CoreFamily::XeHpcCore);
 
     PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
