@@ -125,8 +125,12 @@ struct CommandStreamerHelper {
 
     void setPML(void *pLRCIn, uint64_t address) const;
 
-    virtual uint32_t getContextSaveRestoreCtrlValue(bool groupContext) const {
+    virtual uint32_t getInitialContextSaveRestoreCtrlValue(bool groupContext) const {
         uint32_t value = groupContext ? 0x00090001 : 0x00090009; // Inhibit context-restore (if not group context) and synchronous context switch
+        return value;
+    }
+    virtual uint32_t getRingContextSaveRestoreCtrlValue(bool groupContext) const {
+        uint32_t value = groupContext ? 0x00090000 : 0x00090008; // Inhibit synchronous context switch (if not group context)
         return value;
     }
 

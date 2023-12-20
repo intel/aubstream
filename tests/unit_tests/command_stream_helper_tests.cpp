@@ -346,6 +346,7 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, CheckBatchBufferStart) {
     auto engine = std::get<1>(GetParam()).first;
     TEST_REQUIRES(device < gpu->deviceCount);
     TEST_REQUIRES(gpu->isEngineSupported(engine));
+    TEST_REQUIRES(!gpu->getCommandStreamerHelper(device, engine).isRingDataEnabled());
 
     auto deviceBase = device * 16 * MB;
     auto csBase = std::get<1>(GetParam()).second + 0x2000;
@@ -377,6 +378,7 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, givenGroupContextWhenAddingBbS
     auto engine = std::get<1>(GetParam()).first;
     TEST_REQUIRES(device < gpu->deviceCount);
     TEST_REQUIRES(gpu->isEngineSupported(engine));
+    TEST_REQUIRES(!gpu->getCommandStreamerHelper(device, engine).isRingDataEnabled());
 
     auto deviceBase = device * 16 * MB;
     auto csBase = std::get<1>(GetParam()).second + 0x2000;

@@ -120,7 +120,7 @@ void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t 
     auto pLRI = ptrOffset(pLRCA, offsetLRI0);
     auto numRegs = numRegsLRI0;
     *pLRI++ = 0x11001000 | (2 * numRegs - 1);
-    uint32_t value = getContextSaveRestoreCtrlValue(isGroupContext);
+    uint32_t value = getInitialContextSaveRestoreCtrlValue(isGroupContext);
 
     value |= flags;
     while (numRegs-- > 0) {
@@ -244,7 +244,7 @@ void CommandStreamerHelper::addBatchBufferJump(std::vector<uint32_t> &ringBuffer
     ringBuffer.push_back(0x11000001);
     ringBuffer.push_back(mmioEngine + 0x2244);
 
-    uint32_t value = isGroupContext ? 0x00090000 : 0x00090008; // Inhibit synchronous context switch (if not group context)
+    uint32_t value = getRingContextSaveRestoreCtrlValue(isGroupContext);
 
     ringBuffer.push_back(value);
     // Batch Buffer start
