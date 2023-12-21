@@ -179,7 +179,7 @@ void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t 
     }
 }
 
-void CommandStreamerHelper::submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId) const {
+void CommandStreamerHelper::submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId, uint32_t priority) const {
     std::array<MiContextDescriptorReg, 8> contextDescriptor = {};
 
     contextDescriptor[0].sData.Valid = true;
@@ -194,6 +194,8 @@ void CommandStreamerHelper::submit(AubStream &stream, uint32_t ggttLRCA, bool is
     contextDescriptor[0].sData.Reserved = 0;
     contextDescriptor[0].sData.ContextID = contextId;
     contextDescriptor[0].sData.Reserved2 = 0;
+
+    setPriority(contextDescriptor[0], priority);
 
     submitContext(stream, contextDescriptor);
 }
@@ -219,6 +221,8 @@ void CommandStreamerHelper::submit(AubStream &stream, const std::array<HardwareC
         contextDescriptor[i].sData.Reserved = 0;
         contextDescriptor[i].sData.ContextID = hwContexts[i]->contextId;
         contextDescriptor[i].sData.Reserved2 = 0;
+
+        setPriority(contextDescriptor[i], hwContexts[i]->priority);
     }
 
     submitContext(stream, contextDescriptor);

@@ -134,7 +134,7 @@ struct CommandStreamerHelper {
         return value;
     }
 
-    virtual void submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId) const;
+    virtual void submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId, uint32_t priority) const;
     void submit(AubStream &stream, const std::array<HardwareContextImp *, 8> &hwContexts, bool is48Bits) const;
     virtual const uint32_t getPollForCompletionMask() const { return 0x00000100; }
     void pollForCompletion(AubStream &stream) const;
@@ -153,6 +153,7 @@ struct CommandStreamerHelper {
 
   protected:
     virtual void submitContext(AubStream &stream, std::array<MiContextDescriptorReg, 8> &contextDescriptor) const = 0;
+    virtual void setPriority(MiContextDescriptorReg &contextDescriptor, uint32_t priority) const {};
 };
 
 struct CommandStreamerHelperRcs : public CommandStreamerHelper {

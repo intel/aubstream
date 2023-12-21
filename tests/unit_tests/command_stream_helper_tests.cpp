@@ -323,7 +323,7 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, submit) {
     VerifyMmioAubStream stream(mmioBase, mmioBase + 0x7ff);
 
     auto ggttFakeLRCA = 0x1000;
-    cs.submit(stream, ggttFakeLRCA, true, 0);
+    cs.submit(stream, ggttFakeLRCA, true, 0, 0);
 }
 
 TEST_P(CommandStreamerHelperVerifyEngineMmioTest, pollForCompletion) {

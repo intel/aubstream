@@ -23,8 +23,11 @@ struct GroupContextHelper {
 };
 
 struct HardwareContextImp : public HardwareContext {
+    static constexpr uint32_t priorityNormal = 1;
+    static constexpr uint64_t priorityHigh = 2;
 
     uint32_t contextGroupId = -1;
+    uint32_t priority = priorityNormal;
 
     HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggtt, PageTable &ppgtt, uint32_t flags);
 

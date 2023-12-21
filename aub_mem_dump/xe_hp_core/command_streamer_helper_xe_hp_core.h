@@ -22,6 +22,13 @@ template <typename Helper>
 struct CommandStreamerHelperXeHpCore : public Helper {
     using Helper::Helper;
 
+    void setPriority(MiContextDescriptorReg &contextDescriptor, uint32_t priority) const override {
+
+        if (priority != 0) {
+            contextDescriptor.sData.FunctionType = priority & 0x3;
+        }
+    }
+
     void submitContext(AubStream &stream, std::array<MiContextDescriptorReg, 8> &contextDescriptor) const override {
         for (uint32_t i = 0; i < 8; i++) {
             stream.writeMMIO(mmioEngine + 0x2510 + (i * 8), contextDescriptor[i].ulData[0]);

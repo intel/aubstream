@@ -37,6 +37,11 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
 
     constexpr uint32_t contextGroupBit = hardwareContextFlags::contextGroup;
 
+    if (flags & hardwareContextFlags::highPriority) {
+        priority = priorityHigh;
+        this->flags = flags & (~hardwareContextFlags::highPriority); // unset
+    }
+
     if (flags & contextGroupBit) {
         auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
 
@@ -309,7 +314,7 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
 
         csTraits.submit(stream, groupContextHelper.contexts, ppgtt.getNumAddressBits() != 32);
     } else {
-        csTraits.submit(stream, ggttLRCA, ppgtt.getNumAddressBits() != 32, contextId);
+        csTraits.submit(stream, ggttLRCA, ppgtt.getNumAddressBits() != 32, contextId, priority);
     }
 }
 
