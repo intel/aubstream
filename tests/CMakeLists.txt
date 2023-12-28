@@ -29,6 +29,7 @@ set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/simple_batch_buffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/test_defaults.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_defaults.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/variable_backup.h
     ${CMAKE_CURRENT_SOURCE_DIR}/mock_os_calls.cpp
 )
 

@@ -415,6 +415,12 @@ AubStream *AubManagerImp::getStream() {
 
 AubManager *AubManager::create(const struct AubManagerOptions &options) {
     std::unique_ptr<Gpu> gpu;
+    std::unique_ptr<Settings> settings;
+    if (globalSettings == nullptr) {
+        settings = std::make_unique<Settings>();
+        globalSettings = settings.get();
+    }
+
     if (options.version == 1) {
         auto createGpuFunc = getGpu(static_cast<ProductFamily>(options.productFamily));
         if (createGpuFunc) {
@@ -424,7 +430,7 @@ AubManager *AubManager::create(const struct AubManagerOptions &options) {
     if (nullptr != gpu) {
         auto aubManager = new AubManagerImp(std::move(gpu), options);
         aubManager->initialize();
-        aubManager->createSettings(globalSettings);
+        aubManager->setSettings(std::move(settings));
         if (aubManager->isInitialized()) {
             return aubManager;
         }
@@ -439,9 +445,8 @@ void AubManagerImp::throwErrorIfEnabled(const std::string &str) {
     }
 }
 
-void AubManagerImp::createSettings(Settings *&globalSettings) {
-    settings = std::make_unique<Settings>();
-    globalSettings = settings.get();
+void AubManagerImp::setSettings(std::unique_ptr<Settings> settingsIn) {
+    settings = std::move(settingsIn);
 }
 
 } // namespace aub_stream

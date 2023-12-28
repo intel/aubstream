@@ -7,6 +7,7 @@
 
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/memory_banks.h"
+#include "aub_mem_dump/settings.h"
 #include "gmock/gmock.h"
 #include "test_defaults.h"
 #include "tests/mock_os_calls.h"
@@ -80,6 +81,9 @@ int runTests(const Gpu *gpu) {
 int main(int argc, char **argv) {
     testing::InitGoogleMock(&argc, argv);
     int result = 0;
+
+    std::unique_ptr<Settings> settings = std::make_unique<Settings>();
+    globalSettings = settings.get();
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];

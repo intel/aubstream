@@ -13,6 +13,7 @@
 #include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/options.h"
+#include "aub_mem_dump/settings.h"
 
 namespace aub_stream {
 constexpr uint32_t mmioDeviceOffset = 16 * MB;
@@ -22,9 +23,20 @@ struct CommandStreamerHelperXeHpgCore : public Helper {
     using Helper::Helper;
 
     void submitContext(AubStream &stream, std::array<MiContextDescriptorReg, 8> &contextDescriptor) const override {
-        for (uint32_t i = 0; i < 8; i++) {
-            stream.writeMMIO(mmioEngine + 0x2510 + (i * 8), contextDescriptor[i].ulData[0]);
-            stream.writeMMIO(mmioEngine + 0x2514 + (i * 8), contextDescriptor[i].ulData[1]);
+
+        bool execlistSubmitPortEnabled = globalSettings->ExeclistSubmitPortSubmission.get() != -1 ? globalSettings->ExeclistSubmitPortSubmission.get() : 0;
+
+        if (!execlistSubmitPortEnabled) {
+            for (uint32_t i = 0; i < 8; i++) {
+                stream.writeMMIO(mmioEngine + 0x2510 + (i * 8), contextDescriptor[i].ulData[0]);
+                stream.writeMMIO(mmioEngine + 0x2514 + (i * 8), contextDescriptor[i].ulData[1]);
+            }
+        } else {
+            for (uint32_t i = 0; i < contextDescriptor.size(); i++) {
+                // write lower DWORD first
+                stream.writeMMIO(mmioEngine + 0x2230, contextDescriptor[i].ulData[0]);
+                stream.writeMMIO(mmioEngine + 0x2230, contextDescriptor[i].ulData[1]);
+            }
         }
 
         // Load our new exec list
