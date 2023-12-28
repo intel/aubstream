@@ -146,6 +146,7 @@ struct CommandStreamerHelper {
     virtual void storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const;
 
     virtual bool isRingDataEnabled() const { return false; }
+    virtual bool isExeclistSubmissionEnabled() const { return false; }
     virtual void initializeRingData(void *pLRCIn, void *ringState, uint32_t ringData, size_t sizeRingData, uint32_t ggttRing, uint32_t ringCtrl) const {}
     virtual uint32_t getRingDataOffset() const { return 0; }
     virtual void setRingDataHead(void *ringData, uint32_t ringHead) const {}

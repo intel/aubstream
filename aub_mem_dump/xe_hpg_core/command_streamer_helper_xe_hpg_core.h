@@ -24,7 +24,7 @@ struct CommandStreamerHelperXeHpgCore : public Helper {
 
     void submitContext(AubStream &stream, std::array<MiContextDescriptorReg, 8> &contextDescriptor) const override {
 
-        bool execlistSubmitPortEnabled = globalSettings->ExeclistSubmitPortSubmission.get() != -1 ? globalSettings->ExeclistSubmitPortSubmission.get() : 0;
+        bool execlistSubmitPortEnabled = isExeclistSubmissionEnabled();
 
         if (!execlistSubmitPortEnabled) {
             for (uint32_t i = 0; i < 8; i++) {
@@ -41,6 +41,11 @@ struct CommandStreamerHelperXeHpgCore : public Helper {
 
         // Load our new exec list
         stream.writeMMIO(mmioEngine + 0x2550, 1);
+    }
+
+    bool isExeclistSubmissionEnabled() const override {
+        bool execlistSubmitPortEnabled = globalSettings->ExeclistSubmitPortSubmission.get() != -1 ? globalSettings->ExeclistSubmitPortSubmission.get() : false;
+        return execlistSubmitPortEnabled;
     }
 
     const uint32_t getPollForCompletionMask() const override { return 0x00008000; }
