@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -45,7 +45,7 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
     if (flags & contextGroupBit) {
         auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
 
-        assert(groupContextHelper.contextGroupCounter < 8);
+        assert(groupContextHelper.contextGroupCounter < static_cast<uint32_t>(groupContextHelper.contexts.size()));
 
         this->contextGroupId = groupContextHelper.contextGroupCounter;
 

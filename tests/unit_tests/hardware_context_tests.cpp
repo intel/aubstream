@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -371,7 +371,6 @@ TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExec
     context2.submitBatchBuffer(0x100, false);
 
     HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter = 0;
-    HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contexts = {};
 }
 
 TEST_F(HardwareContextTest, givenGroupContextWhenMainHardwareContextDestroyedThenGroupIsFreed) {

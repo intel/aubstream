@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -135,7 +135,7 @@ struct CommandStreamerHelper {
     }
 
     virtual void submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId, uint32_t priority) const;
-    void submit(AubStream &stream, const std::array<HardwareContextImp *, 8> &hwContexts, bool is48Bits) const;
+    void submit(AubStream &stream, const std::vector<HardwareContextImp *> &hwContexts, bool is48Bits) const;
     virtual const uint32_t getPollForCompletionMask() const { return 0x00000100; }
     void pollForCompletion(AubStream &stream) const;
     void initializeEngineMMIO(AubStream &stream) const;
@@ -153,7 +153,7 @@ struct CommandStreamerHelper {
     virtual void setRingDataTail(void *ringData, uint32_t ringTail) const {}
 
   protected:
-    virtual void submitContext(AubStream &stream, std::array<MiContextDescriptorReg, 8> &contextDescriptor) const = 0;
+    virtual void submitContext(AubStream &stream, std::vector<MiContextDescriptorReg> &contextDescriptor) const = 0;
     virtual void setPriority(MiContextDescriptorReg &contextDescriptor, uint32_t priority) const {};
 };
 

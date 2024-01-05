@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -14,6 +14,11 @@ constexpr uint16_t countBits(uint16_t v) {
     r = ((r >> 4) & 0x0f0f) + (r & 0x0f0f);
     r = ((r >> 8) & 0x0ff) + (r & 0x0ff);
     return r & 0xff;
+}
+
+template <typename T, size_t n>
+constexpr size_t arrayCount(const T (&)[n]) {
+    return n;
 }
 
 } // namespace aub_stream

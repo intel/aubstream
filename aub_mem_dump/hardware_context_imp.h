@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -10,7 +10,7 @@
 #include "aubstream/engine_node.h"
 #include "page_table.h"
 #include <type_traits>
-#include <array>
+#include <vector>
 
 namespace aub_stream {
 struct AubStream;
@@ -19,7 +19,7 @@ struct HardwareContextImp;
 
 struct GroupContextHelper {
     uint32_t contextGroupCounter = 0;
-    std::array<HardwareContextImp *, 8> contexts = {};
+    std::vector<HardwareContextImp *> contexts = {};
 };
 
 struct HardwareContextImp : public HardwareContext {

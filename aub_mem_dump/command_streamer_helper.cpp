@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -180,7 +180,12 @@ void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t 
 }
 
 void CommandStreamerHelper::submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId, uint32_t priority) const {
-    std::array<MiContextDescriptorReg, 8> contextDescriptor = {};
+    std::vector<MiContextDescriptorReg> contextDescriptor{8};
+
+    for (auto &cd : contextDescriptor) {
+        cd.ulData[0] = 0;
+        cd.ulData[1] = 0;
+    }
 
     contextDescriptor[0].sData.Valid = true;
     contextDescriptor[0].sData.ForcePageDirRestore = false;
@@ -200,8 +205,8 @@ void CommandStreamerHelper::submit(AubStream &stream, uint32_t ggttLRCA, bool is
     submitContext(stream, contextDescriptor);
 }
 
-void CommandStreamerHelper::submit(AubStream &stream, const std::array<HardwareContextImp *, 8> &hwContexts, bool is48Bits) const {
-    std::array<MiContextDescriptorReg, 8> contextDescriptor = {};
+void CommandStreamerHelper::submit(AubStream &stream, const std::vector<HardwareContextImp *> &hwContexts, bool is48Bits) const {
+    std::vector<MiContextDescriptorReg> contextDescriptor{hwContexts.size()};
 
     for (uint32_t i = 0; i < hwContexts.size(); i++) {
         if (!hwContexts[i]) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -18,6 +18,7 @@
 #include "aub_mem_dump/tbx_shm_stream.h"
 #include "aub_mem_dump/tbx_stream.h"
 #include "aub_mem_dump/settings.h"
+#include "aub_mem_dump/misc_helpers.h"
 
 #include "aubstream/aubstream.h"
 #include "aubstream/engine_node.h"
@@ -428,6 +429,14 @@ AubManager *AubManager::create(const struct AubManagerOptions &options) {
         }
     }
     if (nullptr != gpu) {
+
+        auto contextGroupCount = gpu->getContextGroupCount();
+        for (size_t i = 0; i < arrayCount(HardwareContextImp::contextGroups); i++) {
+            for (size_t j = 0; j < arrayCount(HardwareContextImp::contextGroups[i]); j++) {
+                HardwareContextImp::contextGroups[i][j].contexts.resize(contextGroupCount);
+            }
+        }
+
         auto aubManager = new AubManagerImp(std::move(gpu), options);
         aubManager->initialize();
         aubManager->setSettings(std::move(settings));

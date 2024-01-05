@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -8,6 +8,9 @@
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/settings.h"
+#include "aub_mem_dump/hardware_context_imp.h"
+#include "aub_mem_dump/misc_helpers.h"
+
 #include "gmock/gmock.h"
 #include "test_defaults.h"
 #include "tests/mock_os_calls.h"
@@ -53,6 +56,14 @@ int runTests(const Gpu *gpu) {
     if (gpu->isMemorySupported(MEMORY_BANK_0, 65536u)) {
         defaultMemoryBank = MEMORY_BANK_0;
         defaultPageSize = 65536u;
+    }
+
+    // Initialize contextGroups contexts
+    auto contextGroupCount = gpu->getContextGroupCount();
+    for (auto i = 0; i < arrayCount(HardwareContextImp::contextGroups); i++) {
+        for (auto j = 0; j < arrayCount(HardwareContextImp::contextGroups[i]); j++) {
+            HardwareContextImp::contextGroups[i][j].contexts.resize(contextGroupCount);
+        }
     }
 
     std::cout << "\n---------------------------------------------------\n";

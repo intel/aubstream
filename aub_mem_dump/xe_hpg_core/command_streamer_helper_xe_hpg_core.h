@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -22,9 +22,11 @@ template <typename Helper>
 struct CommandStreamerHelperXeHpgCore : public Helper {
     using Helper::Helper;
 
-    void submitContext(AubStream &stream, std::array<MiContextDescriptorReg, 8> &contextDescriptor) const override {
+    void submitContext(AubStream &stream, std::vector<MiContextDescriptorReg> &contextDescriptor) const override {
 
         bool execlistSubmitPortEnabled = isExeclistSubmissionEnabled();
+
+        assert(contextDescriptor.size() <= 8);
 
         if (!execlistSubmitPortEnabled) {
             for (uint32_t i = 0; i < 8; i++) {

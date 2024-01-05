@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -82,6 +82,10 @@ struct Gpu : public GpuDescriptor {
     virtual PageTable *allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const;
 
     virtual uint64_t getGGTTBaseAddress(uint32_t device, uint64_t memoryBankSize, uint64_t stolenMemoryBaseAddress) const = 0;
+
+    virtual uint32_t getContextGroupCount() const {
+        return 8;
+    }
     std::unique_ptr<CommandStreamerHelper> commandStreamerHelperTable[Gpu::numSupportedDevices][EngineType::NUM_ENGINES];
 };
 
