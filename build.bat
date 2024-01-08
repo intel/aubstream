@@ -1,5 +1,5 @@
 REM
-REM Copyright (C) 2022-2023 Intel Corporation
+REM Copyright (C) 2022-2024 Intel Corporation
 REM
 REM SPDX-License-Identifier: MIT
 REM
@@ -14,6 +14,7 @@ set BUILD_TYPE=Debug
 set BITS=64
 set VS=2022
 set DO_BUILD=0
+set ALL_PLATFORMS_SUPPORT=-DAUBSTREAM_ALLOW_LEGACY_PLATFORMS_SUPPORT=1
 
 :: Parse arguments
 goto :arg_parse
@@ -109,8 +110,8 @@ if not exist %BUILD_DIRECTORY% mkdir %BUILD_DIRECTORY%
 
 pushd .
 cd %BUILD_DIRECTORY%
-:: echo %CMAKE_EXE% -Wno-dev -G "%COMPILER%" %PLATFORM_FLAGS% %BRANCH_FLAGS% -DBUILD_BITS=%BITS% %PROJECT_DIRECTORY% -Daubstream_build_tests=1
-%CMAKE_EXE% -G "%COMPILER%" %PLATFORM_FLAGS% %BRANCH_FLAGS% -DBUILD_BITS=%BITS% %PROJECT_DIRECTORY% -Daubstream_build_tests=1
+:: echo %CMAKE_EXE% -Wno-dev -G "%COMPILER%" %PLATFORM_FLAGS% %BRANCH_FLAGS% -DBUILD_BITS=%BITS% %PROJECT_DIRECTORY% -Daubstream_build_tests=1 %ALL_PLATFORMS_SUPPORT%
+%CMAKE_EXE% -G "%COMPILER%" %PLATFORM_FLAGS% %BRANCH_FLAGS% -DBUILD_BITS=%BITS% %PROJECT_DIRECTORY% -Daubstream_build_tests=1 %ALL_PLATFORMS_SUPPORT%
 if !ERRORLEVEL! NEQ 0 set SUCCESS=!ERRORLEVEL! & popd & echo ERROR: cmake failed with !ERRORLEVEL!.  Exiting... & goto :FAIL
 popd
 
