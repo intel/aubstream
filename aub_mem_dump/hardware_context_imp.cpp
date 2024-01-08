@@ -15,9 +15,8 @@
 namespace aub_stream {
 
 uint32_t HardwareContextImp::globalContextId = 0;
-GroupContextHelper HardwareContextImp::contextGroups[4][EngineType::NUM_ENGINES];
 
-HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggttIN, PageTable &ppgttIN, uint32_t flags)
+HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggttIN, PageTable &ppgttIN, GroupContextHelper *groupHelper, uint32_t flags)
     : stream(aubStream),
       csTraits(traits),
       deviceIndex(deviceIndex),
@@ -33,7 +32,8 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
       ringSize(16384u),
       flags(flags),
       ggttContextFence(0),
-      contextFenceValue(0) {
+      contextFenceValue(0),
+      contextGroupHelper(groupHelper) {
 
     constexpr uint32_t contextGroupBit = hardwareContextFlags::contextGroup;
 
@@ -43,13 +43,13 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
     }
 
     if (flags & contextGroupBit) {
-        auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
+        auto &groupContext = contextGroupHelper->contextGroups[deviceIndex][csTraits.engineType];
 
-        assert(groupContextHelper.contextGroupCounter < static_cast<uint32_t>(groupContextHelper.contexts.size()));
+        assert(groupContext.contextGroupCounter < static_cast<uint32_t>(groupContext.contexts.size()));
 
-        this->contextGroupId = groupContextHelper.contextGroupCounter;
+        this->contextGroupId = groupContext.contextGroupCounter;
 
-        groupContextHelper.contextGroupCounter++;
+        groupContext.contextGroupCounter++;
 
         this->flags = flags & (~contextGroupBit); // unset
     }
@@ -152,7 +152,7 @@ void HardwareContextImp::initialize() {
     stream.declareContextForDumping(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this)), &ppgtt);
 
     if (this->contextGroupId != -1) {
-        auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
+        auto &groupContextHelper = contextGroupHelper->contextGroups[deviceIndex][csTraits.engineType];
 
         assert(groupContextHelper.contexts[this->contextGroupId] == nullptr);
 
@@ -166,7 +166,7 @@ void HardwareContextImp::release() {
 
     delete[] pRingData;
     if (this->contextGroupId != -1) {
-        auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
+        auto &groupContextHelper = contextGroupHelper->contextGroups[deviceIndex][csTraits.engineType];
 
         groupContextHelper.contexts[this->contextGroupId] = nullptr;
 
@@ -310,7 +310,7 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
     }
 
     if (this->contextGroupId != -1) {
-        auto &groupContextHelper = HardwareContextImp::contextGroups[deviceIndex][csTraits.engineType];
+        auto &groupContextHelper = contextGroupHelper->contextGroups[deviceIndex][csTraits.engineType];
 
         csTraits.submit(stream, groupContextHelper.contexts, ppgtt.getNumAddressBits() != 32);
     } else {

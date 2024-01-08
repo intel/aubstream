@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -28,6 +28,7 @@ struct StolenMemory;
 struct PageInfo;
 struct HardwareContext;
 struct HardwareContextImp;
+struct GroupContextHelper;
 struct PhysicalAddressAllocator;
 class Settings;
 
@@ -68,6 +69,9 @@ class AubManagerImp : public AubManager {
     void *translatePhysicalAddressToSystemMemory(uint64_t physicalAddress, bool isLocalMemory) override;
     void initialize();
     void setSettings(std::unique_ptr<Settings> settingsIn);
+    GroupContextHelper *getGroupContextHelper() {
+        return groupContextHelper.get();
+    }
 
   protected:
     virtual void createStream();
@@ -99,6 +103,7 @@ class AubManagerImp : public AubManager {
     const bool enableThrow{};
 
     std::unique_ptr<Settings> settings;
+    std::unique_ptr<GroupContextHelper> groupContextHelper;
 };
 
 } // namespace aub_stream

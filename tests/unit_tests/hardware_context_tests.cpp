@@ -9,6 +9,7 @@
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/hardware_context_imp.h"
 #include "aub_mem_dump/memory_banks.h"
+#include "aub_mem_dump/misc_helpers.h"
 #include "aub_mem_dump/page_table.h"
 
 #include "aubstream/aubstream.h"
@@ -335,11 +336,21 @@ TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExec
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
 
-    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+    GroupContextHelper helper;
+
+    // Initialize contextGroups contexts
+    auto contextGroupCount = gpu->getContextGroupCount();
+    for (auto i = 0; i < arrayCount(helper.contextGroups); i++) {
+        for (auto j = 0; j < arrayCount(helper.contextGroups[i]); j++) {
+            helper.contextGroups[i][j].contexts.resize(contextGroupCount);
+        }
+    }
+
+    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
     context0.initialize();
-    HardwareContextImp context1(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+    HardwareContextImp context1(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
     context1.initialize();
-    HardwareContextImp context2(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+    HardwareContextImp context2(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
     context2.initialize();
     ::testing::Mock::VerifyAndClearExpectations(&stream);
 
@@ -369,8 +380,6 @@ TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExec
     EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, _)).Times(1);
 
     context2.submitBatchBuffer(0x100, false);
-
-    HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter = 0;
 }
 
 TEST_F(HardwareContextTest, givenGroupContextWhenMainHardwareContextDestroyedThenGroupIsFreed) {
@@ -381,12 +390,22 @@ TEST_F(HardwareContextTest, givenGroupContextWhenMainHardwareContextDestroyedThe
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
 
+    GroupContextHelper helper;
+
+    // Initialize contextGroups contexts
+    auto contextGroupCount = gpu->getContextGroupCount();
+    for (auto i = 0; i < arrayCount(helper.contextGroups); i++) {
+        for (auto j = 0; j < arrayCount(helper.contextGroups[i]); j++) {
+            helper.contextGroups[i][j].contexts.resize(contextGroupCount);
+        }
+    }
+
     {
-        auto context0 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+        auto context0 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
         context0->initialize();
-        auto context1 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+        auto context1 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
         context1->initialize();
-        auto context2 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+        auto context2 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
         context2->initialize();
 
         ::testing::Mock::VerifyAndClearExpectations(&stream);
@@ -395,14 +414,14 @@ TEST_F(HardwareContextTest, givenGroupContextWhenMainHardwareContextDestroyedThe
 
         context2->submitBatchBuffer(0x100, false);
 
-        EXPECT_EQ(3u, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter);
-        EXPECT_NE(nullptr, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contexts[0]);
-        EXPECT_NE(nullptr, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contexts[2]);
+        EXPECT_EQ(3u, helper.contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter);
+        EXPECT_NE(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType].contexts[0]);
+        EXPECT_NE(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType].contexts[2]);
     }
 
-    EXPECT_EQ(0u, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter);
-    EXPECT_EQ(nullptr, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contexts[0]);
-    EXPECT_EQ(nullptr, HardwareContextImp::contextGroups[defaultDevice][csHelper.engineType].contexts[2]);
+    EXPECT_EQ(0u, helper.contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter);
+    EXPECT_EQ(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType].contexts[0]);
+    EXPECT_EQ(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType].contexts[2]);
 }
 
 HWTEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContextThenContextDescriptorHasCorrectBitsSet, (HwMatcher::And<HwMatcher::coreAboveGen11, HwMatcher::coreBelowEqualGen12Core>)) {

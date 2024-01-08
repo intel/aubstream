@@ -42,6 +42,13 @@ AubManagerImp::AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOp
                                                                                                   stolenMem(StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3, options.devicesCount, options.memoryBankSize)),
                                                                                                   sharedMemoryInfo(options.sharedMemoryInfo),
                                                                                                   enableThrow(options.throwOnError) {
+    groupContextHelper = std::make_unique<GroupContextHelper>();
+    auto contextGroupCount = this->gpu->getContextGroupCount();
+    for (size_t i = 0; i < arrayCount(groupContextHelper->contextGroups); i++) {
+        for (size_t j = 0; j < arrayCount(groupContextHelper->contextGroups[i]); j++) {
+            groupContextHelper->contextGroups[i][j].contexts.resize(contextGroupCount);
+        }
+    }
 }
 
 AubManagerImp::~AubManagerImp() {
@@ -225,7 +232,7 @@ HardwareContext *AubManagerImp::createHardwareContext(uint32_t device, uint32_t 
     auto &csTraits = gpu->getCommandStreamerHelper(device, static_cast<EngineType>(engine));
     AubStream *stream = getStream();
 
-    auto ctxt = new HardwareContextImp(device, *stream, csTraits, *ggtts[device], *ppgtts[device], flags);
+    auto ctxt = new HardwareContextImp(device, *stream, csTraits, *ggtts[device], *ppgtts[device], groupContextHelper.get(), flags);
 
     hwContexts.push_back(ctxt);
 
@@ -417,6 +424,7 @@ AubStream *AubManagerImp::getStream() {
 AubManager *AubManager::create(const struct AubManagerOptions &options) {
     std::unique_ptr<Gpu> gpu;
     std::unique_ptr<Settings> settings;
+
     if (globalSettings == nullptr) {
         settings = std::make_unique<Settings>();
         globalSettings = settings.get();
@@ -429,14 +437,6 @@ AubManager *AubManager::create(const struct AubManagerOptions &options) {
         }
     }
     if (nullptr != gpu) {
-
-        auto contextGroupCount = gpu->getContextGroupCount();
-        for (size_t i = 0; i < arrayCount(HardwareContextImp::contextGroups); i++) {
-            for (size_t j = 0; j < arrayCount(HardwareContextImp::contextGroups[i]); j++) {
-                HardwareContextImp::contextGroups[i][j].contexts.resize(contextGroupCount);
-            }
-        }
-
         auto aubManager = new AubManagerImp(std::move(gpu), options);
         aubManager->initialize();
         aubManager->setSettings(std::move(settings));

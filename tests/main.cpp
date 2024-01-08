@@ -58,14 +58,6 @@ int runTests(const Gpu *gpu) {
         defaultPageSize = 65536u;
     }
 
-    // Initialize contextGroups contexts
-    auto contextGroupCount = gpu->getContextGroupCount();
-    for (auto i = 0; i < arrayCount(HardwareContextImp::contextGroups); i++) {
-        for (auto j = 0; j < arrayCount(HardwareContextImp::contextGroups[i]); j++) {
-            HardwareContextImp::contextGroups[i][j].contexts.resize(contextGroupCount);
-        }
-    }
-
     std::cout << "\n---------------------------------------------------\n";
     std::cout << "\nRunning tests for: "
               << gpu->productAbbreviation << "_" << traits->deviceSliceCount << "x" << traits->deviceSubSliceCount << "x" << traits->deviceEuPerSubSlice << std::endl;

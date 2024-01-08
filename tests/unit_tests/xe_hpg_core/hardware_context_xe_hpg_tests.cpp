@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -33,7 +33,7 @@ TEST_F(HardwareContextTest, givenExeclistSubmitPortSubmissionEnabledWhenSubmitti
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
 
-    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, (1 << 15));
+    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, aubManager->getGroupContextHelper(), (1 << 15));
     context0.initialize();
 
     ::testing::Mock::VerifyAndClearExpectations(&stream);

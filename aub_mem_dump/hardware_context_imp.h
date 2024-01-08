@@ -17,9 +17,14 @@ struct AubStream;
 struct CommandStreamerHelper;
 struct HardwareContextImp;
 
-struct GroupContextHelper {
+struct ContextGroup {
     uint32_t contextGroupCounter = 0;
     std::vector<HardwareContextImp *> contexts = {};
+};
+
+struct GroupContextHelper {
+    // Per device, per Engine (engine offset)
+    ContextGroup contextGroups[4][EngineType::NUM_ENGINES];
 };
 
 struct HardwareContextImp : public HardwareContext {
@@ -29,7 +34,9 @@ struct HardwareContextImp : public HardwareContext {
     uint32_t contextGroupId = -1;
     uint32_t priority = priorityNormal;
 
-    HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggtt, PageTable &ppgtt, uint32_t flags);
+    HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggtt, PageTable &ppgtt, uint32_t flags) : HardwareContextImp(deviceIndex, aubStream, traits, ggtt, ppgtt, nullptr, flags){};
+
+    HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggtt, PageTable &ppgtt, GroupContextHelper *groupHelper, uint32_t flags);
 
     ~HardwareContextImp() override;
     HardwareContextImp(const HardwareContextImp &) = delete;
@@ -72,8 +79,7 @@ struct HardwareContextImp : public HardwareContext {
     static uint32_t globalContextId;
     uint32_t contextId{globalContextId++};
 
-    // Per device, per Engine (engine offset)
-    static GroupContextHelper contextGroups[4][EngineType::NUM_ENGINES];
+    GroupContextHelper *contextGroupHelper;
 };
 
 } // namespace aub_stream
