@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -33,6 +33,7 @@ class TbxSockets {
     virtual bool writeMMIO(uint32_t offset, uint32_t value) = 0;
 
     virtual bool readPCICFG(uint32_t bus, uint32_t device, uint32_t function, uint32_t offset, uint32_t *value) = 0;
+    virtual bool writePCICFG(uint32_t bus, uint32_t device, uint32_t function, uint32_t offset, uint32_t value) = 0;
 
     virtual void enableThrowOnError(bool enabled) = 0;
 

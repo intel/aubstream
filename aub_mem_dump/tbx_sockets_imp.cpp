@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -222,7 +222,6 @@ bool TbxSocketsImp::connectToServer(const std::string &hostNameOrIp, uint16_t po
 bool TbxSocketsImp::checkServerConfig(bool frontdoor) {
     // note: we can use INNER_VAR message to check specific server configuration parameters,
     // e.g. support for frontdoor read/writes requests and *_EXT messages with 64b physical address
-
     if (frontdoor) {
         // read LMEMBAR value
         constexpr uint64_t LMEMBAR_DFLT = 0x000ffff000000000;
@@ -296,6 +295,24 @@ bool TbxSocketsImp::writeMMIO(uint32_t offset, uint32_t value) {
     cmd.u.mmio_req.data = value;
     cmd.u.mmio_req.write = 1;
     cmd.u.mmio_req.size = sizeof(uint32_t);
+
+    return sendWriteData(&cmd, sizeof(HAS_HDR) + cmd.hdr.size);
+}
+
+bool TbxSocketsImp::writePCICFG(uint32_t bus, uint32_t device, uint32_t function, uint32_t offset, uint32_t value) {
+    std::lock_guard<std::mutex> lock(socket_mutex);
+    HAS_MSG cmd;
+    memset(&cmd, 0, sizeof(cmd));
+    cmd.hdr.msg_type = HAS_PCICFG_REQ_TYPE;
+    cmd.hdr.size = sizeof(HAS_PCICFG_REQ);
+    cmd.hdr.trans_id = transID++;
+    cmd.u.pcicfg_req.offset = offset;
+    cmd.u.pcicfg_req.bus = bus;
+    cmd.u.pcicfg_req.device = device;
+    cmd.u.pcicfg_req.function = function;
+    cmd.u.pcicfg_req.data = value;
+    cmd.u.pcicfg_req.write = 1;
+    cmd.u.pcicfg_req.size = sizeof(uint32_t);
 
     return sendWriteData(&cmd, sizeof(HAS_HDR) + cmd.hdr.size);
 }

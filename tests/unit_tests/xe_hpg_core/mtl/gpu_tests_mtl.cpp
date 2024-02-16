@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -37,7 +37,7 @@ TEST(Gpu, givenMtlWhenInitializeDefaultMemoryPoolsThenFileStreamNotInitializeFla
     TEST_REQUIRES(gpu->productFamily == ProductFamily::Mtl);
 
     MockAubFileStream stream;
-    auto sm = StolenMemory::CreateStolenMemory(false, 1, 1);
+    auto sm = StolenMemory::CreateStolenMemory(false, 1, 1, 1 * MB);
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
     EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(0);
 
@@ -63,7 +63,7 @@ TEST(Gpu, givenMtlAndTbxStreamWhenInitializeDefaultMemoryPoolsThenNotInitializeF
     TEST_REQUIRES(gpu->productFamily == ProductFamily::Mtl);
 
     MockTbxStream stream;
-    auto sm = StolenMemory::CreateStolenMemory(false, 1, 1);
+    auto sm = StolenMemory::CreateStolenMemory(false, 1, 1, 1 * MB);
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
     EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(0);
 
@@ -89,7 +89,7 @@ TEST(Gpu, givenMtlWhenInitializeDefaultMemoryPoolsThenNotInitializeFlatCcsBaseAd
         EXPECT_CALL(stream, writeMMIO((i * mmioDeviceOffset) + 0x00004910, mmioValue)).Times(0);
     }
 
-    auto sm = StolenMemory::CreateStolenMemory(false, numDevices, perDeviceHbmSize);
+    auto sm = StolenMemory::CreateStolenMemory(false, numDevices, perDeviceHbmSize, 1 * MB);
     gpu->initializeDefaultMemoryPools(stream, numDevices, perDeviceHbmSize, *sm);
 }
 

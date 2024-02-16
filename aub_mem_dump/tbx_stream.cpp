@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -78,6 +78,15 @@ void TbxStream::writeMMIO(uint32_t offset, uint32_t value) {
         << "   =: " << std::hex << std::showbase << value;
 
     socket->writeMMIO(offset, value);
+}
+
+void TbxStream::writePCICFG(uint32_t offset, uint32_t value) {
+    socket->writePCICFG(0, 2, 0, offset, value);
+}
+uint32_t TbxStream::readPCICFG(uint32_t offset) {
+    uint32_t value;
+    socket->readPCICFG(0, 2, 0, offset, &value);
+    return value;
 }
 
 uint32_t TbxStream::readMMIO(uint32_t offset) {

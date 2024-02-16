@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -444,7 +444,7 @@ void GpuXeHpCore::setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount, 
 uint64_t GpuXeHpCore::getGGTTBaseAddress(uint32_t device, uint64_t memoryBankSize, uint64_t stolenMemoryBaseAddress) const {
     const auto flatCcsSize = memoryBankSize / 256;
     const uint64_t flatCcsSizeAligned = alignUp(flatCcsSize, 20);
-    return stolenMemoryBaseAddress + flatCcsSizeAligned + 1 * MB;
+    return stolenMemoryBaseAddress + flatCcsSizeAligned;
 }
 
 PageTable *GpuXeHpCore::allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const {
@@ -458,5 +458,4 @@ void GpuXeHpCore::initializeFlatCcsBaseAddressMmio(AubStream &stream, uint32_t d
     mmioValue |= 1;                                                      // [0] enable bit
     stream.writeMMIO(mmioDevice + 0x4910, mmioValue);
 }
-
 } // namespace aub_stream

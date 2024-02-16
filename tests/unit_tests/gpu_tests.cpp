@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -62,4 +62,31 @@ TEST(Gpu, gen12lpGivenOneIntegratedDeviceSetMemoryBankSizeOnlyDefinesOneBank) {
     auto deviceCount = 1;
     auto memoryBankSize = 0 * GB;
     gpu->setMemoryBankSize(stream, deviceCount, memoryBankSize);
+}
+
+using GpuForStolenTest = ::testing::Test;
+HWTEST_F(GpuForStolenTest, isValidDataStolenMemorySizeForVariousInputCoreBelowEqualXeHpc, HwMatcher::coreBelowEqualXeHpc) {
+    auto gpu = createGpuFunc();
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x123), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x123000), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x12300), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x1230000), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x02300000), true);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x02300001), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0xf2300001), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0xf2300000), false);
+}
+
+HWTEST_F(GpuForStolenTest, isValidDataStolenMemorySizeForVariousInputCoreAboveXeHpc, HwMatcher::Not<HwMatcher::coreBelowEqualXeHpc>) {
+    auto gpu = createGpuFunc();
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x123), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x123000), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x12300), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x1230000), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x02300000), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0x02300001), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0xf2300001), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(0xf2300000), false);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(4 * 1024 * 1024), true);
+    EXPECT_EQ(gpu->isValidDataStolenMemorySize(64 * 1024 * 1024), true);
 }

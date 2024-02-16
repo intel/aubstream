@@ -39,7 +39,7 @@ AubManagerImp::AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOp
                                                                                                   memoryBankSize(options.memoryBankSize),
                                                                                                   streamMode(options.mode),
                                                                                                   gpuAddressSpace(options.gpuAddressSpace),
-                                                                                                  stolenMem(StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3, options.devicesCount, options.memoryBankSize)),
+                                                                                                  stolenMem(StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3, options.devicesCount, options.memoryBankSize, options.dataStolenMemorySize)),
                                                                                                   sharedMemoryInfo(options.sharedMemoryInfo),
                                                                                                   enableThrow(options.throwOnError) {
     groupContextHelper = std::make_unique<GroupContextHelper>();
@@ -58,6 +58,9 @@ AubManagerImp::~AubManagerImp() {
 }
 
 void AubManagerImp::initialize() {
+    if (!stolenMem || !gpu->isValidDataStolenMemorySize(stolenMem->dsmSize)) {
+        return;
+    }
 
     createStream();
 
@@ -446,6 +449,26 @@ AubManager *AubManager::create(const struct AubManagerOptions &options) {
         delete aubManager;
     }
     return nullptr;
+}
+
+void AubManagerImp::writeMMIO(uint32_t offset, uint32_t value) {
+    AubStream *stream = getStream();
+    stream->writeMMIO(offset, value);
+}
+
+void AubManagerImp::writePCICFG(uint32_t offset, uint32_t value) {
+    AubStream *stream = getStream();
+    stream->writePCICFG(offset, value);
+}
+
+uint32_t AubManagerImp::readPCICFG(uint32_t offset) {
+    AubStream *stream = getStream();
+    return stream->readPCICFG(offset);
+}
+
+uint32_t AubManagerImp::readMMIO(uint32_t offset) {
+    AubStream *stream = getStream();
+    return stream->readMMIO(offset);
 }
 
 void AubManagerImp::throwErrorIfEnabled(const std::string &str) {

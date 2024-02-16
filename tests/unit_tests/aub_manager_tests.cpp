@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -376,13 +376,51 @@ HWTEST_F(AubManagerTest, givenInvalidProductFamilyForSHM3WhenAubManagerCreateCal
     EXPECT_EQ(nullptr, aubManager);
 }
 
+TEST(AubManagerTest, givenTooMuchStolenMemorySizeWhenAubManagerCreateCalledThenNullptrReturned) {
+    uint8_t sysMem[0x1000];
+    uint8_t lMem[0x1000];
+    AubManagerOptions options;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = defaultHBMSizePerDevice;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = mode::tbxShm;
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = false;
+    options.sharedMemoryInfo = {sysMem, 0x1000, lMem, 0x1000};
+    options.dataStolenMemorySize = defaultHBMSizePerDevice;
+    auto aubManager = AubManager::create(options);
+    EXPECT_EQ(nullptr, aubManager);
+}
+
+TEST(AubManagerTest, givenInvalidStolenMemorySizeWhenAubManagerCreateCalledThenNullptrReturned) {
+    uint8_t sysMem[0x1000];
+    uint8_t lMem[0x1000];
+    AubManagerOptions options;
+    options.version = 1;
+    options.productFamily = static_cast<uint32_t>(gpu->productFamily);
+    options.devicesCount = defaultDeviceCount;
+    options.memoryBankSize = defaultHBMSizePerDevice;
+    options.stepping = defaultStepping;
+    options.localMemorySupported = true;
+    options.mode = mode::tbxShm;
+    options.gpuAddressSpace = maxNBitValue(48);
+    options.throwOnError = false;
+    options.sharedMemoryInfo = {sysMem, 0x1000, lMem, 0x1000};
+    options.dataStolenMemorySize = 4 * MB + 1;
+    auto aubManager = AubManager::create(options);
+    EXPECT_EQ(nullptr, aubManager);
+}
+
 HWTEST_F(AubManagerTest, ggttBaseAddressIsCorrect, HwMatcher::coreAboveEqualXeHp) {
 
     bool localMemorySupport = false;
     MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::aubFile);
     aubManager.initialize();
 
-    auto sm = StolenMemory::CreateStolenMemory(false, 1, defaultHBMSizePerDevice);
+    auto sm = StolenMemory::CreateStolenMemory(false, 1, defaultHBMSizePerDevice, 4 * MB);
 
     EXPECT_EQ(1u, aubManager.ggtts.size());
     if (!gpu->requireLocalMemoryForPageTables()) {
@@ -714,6 +752,22 @@ TEST(AubManager, givenAubManagerMapsGpuVaEachPPGTTIsMapped) {
     }
 
     aubManager.mapGpuVa2(physicalAddress, allocationParams);
+}
+
+TEST(AubManager, givenAubManagerDoMMIOAndPCICFGOperations) {
+    MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::tbx);
+    aubManager.initialize();
+    MockTbxStream *stream = new MockTbxStream;
+    aubManager.streamTbx.reset(stream);
+
+    EXPECT_CALL(*stream, readMMIO(0x1234)).Times(1);
+    aubManager.readMMIO(0x1234);
+    EXPECT_CALL(*stream, writeMMIO(0x4321, 0xabcd)).Times(1);
+    aubManager.writeMMIO(0x4321, 0xabcd);
+    EXPECT_CALL(*stream, readPCICFG(0x1234)).Times(1);
+    aubManager.readPCICFG(0x1234);
+    EXPECT_CALL(*stream, writePCICFG(0x4321, 0xabcd)).Times(1);
+    aubManager.writePCICFG(0x4321, 0xabcd);
 }
 
 TEST(AubManager, givenAubManagerSHM4WhenCallingReservePhysicalMemoryRedirectsToPhysicalAllocator) {

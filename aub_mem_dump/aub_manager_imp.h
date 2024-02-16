@@ -72,6 +72,10 @@ class AubManagerImp : public AubManager {
     GroupContextHelper *getGroupContextHelper() {
         return groupContextHelper.get();
     }
+    void writePCICFG(uint32_t offset, uint32_t value) override;
+    uint32_t readPCICFG(uint32_t offset) override;
+    uint32_t readMMIO(uint32_t offset) override;
+    void writeMMIO(uint32_t offset, uint32_t value) override;
 
   protected:
     virtual void createStream();

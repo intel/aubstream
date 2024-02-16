@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -93,15 +93,34 @@ void TbxShmStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t
 }
 
 void TbxShmStream::writeMMIO(uint32_t offset, uint32_t value) {
-    log << "MMIO: " << std::hex << std::showbase << offset
+    log << "MMIO write: " << std::hex << std::showbase << offset
         << "   =: " << std::hex << std::showbase << value;
 
     socket->writeMMIO(offset, value);
 }
 
+uint32_t TbxShmStream::readPCICFG(uint32_t offset) {
+    uint32_t value;
+    socket->readPCICFG(0, 2, 0, offset, &value);
+
+    log << "PCICFG read: " << std::hex << std::showbase << offset
+        << "   =: " << std::hex << std::showbase << value;
+    return value;
+}
+
+void TbxShmStream::writePCICFG(uint32_t offset, uint32_t value) {
+    log << "PCICFG write: " << std::hex << std::showbase << offset
+        << "   =: " << std::hex << std::showbase << value;
+
+    socket->writePCICFG(0, 2, 0, offset, value);
+}
+
 uint32_t TbxShmStream::readMMIO(uint32_t offset) {
     uint32_t value;
     socket->readMMIO(offset, &value);
+
+    log << "MMIO read: " << std::hex << std::showbase << offset
+        << "   =: " << std::hex << std::showbase << value;
     return value;
 }
 

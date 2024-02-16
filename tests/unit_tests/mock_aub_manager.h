@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -30,10 +30,10 @@ class MockAubManager : public AubManagerImp {
     using AubManagerImp::streamTbxShm;
 
     MockAubManager(std::unique_ptr<Gpu> gpu, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping, bool localMemorySupported, uint32_t streamMode)
-        : AubManagerImp(std::move(gpu), {/* version */ 0, /* Product Family not used*/ 0, devicesCount, memoryBankSize, stepping, localMemorySupported, streamMode, gpuAddressSpace48}) {}
+        : AubManagerImp(std::move(gpu), {/* version */ 0, /* Product Family not used*/ 0, devicesCount, memoryBankSize, stepping, localMemorySupported, streamMode, gpuAddressSpace48, {}, {}, 4 * MB}) {}
 
     MockAubManager(std::unique_ptr<Gpu> gpu, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping, bool localMemorySupported, uint32_t streamMode, const SharedMemoryInfo &sharedMemoryInfo)
-        : AubManagerImp(std::move(gpu), {/* version */ 0, /* Product Family not used*/ 0, devicesCount, memoryBankSize, stepping, localMemorySupported, streamMode, gpuAddressSpace48, sharedMemoryInfo}) {}
+        : AubManagerImp(std::move(gpu), {/* version */ 0, /* Product Family not used*/ 0, devicesCount, memoryBankSize, stepping, localMemorySupported, streamMode, gpuAddressSpace48, sharedMemoryInfo, {}, 4 * MB}) {}
 
     virtual void createStream() override {
         if (gpu->productFamily <= ProductFamily::Arl) {
@@ -42,26 +42,37 @@ class MockAubManager : public AubManagerImp {
             streamTbx = std::make_unique<MockReadMMIOTbxStream>();
             uint32_t localMemDevicesCount = 0;
             for (uint32_t i = 0; i < devicesCount; i++) {
-                localMemDevicesCount = gpu->isMemorySupported(MEMORY_BANK_0 << i, 0x10000) ? 1 : 0;
+                localMemDevicesCount += gpu->isMemorySupported(MEMORY_BANK_0 << i, 0x10000) ? 1 : 0;
             }
-            EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(localMemDevicesCount).WillRepeatedly(::testing::Return(1));
-            ;
+            if (localMemDevicesCount == 0) {
+                EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(0);
+            } else {
+                EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(localMemDevicesCount).WillRepeatedly(::testing::Return(0x10000));
+            }
         } else if (streamMode == aub_stream::mode::tbxShm || streamMode == aub_stream::mode::tbxShm4) {
             uint32_t localMemDevicesCount = 0;
             for (uint32_t i = 0; i < devicesCount; i++) {
-                localMemDevicesCount = gpu->isMemorySupported(MEMORY_BANK_0 << i, 0x10000) ? 1 : 0;
+                localMemDevicesCount += gpu->isMemorySupported(MEMORY_BANK_0 << i, 0x10000) ? 1 : 0;
             }
             streamTbxShm = std::make_unique<MockReadMMIOTbxShmStream>(streamMode);
-            EXPECT_CALL(*static_cast<MockReadMMIOTbxShmStream *>(streamTbxShm.get()), readMMIO(0x9118)).Times(localMemDevicesCount).WillRepeatedly(::testing::Return(1));
+            if (localMemDevicesCount == 0) {
+                EXPECT_CALL(*static_cast<MockReadMMIOTbxShmStream *>(streamTbxShm.get()), readMMIO(0x9118)).Times(0);
+            } else {
+                EXPECT_CALL(*static_cast<MockReadMMIOTbxShmStream *>(streamTbxShm.get()), readMMIO(0x9118)).Times(localMemDevicesCount).WillRepeatedly(::testing::Return(0x10000));
+            }
         } else if (streamMode == aub_stream::mode::aubFileAndTbx) {
             uint32_t localMemDevicesCount = 0;
             for (uint32_t i = 0; i < devicesCount; i++) {
-                localMemDevicesCount = gpu->isMemorySupported(MEMORY_BANK_0 << i, 0x10000) ? 1 : 0;
+                localMemDevicesCount += gpu->isMemorySupported(MEMORY_BANK_0 << i, 0x10000) ? 1 : 0;
             }
             streamTbx = std::make_unique<MockReadMMIOTbxStream>();
             streamAub = std::make_unique<AubFileStream>();
             streamAubTbx = std::make_unique<AubTbxStream>(*streamAub, *streamTbx);
-            EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(localMemDevicesCount).WillRepeatedly(::testing::Return(1));
+            if (localMemDevicesCount == 0) {
+                EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(0);
+            } else {
+                EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(localMemDevicesCount).WillRepeatedly(::testing::Return(0x10000));
+            }
         } else {
             AubManagerImp::createStream();
         }

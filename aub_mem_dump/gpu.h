@@ -28,13 +28,19 @@ struct PhysicalAddressAllocator;
 enum class ProductFamily : uint32_t;
 
 struct StolenMemory {
+    StolenMemory(uint64_t dataStolenMemorySize) : dsmSize(dataStolenMemorySize) {}
     virtual uint64_t getBaseAddress(uint32_t device) const = 0;
-    static std::unique_ptr<StolenMemory> CreateStolenMemory(bool inHeap, uint32_t deviceCount, uint64_t memoryBankSize);
+    static std::unique_ptr<StolenMemory> CreateStolenMemory(bool inHeap, uint32_t deviceCount, uint64_t memoryBankSize, uint64_t dataStolenMemorySize);
     virtual ~StolenMemory() = default;
+
+    uint64_t dsmSize;
+
+    // Defaults
+    static const uint64_t ggttSize = 8 * 1024 * 1024;
 };
 
 struct StolenMemoryInHeap : public StolenMemory {
-    StolenMemoryInHeap(uint32_t deviceCount, uint64_t memoryBankSize);
+    StolenMemoryInHeap(uint32_t deviceCount, uint64_t memoryBankSize, uint64_t dataStolenMemorySize);
     uint64_t getBaseAddress(uint32_t device) const override;
 
   protected:
@@ -42,7 +48,7 @@ struct StolenMemoryInHeap : public StolenMemory {
 };
 
 struct StolenMemoryInStaticStorage : public StolenMemory {
-    StolenMemoryInStaticStorage(uint64_t memoryBankSize);
+    StolenMemoryInStaticStorage(uint64_t memoryBankSize, uint64_t dataStolenMemorySize);
     uint64_t getBaseAddress(uint32_t device) const override;
 
   protected:
@@ -75,6 +81,8 @@ struct Gpu : public GpuDescriptor {
     virtual void initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping) const;
     virtual void initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {};
     bool isEngineSupported(uint32_t engine) const;
+
+    virtual bool isValidDataStolenMemorySize(uint64_t dataStolenMemorySize) const;
 
     virtual uint64_t getPPGTTExtraEntryBits(const AllocationParams::AdditionalParams &allocationParams) const { return 0; }
 

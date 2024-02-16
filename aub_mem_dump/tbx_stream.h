@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -26,6 +26,8 @@ struct TbxStream : public AubStream {
     void reserveContiguousPages(const std::vector<uint64_t> &entries) override;
     void writeMMIO(uint32_t offset, uint32_t value) override;
     uint32_t readMMIO(uint32_t offset) override;
+    void writePCICFG(uint32_t offset, uint32_t value) override;
+    uint32_t readPCICFG(uint32_t offset) override;
 
     uint32_t getStreamMode() const override { return aub_stream::mode::tbx; };
 

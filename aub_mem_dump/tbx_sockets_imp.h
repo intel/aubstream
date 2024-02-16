@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -42,6 +42,7 @@ class TbxSocketsImp : public TbxSockets {
     bool writeMMIO(uint32_t offset, uint32_t data) override;
 
     bool readPCICFG(uint32_t bus, uint32_t device, uint32_t function, uint32_t offset, uint32_t *value) override;
+    bool writePCICFG(uint32_t bus, uint32_t device, uint32_t function, uint32_t offset, uint32_t data) override;
 
     void enableThrowOnError(bool enabled) override;
 

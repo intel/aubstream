@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -11,13 +11,13 @@
 namespace aub_stream {
 
 struct MockStolenMemoryInStaticStorage : public StolenMemoryInStaticStorage {
-    MockStolenMemoryInStaticStorage(uint64_t memoryBankSize) : StolenMemoryInStaticStorage(memoryBankSize) {
+    MockStolenMemoryInStaticStorage(uint64_t memoryBankSize, uint64_t dataStolenMemorySize) : StolenMemoryInStaticStorage(memoryBankSize, dataStolenMemorySize) {
     }
     using StolenMemoryInStaticStorage::staticMemoryBankSize;
 };
 
 struct MockStolenMemoryInHeap : public StolenMemoryInHeap {
-    MockStolenMemoryInHeap(uint32_t deviceCount, uint64_t memoryBankSize) : StolenMemoryInHeap(deviceCount, memoryBankSize) {
+    MockStolenMemoryInHeap(uint32_t deviceCount, uint64_t memoryBankSize, uint64_t dataStolenMemorySize) : StolenMemoryInHeap(deviceCount, memoryBankSize, dataStolenMemorySize) {
     }
     using StolenMemoryInHeap::localStolenStorage;
 };

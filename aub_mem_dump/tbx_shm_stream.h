@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -35,6 +35,8 @@ struct TbxShmStream : public AubStream {
     void reserveContiguousPages(const std::vector<uint64_t> &entries) override;
     void writeMMIO(uint32_t offset, uint32_t value) override;
     uint32_t readMMIO(uint32_t offset) override;
+    void writePCICFG(uint32_t offset, uint32_t value) override;
+    uint32_t readPCICFG(uint32_t offset) override;
 
     bool init(TranslatePhysicalAddressToSystemMemoryFn fn);
     void readMemory(PageTable *ppgtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize);

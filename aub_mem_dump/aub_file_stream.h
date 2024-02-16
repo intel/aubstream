@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -27,6 +27,8 @@ struct AubFileStream : public AubStream {
     uint32_t readMMIO(uint32_t offset) override {
         return 0;
     }
+    void writePCICFG(uint32_t offset, uint32_t value) override {}
+    uint32_t readPCICFG(uint32_t offset) override { return 0; }
 
     uint32_t getStreamMode() const override { return aub_stream::mode::aubFile; };
 

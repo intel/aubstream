@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -131,6 +131,11 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenAubFileStreamIsPaused) {
 
     EXPECT_CALL(*tbxStream, readMMIO(_)).Times(1);
 
+    EXPECT_CALL(*fileStream, writePCICFG(_, _)).Times(0);
+    EXPECT_CALL(*tbxStream, writePCICFG(_, _)).Times(1);
+
+    EXPECT_CALL(*tbxStream, readPCICFG(_)).Times(1);
+
     EXPECT_CALL(*fileStream, expectMemoryTable(_, _, _, _)).Times(0);
     EXPECT_CALL(*tbxStream, expectMemoryTable(_, _, _, _)).Times(1);
 
@@ -159,6 +164,9 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenAubFileStreamIsPaused) {
     aubTbxStream->registerPoll(10, 10, 10, false, 10);
     aubTbxStream->writeMMIO(20, 20);
     aubTbxStream->readMMIO(24);
+
+    aubTbxStream->writePCICFG(0x88, 30);
+    aubTbxStream->readPCICFG(0x84);
 
     std::vector<PageInfo> writeInfoTable;
     aubTbxStream->expectMemoryTable(nullptr, 0, writeInfoTable, CmdServicesMemTraceMemoryCompare::CompareOperationValues::CompareEqual);
@@ -212,6 +220,7 @@ TEST(AubShmStreamTest, writeContiguousPagesInSHMModeWithCorrectValuesThenTransla
         p = &outVal;
         availableSize = size;
     });
+    EXPECT_CALL(stream, checkSocketAlive()).Times(1);
     stream.baseWriteContiguousPages(&inVal, sizeof(inVal), 0x1AC000, aub_stream::AddressSpaceValues::TraceNonlocal, 0);
     EXPECT_EQ(inVal, outVal);
 }
@@ -226,6 +235,7 @@ TEST(AubShmStreamTest, writeContiguousPagesInSHM3ModeWithCorrectValuesThenTransl
         p = &outVal;
         availableSize = size;
     });
+    EXPECT_CALL(stream, checkSocketAlive()).Times(1);
     stream.baseWriteContiguousPages(&inVal, sizeof(inVal), 0x1AC000, aub_stream::AddressSpaceValues::TraceNonlocal, 0);
     EXPECT_EQ(inVal, outVal);
 }
@@ -240,6 +250,7 @@ TEST(AubShmStreamTest, writeContiguousPagesInSHM4ModeWithCorrectValuesThenTransl
         p = &outVal;
         availableSize = size;
     });
+    EXPECT_CALL(stream, checkSocketAlive()).Times(1);
     stream.baseWriteContiguousPages(&inVal, sizeof(inVal), 0x1AB000, aub_stream::AddressSpaceValues::TraceNonlocal, 0);
     EXPECT_EQ(inVal, outVal);
 }

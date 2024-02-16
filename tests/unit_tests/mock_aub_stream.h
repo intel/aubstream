@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -30,6 +30,8 @@ struct MockAubStreamBase : public AubStream {
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
     MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
+    MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
+    MOCK_METHOD1(readPCICFG, uint32_t(uint32_t offset));
     MOCK_METHOD5(writeContiguousPages, void(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint));
     MOCK_METHOD1(reserveContiguousPages, void(const std::vector<uint64_t> &entries));
     MOCK_METHOD3(readDiscontiguousPages, void(void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable));
@@ -57,7 +59,7 @@ struct MockAubFileStream : public AubFileStream {
 
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
-
+    MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
     MOCK_METHOD4(expectMemoryTable, void(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, uint32_t compareOperation));
     MOCK_METHOD1(reserveContiguousPages, void(const std::vector<uint64_t> &entries));
     MOCK_METHOD3(readDiscontiguousPages, void(void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable));
@@ -82,7 +84,8 @@ struct MockTbxStream : public TbxStream {
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
     MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
-
+    MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
+    MOCK_METHOD1(readPCICFG, uint32_t(uint32_t offset));
     MOCK_METHOD4(expectMemoryTable, void(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, uint32_t compareOperation));
     MOCK_METHOD1(reserveContiguousPages, void(const std::vector<uint64_t> &entries));
     MOCK_METHOD3(readDiscontiguousPages, void(void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable));
@@ -120,6 +123,8 @@ struct MockTbxShmStream : public TbxShmStream {
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
     MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
+    MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
+    MOCK_METHOD1(readPCICFG, uint32_t(uint32_t offset));
 
     MOCK_METHOD4(expectMemoryTable, void(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, uint32_t compareOperation));
     MOCK_METHOD1(reserveContiguousPages, void(const std::vector<uint64_t> &entries));
