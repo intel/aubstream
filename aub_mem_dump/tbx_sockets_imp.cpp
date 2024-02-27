@@ -6,11 +6,13 @@
  */
 
 #include "tbx_sockets_imp.h"
+#include "aub_mem_dump/settings.h"
 #include <cassert>
 #include <iostream>
 #include <exception>
 #include <stdexcept>
 #include <chrono>
+#include <thread>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -161,6 +163,14 @@ bool TbxSocketsImp::init(const std::string &hostNameOrIp, uint16_t port, bool fr
 
 bool TbxSocketsImp::connectToServer(const std::string &hostNameOrIp, uint16_t port) {
     constexpr uint64_t timeoutInSeconds = 60;
+    uint32_t connectionDelayInSeconds = 1;
+
+    if (globalSettings->TbxConnectionDelayInSeconds.get() != -1) {
+        connectionDelayInSeconds = static_cast<uint32_t>(globalSettings->TbxConnectionDelayInSeconds.get());
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(connectionDelayInSeconds));
+
     std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
     bool retryOnError = false;
 
