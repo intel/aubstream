@@ -87,6 +87,7 @@ int main(int argc, char **argv) {
 
     std::unique_ptr<Settings> settings = std::make_unique<Settings>();
     globalSettings = settings.get();
+    globalSettings->TbxConnectionDelayInSeconds.set(0);
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
