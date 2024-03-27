@@ -12,6 +12,7 @@
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/hardware_context_imp.h"
+#include "aub_mem_dump/null_hardware_context.h"
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/physical_address_allocator.h"
@@ -205,6 +206,9 @@ void AubManagerImp::close() {
 }
 
 bool AubManagerImp::isOpen() {
+    if (streamMode == aub_stream::mode::null) {
+        return true;
+    }
     if (streamAub) {
         return streamAub->isOpen();
     }
@@ -232,14 +236,18 @@ void AubManagerImp::addComment(const char *message) {
 }
 
 HardwareContext *AubManagerImp::createHardwareContext(uint32_t device, uint32_t engine, uint32_t flags) {
-    auto &csTraits = gpu->getCommandStreamerHelper(device, static_cast<EngineType>(engine));
-    AubStream *stream = getStream();
+    HardwareContext *context = nullptr;
+    if (streamMode == aub_stream::mode::null) {
+        context = new NullHardwareContext();
+    } else {
+        auto &csTraits = gpu->getCommandStreamerHelper(device, static_cast<EngineType>(engine));
+        AubStream *stream = getStream();
 
-    auto ctxt = new HardwareContextImp(device, *stream, csTraits, *ggtts[device], *ppgtts[device], groupContextHelper.get(), flags);
+        context = new HardwareContextImp(device, *stream, csTraits, *ggtts[device], *ppgtts[device], groupContextHelper.get(), flags);
+    }
+    hwContexts.push_back(context);
 
-    hwContexts.push_back(ctxt);
-
-    return ctxt;
+    return context;
 }
 
 void AubManagerImp::adjustPageSize(uint32_t memoryBanks, size_t &pageSize) {
@@ -259,6 +267,9 @@ void AubManagerImp::writeMemory(uint64_t gfxAddress, const void *memory, size_t 
 }
 
 void AubManagerImp::writeMemory2(AllocationParams allocationParams) {
+    if (streamMode == aub_stream::mode::null) {
+        return;
+    }
     adjustPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
     AubStream *stream = getStream();
 
@@ -271,6 +282,9 @@ void AubManagerImp::writeMemory2(AllocationParams allocationParams) {
 
 void AubManagerImp::writePageTableEntries(uint64_t gfxAddress, size_t size, uint32_t memoryBanks,
                                           int hint, std::vector<PageInfo> &lastLevelPages, size_t pageSize) {
+    if (streamMode == aub_stream::mode::null) {
+        return;
+    }
 
     adjustPageSize(memoryBanks, pageSize);
     AubStream *stream = getStream();
@@ -286,12 +300,18 @@ void AubManagerImp::writePageTableEntries(uint64_t gfxAddress, size_t size, uint
 
 void AubManagerImp::writePhysicalMemoryPages(const void *memory, std::vector<PageInfo> &pages, size_t size, int hint) {
 
+    if (streamMode == aub_stream::mode::null) {
+        return;
+    }
     assert(pages.size() >= 1);
     AubStream *stream = getStream();
     stream->writePhysicalMemoryPages(memory, size, pages, hint);
 }
 
 void AubManagerImp::freeMemory(uint64_t gfxAddress, size_t size) {
+    if (streamMode == aub_stream::mode::null) {
+        return;
+    }
     AubStream *stream = getStream();
 
     for (auto &ppgtt : ppgtts) {
@@ -300,6 +320,9 @@ void AubManagerImp::freeMemory(uint64_t gfxAddress, size_t size) {
 }
 
 bool AubManagerImp::reservePhysicalMemory(AllocationParams allocationParams, PhysicalAllocationInfo &physicalAllocInfo) {
+    if (streamMode == aub_stream::mode::null) {
+        return true;
+    }
     adjustPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
     auto size = allocationParams.size;
     auto memoryBanks = allocationParams.memoryBanks;
@@ -329,6 +352,9 @@ bool AubManagerImp::reservePhysicalMemory(AllocationParams allocationParams, Phy
 }
 
 bool AubManagerImp::reserveOnlyPhysicalSpace(AllocationParams allocationParams, PhysicalAllocationInfo &physicalAllocInfo) {
+    if (streamMode == aub_stream::mode::null) {
+        return true;
+    }
     adjustPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
     auto size = allocationParams.size;
     auto memoryBanks = allocationParams.memoryBanks;
@@ -406,7 +432,7 @@ bool AubManagerImp::mapGpuVa2(uint64_t physicalAddress, AllocationParams params)
     return true;
 }
 
-AubStream *AubManagerImp::getStream() {
+AubStream *AubManagerImp::getStream() const {
     AubStream *stream = nullptr;
 
     if (streamMode == mode::aubFile) {
@@ -452,26 +478,38 @@ AubManager *AubManager::create(const struct AubManagerOptions &options) {
 }
 
 void AubManagerImp::writeMMIO(uint32_t offset, uint32_t value) {
+    if (streamMode == aub_stream::mode::null) {
+        return;
+    }
     AubStream *stream = getStream();
     stream->writeMMIO(offset, value);
 }
 
 void AubManagerImp::writePCICFG(uint32_t offset, uint32_t value) {
+    if (streamMode == aub_stream::mode::null) {
+        return;
+    }
     AubStream *stream = getStream();
     stream->writePCICFG(offset, value);
 }
 
 uint32_t AubManagerImp::readPCICFG(uint32_t offset) {
+    if (streamMode == aub_stream::mode::null) {
+        return 0;
+    }
     AubStream *stream = getStream();
     return stream->readPCICFG(offset);
 }
 
 uint32_t AubManagerImp::readMMIO(uint32_t offset) {
+    if (streamMode == aub_stream::mode::null) {
+        return 0;
+    }
     AubStream *stream = getStream();
     return stream->readMMIO(offset);
 }
 
-void AubManagerImp::throwErrorIfEnabled(const std::string &str) {
+void AubManagerImp::throwErrorIfEnabled(const std::string &str) const {
     if (enableThrow) {
         throw std::runtime_error(str);
     }
@@ -479,6 +517,9 @@ void AubManagerImp::throwErrorIfEnabled(const std::string &str) {
 
 void AubManagerImp::setSettings(std::unique_ptr<Settings> settingsIn) {
     settings = std::move(settingsIn);
+}
+bool AubManagerImp::isInitialized() const {
+    return streamMode == aub_stream::mode::null || getStream() != nullptr;
 }
 
 } // namespace aub_stream

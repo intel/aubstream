@@ -56,7 +56,7 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
 }
 
 HardwareContextImp::~HardwareContextImp() {
-    release();
+    HardwareContextImp::release();
 }
 
 void HardwareContextImp::initialize() {

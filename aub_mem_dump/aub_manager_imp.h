@@ -48,9 +48,7 @@ class AubManagerImp : public AubManager {
     bool isOpen() override;
     const std::string getFileName() override;
     void pause(bool onoff) override;
-    bool isInitialized() {
-        return getStream() != nullptr;
-    }
+    bool isInitialized() const;
 
     void addComment(const char *message) override;
     void writeMemory(uint64_t gfxAddress, const void *memory, size_t size, uint32_t memoryBanks, int hint, size_t pageSize) override;
@@ -79,9 +77,9 @@ class AubManagerImp : public AubManager {
 
   protected:
     virtual void createStream();
-    AubStream *getStream();
+    AubStream *getStream() const;
     void adjustPageSize(uint32_t memoryBanks, size_t &pageSize);
-    void throwErrorIfEnabled(const std::string &);
+    void throwErrorIfEnabled(const std::string &) const;
 
     std::unique_ptr<Gpu> gpu;
     const uint32_t devicesCount;
@@ -101,7 +99,7 @@ class AubManagerImp : public AubManager {
 
     std::vector<std::unique_ptr<PageTable>> ppgtts;
     std::vector<std::unique_ptr<GGTT>> ggtts;
-    std::vector<HardwareContextImp *> hwContexts;
+    std::vector<HardwareContext *> hwContexts;
 
     SharedMemoryInfo sharedMemoryInfo;
     const bool enableThrow{};

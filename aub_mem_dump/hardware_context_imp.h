@@ -43,7 +43,7 @@ struct HardwareContextImp : public HardwareContext {
     HardwareContextImp &operator=(const HardwareContextImp &) = delete;
 
     void initialize() override;
-    void release();
+    void release() override;
     void pollForCompletion() override;
     void writeAndSubmitBatchBuffer(uint64_t gfxAddress, const void *batchBuffer, size_t size, uint32_t memoryBanks, size_t pageSize) override;
     void writeMemory(uint64_t gfxAddress, const void *memory, size_t size, uint32_t memoryBanks, int hint, size_t pageSize) override;

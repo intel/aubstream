@@ -74,6 +74,44 @@ TEST(AubManagerTest, givenSupportedProductFamilyWhenAubManagerIsCreatedThenValid
     delete aubManager;
 }
 
+TEST(AubManagerImp, givenNullStreamModeWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsTrue) {
+    MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, aub_stream::mode::null);
+    aubManager.initialize();
+
+    EXPECT_TRUE(aubManager.isInitialized());
+
+    EXPECT_EQ(nullptr, aubManager.streamAub.get());
+    EXPECT_EQ(nullptr, aubManager.streamTbx.get());
+    EXPECT_EQ(nullptr, aubManager.streamAubTbx.get());
+    EXPECT_EQ(nullptr, aubManager.streamTbxShm.get());
+    EXPECT_EQ(nullptr, aubManager.getStream());
+
+    EXPECT_TRUE(aubManager.isOpen());
+}
+
+TEST(AubManagerImp, givenNullStreamModeWhenAubManagerIsCreatedThenAllMethodsThatRequireStreamReturnsEarlyWithoutCrash) {
+    MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, aub_stream::mode::null);
+    aubManager.initialize();
+    auto hwContext = aubManager.createHardwareContext(0, 0, 0);
+    EXPECT_NE(nullptr, hwContext);
+    uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
+    uint64_t gfxAddress = 0x1000;
+
+    EXPECT_NO_THROW(aubManager.writeMemory2({gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_0, 0, defaultPageSize}));
+    std::vector<PageInfo> lastLevelPages{};
+    EXPECT_NO_THROW(aubManager.writePageTableEntries(gfxAddress, sizeof(bytes), MEMORY_BANK_0, 0, lastLevelPages, defaultPageSize));
+    EXPECT_NO_THROW(aubManager.writePhysicalMemoryPages(bytes, lastLevelPages, sizeof(bytes), 0));
+    EXPECT_NO_THROW(aubManager.freeMemory(gfxAddress, sizeof(bytes)));
+    PhysicalAllocationInfo physicalParams = {gfxAddress, sizeof(bytes), MEMORY_BANK_0, defaultPageSize};
+    EXPECT_NO_THROW(aubManager.reservePhysicalMemory({gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_0, 0, defaultPageSize}, physicalParams));
+    EXPECT_NO_THROW(aubManager.reserveOnlyPhysicalSpace({gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_0, 0, defaultPageSize}, physicalParams));
+
+    EXPECT_NO_THROW(aubManager.writeMMIO(0x1234, 0x5678));
+    EXPECT_NO_THROW(aubManager.writePCICFG(0x1234, 0x5678));
+    EXPECT_EQ(0u, aubManager.readMMIO(0x1234));
+    EXPECT_EQ(0u, aubManager.readPCICFG(0x1234));
+}
+
 TEST(AubManagerImp, givenInvalidStreamModeWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse) {
     MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, std::numeric_limits<uint32_t>::max());
     aubManager.initialize();

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022-2023 Intel Corporation
+# Copyright (C) 2022-2024 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -34,6 +34,7 @@ add_library(${PROJECT_NAME} STATIC
             ${CMAKE_CURRENT_SOURCE_DIR}/memory_banks.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/memory_banks.h
             ${CMAKE_CURRENT_SOURCE_DIR}/memory_bank_helper.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/null_hardware_context.h
             ${CMAKE_CURRENT_SOURCE_DIR}/options.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/options.h
             ${CMAKE_CURRENT_SOURCE_DIR}/page_table.cpp
