@@ -25,7 +25,6 @@ struct NullHardwareContext : public HardwareContext {
     void writeMemory2(AllocationParams allocationParams) override {}
     void writeMMIO(uint32_t offset, uint32_t value) override {}
     void pollForFenceCompletion() override {}
-    void release() override{};
 };
 
 } // namespace aub_stream
