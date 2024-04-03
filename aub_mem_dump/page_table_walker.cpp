@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -227,6 +227,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             if (!child) {
                 assert(mode != WalkMode::Expect);
                 if (level == 0 && mode == WalkMode::Clone) {
+                    assert(pte);
                     const auto physicalAddressAligned = clonePageInfo.physicalAddress & ~(static_cast<uint64_t>(pte->getPageSize() - 1));
                     child = new PageTableMemory(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo.memoryBank, allocationParams.additionalParams);
                 } else if (level != 0) {
