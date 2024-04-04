@@ -8,6 +8,8 @@
 #include "tbx_stream.h"
 #include "tbx_sockets.h"
 #include "options.h"
+#include "aub_mem_dump/settings.h"
+
 #include <cassert>
 
 namespace aub_stream {
@@ -70,6 +72,9 @@ void TbxStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t de
         if (value & 1) {
             break;
         }
+
+        PRINT_LOG_VERBOSE(" EXECLIST_STATUS = %d \n", value);
+
     } while (matches == pollNotEqual);
 }
 

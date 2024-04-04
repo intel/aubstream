@@ -11,6 +11,7 @@
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/misc_helpers.h"
 #include "aub_mem_dump/page_table.h"
+#include "aub_mem_dump/settings.h"
 
 #include "aubstream/aubstream.h"
 #include "aubstream/engine_node.h"
@@ -19,6 +20,7 @@
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
 #include "tests/unit_tests/mock_aub_manager.h"
+#include "tests/variable_backup.h"
 #include "test.h"
 #include <memory>
 
@@ -490,4 +492,36 @@ TEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContextTh
     EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, value));
 
     context0->submitBatchBuffer(0x100, false);
+}
+
+TEST_F(HardwareContextTest, givenVerboseLogLevelWhenSubmittingContextThenRingHeadTailIsPrinted) {
+    auto settings = std::make_unique<Settings>();
+    VariableBackup<Settings *> backup(&globalSettings);
+    globalSettings = settings.get();
+    globalSettings->LogLevel.set(LogLevels::verbose);
+
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+    HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
+    context.initialize();
+
+    // EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(1));
+    SimpleAllocator<uint64_t> gfxAddressAllocator(0x1000);
+    uintptr_t ppgttBatchBuffer = gfxAddressAllocator.alignedAlloc(0x1000, uint32_t(defaultPageSize));
+    uint32_t data = 0x05000000;
+
+    ::testing::internal::CaptureStdout();
+    context.writeAndSubmitBatchBuffer(ppgttBatchBuffer, &data, sizeof(data), defaultMemoryBank, defaultPageSize);
+
+    std::string output = testing::internal::GetCapturedStdout();
+
+    std::string expectedString = "[VERBOSE]  contextId = ";
+
+    expectedString += std::to_string(context.contextId) + " \n";
+    expectedString += "[VERBOSE]  ringHead = 0 \n";
+    expectedString += "[VERBOSE]  ringTail = " + std::to_string(context.ringTail) + " \n";
+
+    EXPECT_STREQ(expectedString.c_str(), output.c_str());
 }

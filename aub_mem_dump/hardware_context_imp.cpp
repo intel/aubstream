@@ -9,6 +9,7 @@
 #include "aub_mem_dump/aub_stream.h"
 #include "aub_mem_dump/command_streamer_helper.h"
 #include "aub_mem_dump/hardware_context_imp.h"
+#include "aub_mem_dump/settings.h"
 #include <atomic>
 #include <vector>
 
@@ -264,6 +265,12 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
     auto ringHead = ringTail;
     ringTail += sizeCommandsInBytes;
 
+    if (globalSettings->LogLevel.get() & LogLevels::verbose) {
+        PRINT_LOG_VERBOSE(" contextId = %d \n", this->contextId);
+        PRINT_LOG_VERBOSE(" ringHead = %d \n", ringHead);
+        PRINT_LOG_VERBOSE(" ringTail = %d \n", ringTail);
+    }
+
     auto ringOffset = csTraits.offsetContext + csTraits.offsetRingRegisters;
     auto ringDataOffset = csTraits.getRingDataOffset();
     auto size = 0u;
@@ -357,6 +364,20 @@ void HardwareContextImp::readMemory(uint64_t gfxAddress, void *memory, size_t si
         size,
         memoryBanks,
         pageSize);
+
+    if (globalSettings->LogLevel.get() & LogLevels::verbose) {
+        PRINT_LOG_VERBOSE(" contextId = %d \n", this->contextId);
+        uint32_t value = stream.readMMIO(csTraits.mmioEngine + 0x2234);
+        PRINT_LOG_VERBOSE(" EXECLIST_STATUS = %d \n", value);
+
+        value = stream.readMMIO(csTraits.mmioEngine + 0x2240);
+        PRINT_LOG_VERBOSE(" CURRENT_LRCA = %d \n", (int)value);
+
+        value = stream.readMMIO(csTraits.mmioEngine + 0x2034);
+        PRINT_LOG_VERBOSE(" RING_HEAD = %d \n", (int)value);
+        value = stream.readMMIO(csTraits.mmioEngine + 0x2030);
+        PRINT_LOG_VERBOSE(" RING_TAIL = %d \n", (int)value);
+    }
 }
 
 void HardwareContextImp::writeMMIO(uint32_t offset, uint32_t value) {

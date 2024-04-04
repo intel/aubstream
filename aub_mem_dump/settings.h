@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -24,6 +24,12 @@ constexpr bool enableSettings = false;
 #else
 constexpr bool enableSettings = true;
 #endif
+
+struct LogLevels {
+    constexpr static int32_t info{1};
+    constexpr static int32_t error{1 << 1};
+    constexpr static int32_t verbose{1 << 2};
+};
 
 class Settings;
 extern Settings *globalSettings;
@@ -98,5 +104,13 @@ class Settings {
 #include "setting_vars.inl"
 #undef DECLARE_SETTING_VARIABLE
 };
+
+#define PRINT_LOG(str, ...) \
+    printf(str, __VA_ARGS__);
+
+#define PRINT_LOG_VERBOSE(str, ...)                            \
+    if (globalSettings->LogLevel.get() & LogLevels::verbose) { \
+        PRINT_LOG("[VERBOSE] " str, __VA_ARGS__);              \
+    }
 
 } // namespace aub_stream
