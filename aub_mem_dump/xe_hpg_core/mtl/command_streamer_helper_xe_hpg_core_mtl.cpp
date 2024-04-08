@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -31,11 +31,13 @@ struct GpuMtl : public GpuXeHpgCore {
 
     const MMIOList getGlobalMMIOPlatformSpecific() const override {
         const MMIOList globalMMIOPlatformSpecific = {
-            MMIOPair(getPatIndexMmioAddr(0), 0x0), // PAT_INDEX 0: WB, Non-Coherent
-            MMIOPair(getPatIndexMmioAddr(1), 0x4), // PAT_INDEX 1: WT, Non-Coherent
-            MMIOPair(getPatIndexMmioAddr(2), 0xC), // PAT_INDEX 2: UC, Non-Coherent
-            MMIOPair(getPatIndexMmioAddr(3), 0x2), // PAT_INDEX 3: WB, 1-Way Coherent
-            MMIOPair(getPatIndexMmioAddr(4), 0x3), // PAT_INDEX 4: WB, 2-Way Coherent
+
+            // bits: 3-2: L4_CACHE_POLICY, 1-0: COH_MODE
+            MMIOPair(getPatIndexMmioAddr(0), 0b0000), // PAT_INDEX 0: WB, Non-Coherent
+            MMIOPair(getPatIndexMmioAddr(1), 0b0100), // PAT_INDEX 1: WT, Non-Coherent
+            MMIOPair(getPatIndexMmioAddr(2), 0b1100), // PAT_INDEX 2: UC, Non-Coherent
+            MMIOPair(getPatIndexMmioAddr(3), 0b0010), // PAT_INDEX 3: WB, 1-Way Coherent
+            MMIOPair(getPatIndexMmioAddr(4), 0b0011), // PAT_INDEX 4: WB, 2-Way Coherent
         };
         return globalMMIOPlatformSpecific;
     };

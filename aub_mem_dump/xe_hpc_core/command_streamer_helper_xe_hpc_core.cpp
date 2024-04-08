@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -298,14 +298,15 @@ const MMIOList GpuXeHpcCore::getGlobalMMIO() const {
         MMIOPair(0x0001a0d8, 0x00020000), // CS_DEBUG_MODE2_CCSUNIT
         MMIOPair(0x00042080, 0x00000000), // CHICKEN_MISC_1
 
-        MMIOPair(getPatIndexMmioAddr(0), 0x0),
-        MMIOPair(getPatIndexMmioAddr(1), 0x1),
-        MMIOPair(getPatIndexMmioAddr(2), 0x2),
-        MMIOPair(getPatIndexMmioAddr(3), 0x3),
-        MMIOPair(getPatIndexMmioAddr(4), 0x6),
-        MMIOPair(getPatIndexMmioAddr(5), 0x7),
-        MMIOPair(getPatIndexMmioAddr(6), 0xA),
-        MMIOPair(getPatIndexMmioAddr(7), 0xB),
+        // bits: 3-2: CLOS, 1-0: MEM_TYPE
+        MMIOPair(getPatIndexMmioAddr(0), 0b0000), // UC
+        MMIOPair(getPatIndexMmioAddr(1), 0b0001), // WC
+        MMIOPair(getPatIndexMmioAddr(2), 0b0010), // WT
+        MMIOPair(getPatIndexMmioAddr(3), 0b0011), // WB
+        MMIOPair(getPatIndexMmioAddr(4), 0b0110), // WT (CLOS1)
+        MMIOPair(getPatIndexMmioAddr(5), 0b0111), // WB (CLOS1)
+        MMIOPair(getPatIndexMmioAddr(6), 0b1010), // WT (CLOS2)
+        MMIOPair(getPatIndexMmioAddr(7), 0b1011), // WT (CLOS2)
     };
     return globalMMIO;
 }
