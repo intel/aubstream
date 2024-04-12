@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -14,7 +14,9 @@ namespace aub_stream {
 template <typename AddressType>
 struct MockSimpleAllocator : public SimpleAllocator<AddressType> {
     using BaseClass = SimpleAllocator<AddressType>;
-    using SimpleAllocator<AddressType>::nextAddress;
+    using BaseClass::freeAllocationsMap;
+    using BaseClass::nextAddress;
+    using BaseClass::usedAllocationsMap;
 
     explicit MockSimpleAllocator(AddressType firstAddress)
         : BaseClass(firstAddress) {
@@ -41,6 +43,7 @@ struct MockPhysicalAddressAllocatorSimple : public PhysicalAddressAllocatorSimpl
     }
 
     using PhysicalAddressAllocatorSimple::allocators;
+    using PhysicalAddressAllocatorSimple::mainAllocator;
     using PhysicalAddressAllocatorSimple::numberOfAllocators;
 };
 

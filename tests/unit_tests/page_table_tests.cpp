@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -11,6 +11,8 @@
 #include "aub_mem_dump/page_table_walker.h"
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
+#include "tests/unit_tests/mock_physical_address_allocator.h"
+
 #include "gtest/gtest.h"
 
 using namespace aub_stream;
@@ -571,4 +573,17 @@ TEST(PageTable, PageTableStorageResizedOnSetChildCallInsteadOfConstructor) {
     // now set child to resize the storage.
     pageTable.setChild(2u, nullptr);
     EXPECT_EQ(3u, pageTable.table.size());
+}
+
+TEST(PageTable, whenPageTableIsDeletedThenFreePhysicalMemory) {
+    const auto allocatorSize = 1 * GB;
+    MockPhysicalAddressAllocatorSimple allocator{1, allocatorSize, false};
+    auto pMockAllocator = static_cast<MockSimpleAllocator<uint64_t> *>(&allocator.mainAllocator);
+    {
+        PageTable pageTable(*gpu, &allocator, 0x100, 0, MEMORY_BANK_SYSTEM);
+        EXPECT_EQ(pMockAllocator->usedAllocationsMap.size(), 1);
+        EXPECT_EQ(pMockAllocator->freeAllocationsMap.size(), 0);
+    }
+    EXPECT_EQ(pMockAllocator->usedAllocationsMap.size(), 0);
+    EXPECT_EQ(pMockAllocator->freeAllocationsMap.size(), 1);
 }

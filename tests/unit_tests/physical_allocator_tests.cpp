@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -245,4 +245,66 @@ TEST(PhysicalAddressAllocator, givenPhysicalAllocatorForSHM4WithSpecifiedMemoryB
     EXPECT_EQ(translationLTab[physicalMemory1 / 0x1000 + 1], nullptr);
     EXPECT_EQ(translationTab[physicalMemory0 / 0x1000], p0);
     EXPECT_EQ(translationTab[physicalMemory0 / 0x1000 + 1], nullptr);
+}
+
+TEST(PhysicalAddressAllocator, givenSimpleAllocatorWhenNoMemoryWasFreedThenAllocateNewAddress) {
+    MockSimpleAllocator<uint64_t> allocator{0x10000};
+    size_t sizeToAllocate = 0x100;
+    size_t alignment = 4096;
+
+    auto pointer1 = allocator.alignedAlloc(sizeToAllocate, alignment);
+    auto pointer2 = allocator.alignedAlloc(sizeToAllocate, alignment);
+    EXPECT_NE(pointer1, pointer2);
+    EXPECT_EQ(allocator.usedAllocationsMap.size(), 2);
+    EXPECT_EQ(allocator.freeAllocationsMap.size(), 0);
+}
+
+TEST(PhysicalAddressAllocator, givenSimpleAllocatorWhenMemoryIsFreedThenReuseMemory) {
+    MockSimpleAllocator<uint64_t> allocator{0x10000};
+    size_t sizeToAllocate = 0x100;
+    size_t alignment = 4096;
+
+    auto pointer1 = allocator.alignedAlloc(sizeToAllocate, alignment);
+    auto pointer2 = allocator.alignedAlloc(sizeToAllocate, alignment);
+
+    allocator.alignedFree(pointer2);
+    allocator.alignedFree(pointer1);
+    EXPECT_EQ(allocator.usedAllocationsMap.size(), 0);
+    EXPECT_EQ(allocator.freeAllocationsMap.size(), 2);
+
+    auto pointer3 = allocator.alignedAlloc(sizeToAllocate, alignment);
+    auto pointer4 = allocator.alignedAlloc(sizeToAllocate, alignment);
+    EXPECT_EQ(pointer2, pointer3);
+    EXPECT_EQ(pointer1, pointer4);
+    EXPECT_EQ(allocator.usedAllocationsMap.size(), 2);
+    EXPECT_EQ(allocator.freeAllocationsMap.size(), 0);
+}
+
+TEST(PhysicalAddressAllocator, givenSimpleAllocatorWhenDifferentSizeMemoryIsFreedThenCorrectlyReuseMemory) {
+    MockSimpleAllocator<uint64_t> allocator{0x10000};
+    size_t sizeToAllocate1 = 0x10;
+    size_t sizeToAllocate2 = 0x80;
+    size_t sizeToAllocate3 = 0x100;
+    size_t alignment = 4096;
+
+    auto pointer1 = allocator.alignedAlloc(sizeToAllocate1, alignment);
+    auto pointer2 = allocator.alignedAlloc(sizeToAllocate2, alignment);
+    EXPECT_NE(pointer1, pointer2);
+    EXPECT_EQ(allocator.usedAllocationsMap.size(), 2);
+    EXPECT_EQ(allocator.freeAllocationsMap.size(), 0);
+
+    allocator.alignedFree(pointer1);
+    allocator.alignedFree(pointer2);
+    EXPECT_EQ(allocator.usedAllocationsMap.size(), 0);
+    EXPECT_EQ(allocator.freeAllocationsMap.size(), 2);
+
+    auto pointer3 = allocator.alignedAlloc(sizeToAllocate3, alignment);
+    EXPECT_EQ(allocator.usedAllocationsMap.size(), 1);
+    EXPECT_EQ(allocator.freeAllocationsMap.size(), 2);
+    auto pointer4 = allocator.alignedAlloc(sizeToAllocate2, alignment);
+    EXPECT_EQ(allocator.usedAllocationsMap.size(), 2);
+    EXPECT_EQ(allocator.freeAllocationsMap.size(), 1);
+    EXPECT_NE(pointer3, pointer4);
+    EXPECT_EQ(pointer2, pointer4);
+    EXPECT_NE(pointer1, pointer4);
 }

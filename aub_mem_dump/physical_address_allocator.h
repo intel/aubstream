@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -10,6 +10,7 @@
 #include "aubstream/shared_mem_info.h"
 #include <algorithm>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <list>
@@ -25,21 +26,41 @@ struct SimpleAllocator {
     }
 
     virtual AddressType alignedAlloc(size_t size, AddressType alignment) {
-        alignment = std::max(alignment, AddressType(4096u));
-
         std::lock_guard<std::mutex> guard(mutex);
+        auto freeAllocationIt = freeAllocationsMap.find(size);
+        if (freeAllocationIt != freeAllocationsMap.end()) {
+            auto physicalAddress = freeAllocationIt->second;
+            usedAllocationsMap.insert(*freeAllocationIt);
+            freeAllocationsMap.erase(freeAllocationIt);
+            return physicalAddress;
+        }
+
+        alignment = std::max(alignment, AddressType(4096u));
         nextAddress += alignment - 1;
         nextAddress &= ~(alignment - 1);
         auto physicalAddress = nextAddress;
         nextAddress += AddressType(size);
+        usedAllocationsMap.insert({size, physicalAddress});
         return physicalAddress;
     }
 
-    virtual void alignedFree(uint64_t address) {}
+    virtual void alignedFree(uint64_t address) {
+        std::lock_guard<std::mutex> guard(mutex);
+        for (auto usedAllocationIt = usedAllocationsMap.begin(); usedAllocationIt != usedAllocationsMap.end(); usedAllocationIt++) {
+            if (usedAllocationIt->second == address) {
+                freeAllocationsMap.insert(*usedAllocationIt);
+                usedAllocationsMap.erase(usedAllocationIt);
+                return;
+            }
+        }
+    }
 
   protected:
     std::mutex mutex;
     AddressType nextAddress;
+
+    std::multimap<size_t, AddressType> usedAllocationsMap;
+    std::multimap<size_t, AddressType> freeAllocationsMap;
 };
 
 struct PhysicalAddressAllocator {

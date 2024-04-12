@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -32,8 +32,12 @@ uint64_t PageTable::getEntryValue() const {
 }
 
 PageTable::~PageTable() {
-    for (auto &entry : table)
+    if (allocator) {
+        allocator->freePhysicalMemory(memoryBank, physicalAddress);
+    }
+    for (auto &entry : table) {
         delete entry;
+    }
 }
 
 GGTT::GGTT(const Gpu &gpu, PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gttBaseAddress)
