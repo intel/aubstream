@@ -79,6 +79,9 @@ extern "C" void setTbxServerIp(std::string server);
 extern "C" void setTbxFrontdoorMode(bool frontdoor);
 extern "C" void setAubStreamCaller(uint32_t caller);
 
+extern "C" void injectMMIOListLegacy(MMIOList mmioList);
+extern "C" void setTbxServerIpLegacy(std::string server);
+
 namespace caller {
 constexpr uint32_t neo = 0;
 constexpr uint32_t rlr = 1;
