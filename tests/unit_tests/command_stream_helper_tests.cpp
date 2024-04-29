@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -225,6 +225,8 @@ TEST_F(CommandStreamerHelperTest, CheckVECSFlushCommands) {
 
 TEST_F(CommandStreamerHelperTest, CheckCCSFlushCommands) {
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS));
+    TEST_REQUIRES(!gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS).isExeclistSubmissionEnabled());
+
     auto &ccs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
     std::vector<uint32_t> testRingBuffer{};
 
