@@ -17,6 +17,7 @@
 
 namespace aub_stream {
 struct AubTbxStream;
+struct AubShmStream;
 class TbxSockets;
 
 struct TbxShmStream : public AubStream {
@@ -49,6 +50,7 @@ struct TbxShmStream : public AubStream {
 
     TbxSockets *socket = nullptr;
     friend AubTbxStream;
+    friend AubShmStream;
     SharedMemoryInfo *sharedMemoryInfo = nullptr;
 
     void writeGttPages(GGTT *ggtt, const std::vector<PageEntryInfo> &writeInfoTable) override;

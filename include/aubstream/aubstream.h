@@ -63,6 +63,8 @@ constexpr uint32_t tbxShm = 3;
 constexpr uint32_t tbxShm3 = 4;
 constexpr uint32_t tbxShm4 = 5;
 constexpr uint32_t null = 6;
+constexpr uint32_t aubFileAndShm = 7;
+constexpr uint32_t aubFileAndShm4 = 8;
 } // namespace mode
 
 namespace clearColorType {

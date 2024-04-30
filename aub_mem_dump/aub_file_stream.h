@@ -11,6 +11,7 @@
 
 namespace aub_stream {
 struct AubTbxStream;
+struct AubShmStream;
 
 struct AubFileStream : public AubStream {
     virtual ~AubFileStream();
@@ -40,6 +41,7 @@ struct AubFileStream : public AubStream {
     std::ofstream fileHandle;
     std::string fileName;
     friend AubTbxStream;
+    friend AubShmStream;
 
   protected:
     void writeGttPages(GGTT *ggtt, const std::vector<PageEntryInfo> &writeInfoTable) override;

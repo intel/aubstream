@@ -6,6 +6,7 @@
  */
 
 #include "aub_mem_dump/aub_tbx_stream.h"
+#include "aub_mem_dump/aub_shm_stream.h"
 #include "aub_services.h"
 #include "aubstream/aubstream.h"
 #include "mock_aub_stream.h"
@@ -26,6 +27,16 @@ struct MockAubTbxStream : public AubTbxStream {
     using AubTbxStream::reserveContiguousPages;
     using AubTbxStream::writeContiguousPages;
     using AubTbxStream::writeDiscontiguousPages;
+};
+
+struct MockAubShmStream : public AubShmStream {
+    using AubShmStream::AubShmStream;
+
+    using AubShmStream::expectMemoryTable;
+    using AubShmStream::readDiscontiguousPages;
+    using AubShmStream::reserveContiguousPages;
+    using AubShmStream::writeContiguousPages;
+    using AubShmStream::writeDiscontiguousPages;
 };
 
 TEST(AubTbxStream, RedirectMethodsToAubFileAndTbxStreams) {
@@ -181,6 +192,79 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenAubFileStreamIsPaused) {
 
     std::vector<PageEntryInfo> entryInfoTable;
     aubTbxStream->writeDiscontiguousPages(entryInfoTable, 0, 0);
+}
+
+TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenTbxStreamIsPaused) {
+    auto fileStream = std::make_unique<MockAubFileStream>();
+    auto tbxShmStream = std::make_unique<MockTbxShmStream>(mode::aubFileAndShm);
+
+    auto aubShmStream = std::make_unique<MockAubShmStream>(*fileStream.get(), *tbxShmStream.get());
+    aubShmStream->blockMemWritesViaTbxStream(true);
+
+    EXPECT_CALL(*fileStream, init(_, _)).Times(1);
+    EXPECT_CALL(*tbxShmStream, init(_, _)).Times(1);
+
+    EXPECT_CALL(*fileStream, addComment(_)).Times(1);
+    EXPECT_CALL(*tbxShmStream, addComment(_)).Times(1);
+
+    EXPECT_CALL(*fileStream, declareContextForDumping(_, _)).Times(1);
+    EXPECT_CALL(*tbxShmStream, declareContextForDumping(_, _)).Times(1);
+
+    EXPECT_CALL(*fileStream, dumpBufferBIN(_, _, _, _)).Times(1);
+    EXPECT_CALL(*tbxShmStream, dumpBufferBIN(_, _, _, _)).Times(1);
+
+    EXPECT_CALL(*fileStream, dumpSurface(_, _, _)).Times(1);
+    EXPECT_CALL(*tbxShmStream, dumpSurface(_, _, _)).Times(1);
+
+    EXPECT_CALL(*fileStream, registerPoll(_, _, _, _, _)).Times(1);
+    EXPECT_CALL(*tbxShmStream, registerPoll(_, _, _, _, _)).Times(1);
+
+    EXPECT_CALL(*fileStream, writeMMIO(_, _)).Times(1);
+    EXPECT_CALL(*tbxShmStream, writeMMIO(_, _)).Times(1);
+
+    EXPECT_CALL(*tbxShmStream, readMMIO(_)).Times(1);
+
+    EXPECT_CALL(*tbxShmStream, readPCICFG(_)).Times(1);
+
+    EXPECT_CALL(*fileStream, expectMemoryTable(_, _, _, _)).Times(1);
+    EXPECT_CALL(*tbxShmStream, expectMemoryTable(_, _, _, _)).Times(1);
+
+    EXPECT_CALL(*fileStream, reserveContiguousPages(_)).Times(1);
+    EXPECT_CALL(*tbxShmStream, reserveContiguousPages(_)).Times(1);
+
+    EXPECT_CALL(*fileStream, writeContiguousPages(_, _, _, _, _)).Times(1);
+    EXPECT_CALL(*tbxShmStream, writeContiguousPages(_, _, _, _, _)).Times(0);
+
+    EXPECT_CALL(*fileStream, writeDiscontiguousPages(_, _, _, _)).Times(1);
+    EXPECT_CALL(*tbxShmStream, writeDiscontiguousPages(_, _, _, _)).Times(0);
+
+    EXPECT_CALL(*fileStream, writeDiscontiguousPages(_, _, _)).Times(1);
+    EXPECT_CALL(*tbxShmStream, writeDiscontiguousPages(_, _, _)).Times(0);
+
+    aubShmStream->init(1, *gpu);
+    aubShmStream->addComment("test");
+    aubShmStream->declareContextForDumping(0, nullptr);
+
+    aubShmStream->dumpBufferBIN(AubStream::PageTableType::PAGE_TABLE_PPGTT, 0x100000, 0x1000, 0);
+    aubShmStream->dumpSurface(AubStream::PageTableType::PAGE_TABLE_PPGTT, {0x100000, 0x1000, 1, 0x1000, 0x1ff, 4, 0, false, 1}, 0);
+
+    aubShmStream->registerPoll(10, 10, 10, false, 10);
+    aubShmStream->writeMMIO(20, 20);
+    aubShmStream->readMMIO(24);
+
+    aubShmStream->readPCICFG(0x84);
+
+    std::vector<PageInfo> writeInfoTable;
+    aubShmStream->expectMemoryTable(nullptr, 0, writeInfoTable, CmdServicesMemTraceMemoryCompare::CompareOperationValues::CompareEqual);
+
+    std::vector<uint64_t> entries;
+    aubShmStream->reserveContiguousPages(entries);
+
+    aubShmStream->writeContiguousPages(nullptr, 0, 0x10000, 0, 0);
+    aubShmStream->writeDiscontiguousPages(nullptr, 0, writeInfoTable, 0);
+
+    std::vector<PageEntryInfo> entryInfoTable;
+    aubShmStream->writeDiscontiguousPages(entryInfoTable, 0, 0);
 }
 
 TEST(TbxStream, GivenMmioReadFailWhenPollingForCompletionThenFunctionReturnsEarly) {

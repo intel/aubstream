@@ -23,6 +23,7 @@ struct AubStream;
 struct TbxStream;
 struct AubTbxStream;
 struct TbxShmStream;
+struct AubShmStream;
 struct Gpu;
 struct StolenMemory;
 struct PageInfo;
@@ -48,6 +49,7 @@ class AubManagerImp : public AubManager {
     bool isOpen() override;
     const std::string getFileName() override;
     void pause(bool onoff) override;
+    void blockMemWritesViaTbx(bool onoff) override;
     bool isInitialized() const;
 
     void addComment(const char *message) override;
@@ -94,6 +96,7 @@ class AubManagerImp : public AubManager {
     std::unique_ptr<TbxStream> streamTbx;
     std::unique_ptr<AubTbxStream> streamAubTbx;
     std::unique_ptr<TbxShmStream> streamTbxShm;
+    std::unique_ptr<AubShmStream> streamAubShm;
 
     std::unique_ptr<PhysicalAddressAllocator> physicalAddressAllocator;
 

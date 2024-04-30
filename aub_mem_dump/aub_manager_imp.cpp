@@ -8,6 +8,7 @@
 #include "aub_mem_dump/aub_manager_imp.h"
 #include "aub_mem_dump/aub_file_stream.h"
 #include "aub_mem_dump/aub_tbx_stream.h"
+#include "aub_mem_dump/aub_shm_stream.h"
 #include "aub_mem_dump/command_streamer_helper.h"
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/gpu.h"
@@ -71,7 +72,7 @@ void AubManagerImp::initialize() {
 
     if (streamMode == aub_stream::mode::tbxShm3) {
         physicalAddressAllocator = std::make_unique<PhysicalAddressAllocatorHeap>();
-    } else if (streamMode == aub_stream::mode::tbxShm4) {
+    } else if (streamMode == aub_stream::mode::tbxShm4 || streamMode == aub_stream::mode::aubFileAndShm4) {
         physicalAddressAllocator = std::make_unique<PhysicalAddressAllocatorSimpleAndSHM4Mapper>(devicesCount, memoryBankSize, localMemorySupported, &sharedMemoryInfo);
     } else {
         physicalAddressAllocator = std::make_unique<PhysicalAddressAllocatorSimple>(devicesCount, memoryBankSize, localMemorySupported);
@@ -82,7 +83,7 @@ void AubManagerImp::initialize() {
         gpu->initializeGlobalMMIO(*streamTbx, devicesCount, memoryBankSize, stepping);
         gpu->setMemoryBankSize(*streamTbx, devicesCount, memoryBankSize);
         gpu->setGGTTBaseAddresses(*streamTbx, devicesCount, memoryBankSize, *stolenMem);
-    } else if (streamMode == aub_stream::mode::tbxShm) {
+    } else if (streamMode == aub_stream::mode::tbxShm || streamMode == aub_stream::mode::aubFileAndShm) {
         streamTbxShm->init([this](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
             uint64_t memSize = isLocalMemory ? sharedMemoryInfo.localMemSize : sharedMemoryInfo.sysMemSize;
             availableSize = static_cast<size_t>(memSize - physAddress);
@@ -91,7 +92,7 @@ void AubManagerImp::initialize() {
         gpu->initializeGlobalMMIO(*streamTbxShm, devicesCount, memoryBankSize, stepping);
         gpu->setMemoryBankSize(*streamTbxShm, devicesCount, memoryBankSize);
         gpu->setGGTTBaseAddresses(*streamTbxShm, devicesCount, memoryBankSize, *stolenMem);
-    } else if (streamMode == aub_stream::mode::tbxShm4) {
+    } else if (streamMode == aub_stream::mode::tbxShm4 || streamMode == aub_stream::mode::aubFileAndShm4) {
         streamTbxShm->init([this](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
             static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->translatePhysicalAddressToSystemMemory(physAddress, size, isLocalMemory, p, availableSize);
         });
@@ -120,7 +121,7 @@ void AubManagerImp::initialize() {
         if (localMemorySupported || gpu->requireLocalMemoryForPageTables()) {
             memoryBank = MemoryBank::MEMORY_BANK_0 << i;
         }
-        if (streamMode == aub_stream::mode::tbxShm4) {
+        if (streamMode == aub_stream::mode::tbxShm4 || streamMode == aub_stream::mode::aubFileAndShm4) {
             static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->mapSystemMemoryToPhysicalAddress(stolenBaseAddress, static_cast<size_t>(memoryBankSize - stolenBaseAddress), 0x10000, memoryBank != MemoryBank::MEMORY_BANK_SYSTEM, nullptr);
         }
         ppgtts[i] = std::unique_ptr<PageTable>(gpu->allocatePPGTT(physicalAddressAllocator.get(), memoryBank, gpuAddressSpace));
@@ -131,19 +132,18 @@ void AubManagerImp::initialize() {
 }
 
 void AubManagerImp::createStream() {
-    bool createAubFileStream = streamMode == aub_stream::mode::aubFile || streamMode == aub_stream::mode::aubFileAndTbx;
+    bool createAubFileStream = streamMode == aub_stream::mode::aubFile || streamMode == aub_stream::mode::aubFileAndTbx ||
+                               streamMode == aub_stream::mode::aubFileAndShm || streamMode == aub_stream::mode::aubFileAndShm4;
     bool createTbxStream = streamMode == aub_stream::mode::tbx || streamMode == aub_stream::mode::aubFileAndTbx;
-    bool createTbxShmStream = streamMode == aub_stream::mode::tbxShm;
+    bool createTbxShmStream = streamMode == aub_stream::mode::tbxShm || streamMode == aub_stream::mode::aubFileAndShm;
     bool createTbxShm3Stream = streamMode == aub_stream::mode::tbxShm3;
-    bool createTbxShm4Stream = streamMode == aub_stream::mode::tbxShm4;
+    bool createTbxShm4Stream = streamMode == aub_stream::mode::tbxShm4 || streamMode == aub_stream::mode::aubFileAndShm4;
 
-    if (createTbxStream || createAubFileStream) {
-        if (createAubFileStream) {
-            streamAub = std::make_unique<AubFileStream>();
-        }
-        if (createTbxStream) {
-            streamTbx = std::make_unique<TbxStream>();
-        }
+    if (createAubFileStream) {
+        streamAub = std::make_unique<AubFileStream>();
+    }
+    if (createTbxStream) {
+        streamTbx = std::make_unique<TbxStream>();
     } else if (createTbxShmStream || createTbxShm4Stream) {
         if (sharedMemoryInfo.sysMemBase == nullptr) {
             if (enableThrow) {
@@ -180,10 +180,14 @@ void AubManagerImp::createStream() {
     if (streamMode == aub_stream::mode::aubFileAndTbx) {
         streamAubTbx = std::make_unique<AubTbxStream>(*streamAub, *streamTbx);
     }
+    if (streamMode == aub_stream::mode::aubFileAndShm || streamMode == aub_stream::mode::aubFileAndShm4) {
+        streamAubShm = std::make_unique<AubShmStream>(*streamAub, *streamTbxShm);
+    }
 }
 
 void AubManagerImp::open(const std::string &aubFileName) {
-    if (streamMode == aub_stream::mode::aubFile || streamMode == aub_stream::mode::aubFileAndTbx) {
+    if (streamMode == aub_stream::mode::aubFile || streamMode == aub_stream::mode::aubFileAndTbx ||
+        streamMode == aub_stream::mode::aubFileAndShm || streamMode == aub_stream::mode::aubFileAndShm4) {
         streamAub->open(aubFileName.c_str());
         streamAub->init(stepping, *gpu);
         gpu->initializeGlobalMMIO(*streamAub, devicesCount, memoryBankSize, stepping);
@@ -225,6 +229,15 @@ const std::string AubManagerImp::getFileName() {
 void AubManagerImp::pause(bool onoff) {
     if (streamAubTbx) {
         streamAubTbx->pauseAubFileStream(onoff);
+    }
+    if (streamAubShm) {
+        streamAubShm->pauseAubFileStream(onoff);
+    }
+}
+
+void AubManagerImp::blockMemWritesViaTbx(bool onoff) {
+    if (streamAubShm) {
+        streamAubShm->blockMemWritesViaTbxStream(onoff);
     }
 }
 
@@ -359,7 +372,7 @@ bool AubManagerImp::reserveOnlyPhysicalSpace(AllocationParams allocationParams, 
     auto size = allocationParams.size;
     auto memoryBanks = allocationParams.memoryBanks;
 
-    if (streamMode != mode::tbxShm4) {
+    if (streamMode != mode::tbxShm4 && streamMode != mode::aubFileAndShm4) {
         return false;
     }
 
@@ -388,7 +401,7 @@ bool AubManagerImp::reserveOnlyPhysicalSpace(AllocationParams allocationParams, 
 }
 
 bool AubManagerImp::mapSystemMemoryToPhysicalAddress(uint64_t physAddress, size_t size, size_t alignment, bool isLocalMemory, const void *p) {
-    if (streamMode != mode::tbxShm4) {
+    if (streamMode != mode::tbxShm4 && streamMode != mode::aubFileAndShm4) {
         throwErrorIfEnabled("mapSystemMemoryToPhysicalAddress is not supported for this stream mode.");
         return false;
     }
@@ -400,6 +413,7 @@ void *AubManagerImp::translatePhysicalAddressToSystemMemory(uint64_t physicalAdd
     void *p = nullptr;
     switch (streamMode) {
     case mode::tbxShm4:
+    case mode::aubFileAndShm4:
         size_t s;
         static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->translatePhysicalAddressToSystemMemory(physicalAddress, 0x1000, isLocalMemory, p, s);
         break;
@@ -407,6 +421,7 @@ void *AubManagerImp::translatePhysicalAddressToSystemMemory(uint64_t physicalAdd
         p = reinterpret_cast<void *>(physicalAddress);
         break;
     case mode::tbxShm:
+    case mode::aubFileAndShm:
         p = (isLocalMemory ? sharedMemoryInfo.localMemBase : sharedMemoryInfo.sysMemBase) + physicalAddress;
         break;
     default:
@@ -443,6 +458,8 @@ AubStream *AubManagerImp::getStream() const {
         stream = streamAubTbx.get();
     } else if (IsAnyTbxShmMode(streamMode)) {
         stream = streamTbxShm.get();
+    } else if (streamMode == mode::aubFileAndShm || streamMode == mode::aubFileAndShm4) {
+        stream = streamAubShm.get();
     } else {
         throwErrorIfEnabled("Stream is null.");
     }
