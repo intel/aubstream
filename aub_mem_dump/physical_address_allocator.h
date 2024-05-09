@@ -27,9 +27,13 @@ struct SimpleAllocator {
 
     virtual AddressType alignedAlloc(size_t size, AddressType alignment) {
         std::lock_guard<std::mutex> guard(mutex);
-        auto freeAllocationIt = freeAllocationsMap.find(size);
+
+        auto freeAllocationIt = std::find_if(freeAllocationsMap.begin(), freeAllocationsMap.end(), [size](const std::pair<AddressType, size_t> &usedAllocation) {
+            return usedAllocation.second == size;
+        });
+
         if (freeAllocationIt != freeAllocationsMap.end()) {
-            auto physicalAddress = freeAllocationIt->second;
+            auto physicalAddress = freeAllocationIt->first;
             usedAllocationsMap.insert(*freeAllocationIt);
             freeAllocationsMap.erase(freeAllocationIt);
             return physicalAddress;
@@ -40,18 +44,17 @@ struct SimpleAllocator {
         nextAddress &= ~(alignment - 1);
         auto physicalAddress = nextAddress;
         nextAddress += AddressType(size);
-        usedAllocationsMap.insert({size, physicalAddress});
+        usedAllocationsMap.insert({physicalAddress, size});
         return physicalAddress;
     }
 
     virtual void alignedFree(uint64_t address) {
         std::lock_guard<std::mutex> guard(mutex);
-        for (auto usedAllocationIt = usedAllocationsMap.begin(); usedAllocationIt != usedAllocationsMap.end(); usedAllocationIt++) {
-            if (usedAllocationIt->second == address) {
-                freeAllocationsMap.insert(*usedAllocationIt);
-                usedAllocationsMap.erase(usedAllocationIt);
-                return;
-            }
+
+        auto usedAllocationIt = usedAllocationsMap.find(static_cast<AddressType>(address));
+        if (usedAllocationIt != usedAllocationsMap.end()) {
+            freeAllocationsMap.insert(*usedAllocationIt);
+            usedAllocationsMap.erase(usedAllocationIt);
         }
     }
 
@@ -59,8 +62,8 @@ struct SimpleAllocator {
     std::mutex mutex;
     AddressType nextAddress;
 
-    std::multimap<size_t, AddressType> usedAllocationsMap;
-    std::multimap<size_t, AddressType> freeAllocationsMap;
+    std::multimap<AddressType, size_t> usedAllocationsMap;
+    std::multimap<AddressType, size_t> freeAllocationsMap;
 };
 
 struct PhysicalAddressAllocator {

@@ -274,8 +274,8 @@ TEST(PhysicalAddressAllocator, givenSimpleAllocatorWhenMemoryIsFreedThenReuseMem
 
     auto pointer3 = allocator.alignedAlloc(sizeToAllocate, alignment);
     auto pointer4 = allocator.alignedAlloc(sizeToAllocate, alignment);
-    EXPECT_EQ(pointer2, pointer3);
-    EXPECT_EQ(pointer1, pointer4);
+    EXPECT_EQ(pointer1, pointer3);
+    EXPECT_EQ(pointer2, pointer4);
     EXPECT_EQ(allocator.usedAllocationsMap.size(), 2);
     EXPECT_EQ(allocator.freeAllocationsMap.size(), 0);
 }
