@@ -28,6 +28,7 @@ struct GroupContextHelper {
 };
 
 struct HardwareContextImp : public HardwareContext {
+    static constexpr uint64_t priorityLow = 0;
     static constexpr uint32_t priorityNormal = 1;
     static constexpr uint64_t priorityHigh = 2;
 

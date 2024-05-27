@@ -41,6 +41,9 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
     if (flags & hardwareContextFlags::highPriority) {
         priority = priorityHigh;
         this->flags = flags & (~hardwareContextFlags::highPriority); // unset
+    } else if (flags & hardwareContextFlags::lowPriority) {
+        priority = priorityLow;
+        this->flags = flags & (~hardwareContextFlags::lowPriority); // unset
     }
 
     if (flags & contextGroupBit) {

@@ -459,6 +459,39 @@ HWTEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContext
 
     context0->submitBatchBuffer(0x100, false);
 }
+HWTEST_F(HardwareContextTest, givenLowPriorityFlagWhenSubmittingHardwareContextThenContextDescriptorHasCorrectBitsSet, (HwMatcher::And<HwMatcher::coreAboveGen11, HwMatcher::coreBelowEqualGen12Core>)) {
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    auto context0 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, hardwareContextFlags::lowPriority);
+    context0->initialize();
+
+    EXPECT_EQ(HardwareContextImp::priorityLow, context0->priority);
+
+    MiContextDescriptorReg contextDescriptor = {};
+
+    contextDescriptor.sData.Valid = true;
+    contextDescriptor.sData.ForcePageDirRestore = false;
+    contextDescriptor.sData.ForceRestore = false;
+    contextDescriptor.sData.Legacy = true;
+    contextDescriptor.sData.FaultSupport = 0;
+    contextDescriptor.sData.PrivilegeAccessOrPPGTT = true;
+    contextDescriptor.sData.ADor64bitSupport = ppgtt.getNumAddressBits() != 32;
+
+    contextDescriptor.sData.LogicalRingCtxAddress = context0->ggttLRCA / 4096;
+    contextDescriptor.sData.Reserved = 0;
+    contextDescriptor.sData.ContextID = context0->contextId;
+    contextDescriptor.sData.Reserved2 = 0;
+
+    auto value = contextDescriptor.ulData[0];
+
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, value));
+
+    context0->submitBatchBuffer(0x100, false);
+}
 
 TEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContextThenContextDescriptorHasPriorityBitSet) {
     TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpcCore);
@@ -486,6 +519,40 @@ TEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContextTh
     contextDescriptor.sData.Reserved2 = 0;
 
     contextDescriptor.sData.FunctionType = 2;
+    auto value = contextDescriptor.ulData[0];
+
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, value));
+
+    context0->submitBatchBuffer(0x100, false);
+}
+
+TEST_F(HardwareContextTest, givenLowPriorityFlagWhenSubmittingHardwareContextThenContextDescriptorHasPriorityBitSet) {
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpcCore);
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    auto context0 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, hardwareContextFlags::lowPriority);
+    context0->initialize();
+
+    MiContextDescriptorReg contextDescriptor = {};
+
+    contextDescriptor.sData.Valid = true;
+    contextDescriptor.sData.ForcePageDirRestore = false;
+    contextDescriptor.sData.ForceRestore = false;
+    contextDescriptor.sData.Legacy = true;
+    contextDescriptor.sData.FaultSupport = 0;
+    contextDescriptor.sData.PrivilegeAccessOrPPGTT = true;
+    contextDescriptor.sData.ADor64bitSupport = ppgtt.getNumAddressBits() != 32;
+
+    contextDescriptor.sData.LogicalRingCtxAddress = context0->ggttLRCA / 4096;
+    contextDescriptor.sData.Reserved = 0;
+    contextDescriptor.sData.ContextID = context0->contextId;
+    contextDescriptor.sData.Reserved2 = 0;
+
+    contextDescriptor.sData.FunctionType = 0;
     auto value = contextDescriptor.ulData[0];
 
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AtLeast(0));
