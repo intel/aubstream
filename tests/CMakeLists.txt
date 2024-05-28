@@ -1,11 +1,8 @@
 #
-# Copyright (C) 2022-2023 Intel Corporation
+# Copyright (C) 2022-2024 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
-
-#tests require cmake 3.12
-cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
 
 #Disable compiler warnings related to googletest and TR1 deprecation
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING")

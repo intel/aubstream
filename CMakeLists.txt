@@ -1,14 +1,10 @@
 #
-# Copyright (C) 2022-2023 Intel Corporation
+# Copyright (C) 2022-2024 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
 
-if(MSVC)
-  cmake_minimum_required(VERSION 3.8.0 FATAL_ERROR)
-elseif()
-  cmake_minimum_required(VERSION 3.2.0 FATAL_ERROR)
-endif()
+cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
 
 # Set custom build types for multi-configuration generators
 set(CMAKE_CONFIGURATION_TYPES "Release;ReleaseInternal;Debug")
