@@ -4,7 +4,7 @@ components:
     clean_on_sync: true
     dest_dir: third_party/googletest
     repository: https://github.com/google/googletest.git
-    revision: e2239ee6043f73722e7aa812a459f54a28552929
+    revision: v1.14.0
     type: git
   aubstream-clang-format:
     dest_dir: tools/clang-format
