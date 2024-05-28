@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -142,28 +142,32 @@ TEST_F(AubStreamTest, clonePageTablesShouldSetCorrectPageSize) {
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     size_t pageSize = 4096;
 
-    std::vector<PageInfo> entries;
-    PageInfo info = {0x2003000, sizeof(bytes), ppgtt.getMemoryBank() != MEMORY_BANK_SYSTEM, ppgtt.getMemoryBank()};
-    entries.push_back(info);
+    std::vector<PageInfo> entries{
+        {0x2003000, sizeof(bytes), ppgtt.getMemoryBank() != MEMORY_BANK_SYSTEM, ppgtt.getMemoryBank()},
+        {0x2004000, sizeof(bytes), ppgtt.getMemoryBank() != MEMORY_BANK_SYSTEM, ppgtt.getMemoryBank()}};
 
     stream.cloneMemory(&ppgtt, entries, AllocationParams(gfxAddress, nullptr, sizeof(bytes), ppgtt.getMemoryBank(), 0, pageSize));
+    stream.cloneMemory(&ppgtt, entries, AllocationParams(gfxAddress, nullptr, pageSize + sizeof(bytes), ppgtt.getMemoryBank(), 0, pageSize));
 
-    auto pdpe = ppgtt.getChild(ppgtt.getIndex(gfxAddress));
-    EXPECT_NE(nullptr, pdpe);
+    for (auto pageId = 0; pageId < 2; pageId++) {
+        auto gpuAddress = gfxAddress + pageId * pageSize;
+        auto pdpe = ppgtt.getChild(ppgtt.getIndex(gpuAddress));
+        EXPECT_NE(nullptr, pdpe);
 
-    auto pde = pdpe->getChild(pdpe->getIndex(gfxAddress));
-    EXPECT_NE(nullptr, pde);
+        auto pde = pdpe->getChild(pdpe->getIndex(gpuAddress));
+        EXPECT_NE(nullptr, pde);
 
-    auto pte = reinterpret_cast<PTE *>(pde->getChild(pde->getIndex(gfxAddress)));
-    EXPECT_NE(nullptr, pte);
-    EXPECT_EQ(pageSize, pte->getPageSize());
+        auto pte = reinterpret_cast<PTE *>(pde->getChild(pde->getIndex(gpuAddress)));
+        EXPECT_NE(nullptr, pte);
+        EXPECT_EQ(pageSize, pte->getPageSize());
 
-    auto page = pte->getChild(pte->getIndex(gfxAddress));
-    EXPECT_EQ(info.physicalAddress, page->getPhysicalAddress());
-    EXPECT_EQ(info.isLocalMemory, page->isLocalMemory());
+        auto page = pte->getChild(pte->getIndex(gpuAddress));
+        EXPECT_EQ(entries[pageId].physicalAddress, page->getPhysicalAddress());
+        EXPECT_EQ(entries[pageId].isLocalMemory, page->isLocalMemory());
 
-    auto physicalAddress = PageTableHelper::getEntry(&ppgtt, gfxAddress);
-    EXPECT_EQ(physicalAddress, page->getPhysicalAddress());
+        auto physicalAddress = PageTableHelper::getEntry(&ppgtt, gpuAddress);
+        EXPECT_EQ(physicalAddress, page->getPhysicalAddress());
+    }
 }
 
 TEST_F(AubStreamTest, writeMemoryReturnsPageTableEntriesWritten) {
