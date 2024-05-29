@@ -111,7 +111,7 @@ void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t 
     auto pLRCABase = reinterpret_cast<uint32_t *>(pLRCIn);
 
     for (size_t i = 0; i < sizeLRCA / sizeof(uint32_t); i++) {
-        pLRCABase[i] = 0x1;
+        pLRCABase[i] = 0x0;
     }
 
     auto pLRCA = ptrOffset(pLRCABase, offsetContext);
