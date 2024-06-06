@@ -113,4 +113,9 @@ class Settings {
         PRINT_LOG("[VERBOSE] " str, __VA_ARGS__);              \
     }
 
+#define PRINT_LOG_INFO(str, ...)                            \
+    if (globalSettings->LogLevel.get() & LogLevels::info) { \
+        PRINT_LOG("[INFO] " str, __VA_ARGS__);              \
+    }
+
 } // namespace aub_stream

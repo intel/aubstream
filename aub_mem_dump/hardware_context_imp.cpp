@@ -12,6 +12,7 @@
 #include "aub_mem_dump/settings.h"
 #include <atomic>
 #include <vector>
+#include <inttypes.h>
 
 namespace aub_stream {
 
@@ -37,6 +38,8 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
       contextGroupHelper(groupHelper) {
 
     constexpr uint32_t contextGroupBit = hardwareContextFlags::contextGroup;
+
+    PRINT_LOG_INFO("New context created, ContextID = %" PRIu32 ", engine = %s, type = %" PRIu32 "\n", contextId, csTraits.name.c_str(), csTraits.engineType);
 
     if (flags & hardwareContextFlags::highPriority) {
         priority = priorityHigh;
