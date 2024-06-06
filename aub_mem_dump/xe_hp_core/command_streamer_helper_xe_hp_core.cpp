@@ -410,7 +410,6 @@ void GpuXeHpCore::setMemoryBankSize(AubStream &stream, uint32_t deviceCount, uin
 void GpuXeHpCore::setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {
     assert(deviceCount > 0u);
     assert(deviceCount <= this->deviceCount);
-    assert(GpuXeHpCore::numSupportedDevices == this->deviceCount);
 
     const uint32_t mmioDevice[4] = {0, 16 * MB, 32 * MB, 48 * MB};
     const uint32_t gsmBase = 0x108100;
