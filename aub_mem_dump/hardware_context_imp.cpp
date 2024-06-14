@@ -143,7 +143,7 @@ void HardwareContextImp::initialize() {
             pRingData,
             sizeRingData,
             ggtt.getMemoryBank(),
-            csTraits.aubHintLRCA,
+            csTraits.getHintForInRingCtx(),
             pageSize);
     }
 

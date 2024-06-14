@@ -151,6 +151,7 @@ struct CommandStreamerHelper {
     virtual uint32_t getRingDataOffset() const { return 0; }
     virtual void setRingDataHead(void *ringData, uint32_t ringHead) const {}
     virtual void setRingDataTail(void *ringData, uint32_t ringTail) const {}
+    virtual uint32_t getHintForInRingCtx() const { return 0; }
 
   protected:
     virtual void submitContext(AubStream &stream, std::vector<MiContextDescriptorReg> &contextDescriptor) const = 0;
