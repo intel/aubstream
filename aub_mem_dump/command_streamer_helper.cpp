@@ -107,7 +107,7 @@ void CommandStreamerHelper::setPML(void *pLRCIn, uint64_t address) const {
     setPDP0(pLRCIn, address);
 }
 
-void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t flags, bool isGroupContext) const {
+void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t flags) const {
     auto pLRCABase = reinterpret_cast<uint32_t *>(pLRCIn);
 
     for (size_t i = 0; i < sizeLRCA / sizeof(uint32_t); i++) {
@@ -120,7 +120,7 @@ void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t 
     auto pLRI = ptrOffset(pLRCA, offsetLRI0);
     auto numRegs = numRegsLRI0;
     *pLRI++ = 0x11001000 | (2 * numRegs - 1);
-    uint32_t value = getInitialContextSaveRestoreCtrlValue(isGroupContext);
+    uint32_t value = getInitialContextSaveRestoreCtrlValue();
 
     value |= flags;
     while (numRegs-- > 0) {
@@ -249,11 +249,11 @@ void CommandStreamerHelper::pollForCompletion(AubStream &stream) const {
         CmdServicesMemTraceRegisterPoll::TimeoutActionValues::Abort);
 }
 
-void CommandStreamerHelper::addBatchBufferJump(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, bool isGroupContext) const {
+void CommandStreamerHelper::addBatchBufferJump(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress) const {
     ringBuffer.push_back(0x11000001);
     ringBuffer.push_back(mmioEngine + 0x2244);
 
-    uint32_t value = getRingContextSaveRestoreCtrlValue(isGroupContext);
+    uint32_t value = getRingContextSaveRestoreCtrlValue();
 
     ringBuffer.push_back(value);
     // Batch Buffer start

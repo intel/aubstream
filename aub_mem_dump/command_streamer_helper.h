@@ -110,7 +110,7 @@ struct CommandStreamerHelper {
     uint32_t offsetPDP2 = 0x4 * sizeof(uint32_t);
     uint32_t offsetPDP3 = 0x0 * sizeof(uint32_t);
 
-    void initialize(void *pLRCIn, PageTable *ppgtt, uint32_t flags, bool isGroupContext) const;
+    void initialize(void *pLRCIn, PageTable *ppgtt, uint32_t flags) const;
     bool isMemorySupported(uint32_t memoryBank, uint32_t alignment) const;
     void setRingHead(void *pLRCIn, uint32_t ringHead) const;
     void setRingTail(void *pLRCIn, uint32_t ringTail) const;
@@ -125,13 +125,11 @@ struct CommandStreamerHelper {
 
     void setPML(void *pLRCIn, uint64_t address) const;
 
-    virtual uint32_t getInitialContextSaveRestoreCtrlValue(bool groupContext) const {
-        uint32_t value = groupContext ? 0x00090001 : 0x00090009; // Inhibit context-restore (BIT0) and - if not group context - inhibit synchronous context switch (BIT3)
-        return value;
+    virtual uint32_t getInitialContextSaveRestoreCtrlValue() const {
+        return 0x00090009;
     }
-    virtual uint32_t getRingContextSaveRestoreCtrlValue(bool groupContext) const {
-        uint32_t value = groupContext ? 0x00090000 : 0x00090008; // Inhibit synchronous context switch (if not group context)
-        return value;
+    virtual uint32_t getRingContextSaveRestoreCtrlValue() const {
+        return 0x00090008;
     }
 
     virtual void submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId, uint32_t priority) const;
@@ -141,7 +139,7 @@ struct CommandStreamerHelper {
     void initializeEngineMMIO(AubStream &stream) const;
     virtual const MMIOList getEngineMMIO() const = 0;
 
-    virtual void addBatchBufferJump(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, bool isGroupContext) const;
+    virtual void addBatchBufferJump(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress) const;
     virtual void addFlushCommands(std::vector<uint32_t> &ringBuffer) const = 0;
     virtual void storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const;
 

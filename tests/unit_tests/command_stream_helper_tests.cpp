@@ -29,7 +29,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
     PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
 
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x20d8, 0x00200020));
 }
@@ -41,7 +41,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
     PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
 
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2168, 0));
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2140, 0));
@@ -54,7 +54,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
 
     auto physAddress = pageTable.getChild(0)->getPhysicalAddress();
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2270, uint32_t(physAddress)));
@@ -84,7 +84,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
 
     EXPECT_FALSE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2270, 0x00000000)); // Expecting false, we just want to make sure a 0 physical address is not used
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2274, 0x00000000));
@@ -357,7 +357,7 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, CheckBatchBufferStart) {
 
     std::vector<uint32_t> testRingBuffer{};
     const uint64_t bufferAddress = 0x0badc0fedeadbeefull;
-    cs.addBatchBufferJump(testRingBuffer, bufferAddress, false);
+    cs.addBatchBufferJump(testRingBuffer, bufferAddress);
 
     size_t sizeOfCommands = 0;
     // Verify the LRI
@@ -373,30 +373,6 @@ TEST_P(CommandStreamerHelperVerifyEngineMmioTest, CheckBatchBufferStart) {
     // Finally make sure that we don't have any more commands
     // which the test doesn't know about
     EXPECT_EQ(sizeOfCommands, testRingBuffer.size());
-}
-
-TEST_P(CommandStreamerHelperVerifyEngineMmioTest, givenGroupContextWhenAddingBbStartThenSetCorrectFlags) {
-    auto device = std::get<0>(GetParam());
-    auto engine = std::get<1>(GetParam()).first;
-    TEST_REQUIRES(device < gpu->deviceCount);
-    TEST_REQUIRES(gpu->isEngineSupported(engine));
-    TEST_REQUIRES(!gpu->getCommandStreamerHelper(device, engine).isRingDataEnabled());
-
-    auto deviceBase = device * 16 * MB;
-    auto csBase = std::get<1>(GetParam()).second + 0x2000;
-    auto mmioBase = deviceBase + csBase;
-    auto &cs = gpu->getCommandStreamerHelper(device, engine);
-
-    std::vector<uint32_t> testRingBuffer{};
-    const uint64_t bufferAddress = 0x0badc0fedeadbeefull;
-    cs.addBatchBufferJump(testRingBuffer, bufferAddress, true);
-
-    size_t sizeOfCommands = 0;
-    // Verify the LRI
-    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x11000001);
-    EXPECT_EQ(testRingBuffer[sizeOfCommands++], mmioBase + 0x244);
-    // Inhibit synchronous context switch
-    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x00090000);
 }
 
 INSTANTIATE_TEST_SUITE_P(VerifyMMIO,

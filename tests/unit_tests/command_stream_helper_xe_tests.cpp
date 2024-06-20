@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Intel Corporation
+ * Copyright (C) 2023-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -29,21 +29,9 @@ HWTEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCA
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
     PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, false);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
 
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2244, 0x00090009));
-}
-
-HWTEST_F(CommandStreamerHelperTest, givenGroupContextWhenCommandStreamHelperIsInitializedThenLRCAIncludesContextFlags, HwMatcher::coreBelowEqualXeHpc) {
-    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
-
-    auto sizeLRCA = rcs.sizeLRCA;
-    auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
-    PhysicalAddressAllocatorSimple allocator;
-    PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0, true);
-
-    EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2244, 0x00090001));
 }
 
 HWTEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedWithFlagsThenLRCAIncludesContextSRWithSpecidfiedFlags, HwMatcher::coreBelowEqualXeHpc) {
@@ -54,7 +42,7 @@ HWTEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedWithFlag
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
     PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
-    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, additionalFlags, false);
+    rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, additionalFlags);
 
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x2244, (0x00090009 | additionalFlags)));
 }

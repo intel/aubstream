@@ -122,7 +122,7 @@ void HardwareContextImp::initialize() {
 
     pLRCA = new uint8_t[sizeLRCA];
     auto ringCtrl = static_cast<uint32_t>((ringSize - 0x1000) | 1);
-    csTraits.initialize(pLRCA, &ppgtt, flags, this->contextGroupId != -1);
+    csTraits.initialize(pLRCA, &ppgtt, flags);
     csTraits.setRingHead(pLRCA, 0x0000);
     csTraits.setRingTail(pLRCA, 0x0000);
     csTraits.setRingBase(pLRCA, ggttRing);
@@ -228,7 +228,7 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
     // Submit a batch buffer
     std::vector<uint32_t> ringCommands;
 
-    csTraits.addBatchBufferJump(ringCommands, gfxAddress, this->contextGroupId != -1);
+    csTraits.addBatchBufferJump(ringCommands, gfxAddress);
     csTraits.addFlushCommands(ringCommands);
     csTraits.storeFenceValue(ringCommands, ggttContextFence, contextFenceValue);
 
