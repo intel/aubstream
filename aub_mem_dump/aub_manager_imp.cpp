@@ -258,9 +258,30 @@ HardwareContext *AubManagerImp::createHardwareContext(uint32_t device, uint32_t 
 
         context = new HardwareContextImp(device, *stream, csTraits, *ggtts[device], *ppgtts[device], groupContextHelper.get(), flags);
     }
+
+    std::lock_guard<std::mutex> lock(hwContextsMutex);
     hwContexts.push_back(context);
 
     return context;
+}
+
+bool AubManagerImp::releaseHardwareContext(HardwareContext *context) {
+    bool contextFound = false;
+    {
+        std::lock_guard<std::mutex> lock(hwContextsMutex);
+
+        auto iter = std::find(hwContexts.begin(), hwContexts.end(), context);
+        if (iter != hwContexts.end()) {
+            hwContexts.erase(iter);
+            contextFound = true;
+        }
+    }
+
+    if (contextFound) {
+        delete context;
+        return true;
+    }
+    return false;
 }
 
 void AubManagerImp::adjustPageSize(uint32_t memoryBanks, size_t &pageSize) {

@@ -503,7 +503,7 @@ HWTEST_F(AubManagerTest, when2DevicesWithLocalMemoryAreCreatedThenAubManagerIsIn
     EXPECT_NE(nullptr, aubManager.streamAub.get());
 }
 
-TEST(AubManagerImp, createHardwareContextShouldValidHardwareContext) {
+TEST(AubManagerImp, createHardwareContextShouldReturnValidHardwareContext) {
     bool localMemorySupport = true;
     MockAubManager aubManager(createGpuFunc(), gpu->deviceCount, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::aubFile);
     aubManager.initialize();
@@ -512,6 +512,22 @@ TEST(AubManagerImp, createHardwareContextShouldValidHardwareContext) {
 
     EXPECT_NE(nullptr, hardwareContext);
     delete hardwareContext;
+}
+
+TEST(AubManagerImp, releaseHardwareContextRemovesContextFromVectorAndDeletesObject) {
+    bool localMemorySupport = true;
+    MockAubManager aubManager(createGpuFunc(), gpu->deviceCount, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::aubFile);
+    aubManager.initialize();
+
+    auto hardwareContext = aubManager.createHardwareContext(0, ENGINE_RCS, 0);
+
+    EXPECT_NE(nullptr, hardwareContext);
+    EXPECT_EQ(1u, aubManager.hwContexts.size());
+
+    EXPECT_TRUE(aubManager.releaseHardwareContext(hardwareContext));
+
+    EXPECT_EQ(0u, aubManager.hwContexts.size());
+    EXPECT_FALSE(aubManager.releaseHardwareContext(hardwareContext));
 }
 
 HWTEST_F(AubManagerTest, whenAubManagerWritesMemoryThenPageTablesCloned, MatchMultiDevice::moreThanOne) {

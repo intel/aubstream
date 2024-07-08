@@ -77,6 +77,8 @@ class AubManagerImp : public AubManager {
     uint32_t readMMIO(uint32_t offset) override;
     void writeMMIO(uint32_t offset, uint32_t value) override;
 
+    bool releaseHardwareContext(HardwareContext *context) override;
+
   protected:
     virtual void createStream();
     AubStream *getStream() const;
@@ -103,6 +105,7 @@ class AubManagerImp : public AubManager {
     std::vector<std::unique_ptr<PageTable>> ppgtts;
     std::vector<std::unique_ptr<GGTT>> ggtts;
     std::vector<HardwareContext *> hwContexts;
+    std::mutex hwContextsMutex{};
 
     SharedMemoryInfo sharedMemoryInfo;
     const bool enableThrow{};

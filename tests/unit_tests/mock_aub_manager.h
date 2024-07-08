@@ -21,6 +21,7 @@ class MockAubManager : public AubManagerImp {
     using AubManagerImp::AubManagerImp;
     using AubManagerImp::getStream;
     using AubManagerImp::ggtts;
+    using AubManagerImp::hwContexts;
     using AubManagerImp::physicalAddressAllocator;
     using AubManagerImp::ppgtts;
     using AubManagerImp::stepping;
