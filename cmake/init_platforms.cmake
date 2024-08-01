@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022 Intel Corporation
+# Copyright (C) 2022-2024 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -146,6 +146,14 @@ endmacro()
 
 macro(ADD_PLATFORM_FOR_CORE_TYPE LIST_TYPE CORE_TYPE PLATFORM_NAME)
   ADD_ITEM_FOR_CORE_TYPE("PLATFORMS" ${LIST_TYPE} ${CORE_TYPE} ${PLATFORM_NAME})
+endmacro()
+
+macro(ENABLE_ADDITIONAL_SKU SKU_NAME)
+  set(SUPPORT_${SKU_NAME} TRUE CACHE BOOL "Support ${SKU_NAME}" FORCE)
+endmacro()
+
+macro(TEST_ADDITIONAL_SKU SKU_NAME)
+  set(TESTS_${SKU_NAME} TRUE CACHE BOOL "Build ULTs for ${SKU_NAME}" FORCE)
 endmacro()
 
 # Init lists
