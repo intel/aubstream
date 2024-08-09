@@ -344,15 +344,16 @@ TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExec
     auto contextGroupCount = gpu->getContextGroupCount();
     for (auto i = 0; i < arrayCount(helper.contextGroups); i++) {
         for (auto j = 0; j < arrayCount(helper.contextGroups[i]); j++) {
-            helper.contextGroups[i][j].contexts.resize(contextGroupCount);
+            helper.contextGroups[i][j].resize(1);
+            helper.contextGroups[i][j][0].contexts.resize(contextGroupCount);
         }
     }
 
-    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
+    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, &helper.contextGroups[defaultDevice][defaultEngine][0], hardwareContextFlags::contextGroup);
     context0.initialize();
-    HardwareContextImp context1(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
+    HardwareContextImp context1(0, stream, csHelper, ggtt, ppgtt, &helper.contextGroups[defaultDevice][defaultEngine][0], hardwareContextFlags::contextGroup);
     context1.initialize();
-    HardwareContextImp context2(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
+    HardwareContextImp context2(0, stream, csHelper, ggtt, ppgtt, &helper.contextGroups[defaultDevice][defaultEngine][0], hardwareContextFlags::contextGroup);
     context2.initialize();
     ::testing::Mock::VerifyAndClearExpectations(&stream);
 
@@ -398,16 +399,17 @@ TEST_F(HardwareContextTest, givenGroupContextWhenMainHardwareContextDestroyedThe
     auto contextGroupCount = gpu->getContextGroupCount();
     for (auto i = 0; i < arrayCount(helper.contextGroups); i++) {
         for (auto j = 0; j < arrayCount(helper.contextGroups[i]); j++) {
-            helper.contextGroups[i][j].contexts.resize(contextGroupCount);
+            helper.contextGroups[i][j].resize(1);
+            helper.contextGroups[i][j][0].contexts.resize(contextGroupCount);
         }
     }
 
     {
-        auto context0 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
+        auto context0 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, &helper.contextGroups[defaultDevice][defaultEngine][0], hardwareContextFlags::contextGroup);
         context0->initialize();
-        auto context1 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
+        auto context1 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, &helper.contextGroups[defaultDevice][defaultEngine][0], hardwareContextFlags::contextGroup);
         context1->initialize();
-        auto context2 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, &helper, (1 << 15));
+        auto context2 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, &helper.contextGroups[defaultDevice][defaultEngine][0], hardwareContextFlags::contextGroup);
         context2->initialize();
 
         ::testing::Mock::VerifyAndClearExpectations(&stream);
@@ -416,14 +418,118 @@ TEST_F(HardwareContextTest, givenGroupContextWhenMainHardwareContextDestroyedThe
 
         context2->submitBatchBuffer(0x100, false);
 
-        EXPECT_EQ(3u, helper.contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter);
-        EXPECT_NE(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType].contexts[0]);
-        EXPECT_NE(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType].contexts[2]);
+        EXPECT_EQ(3u, helper.contextGroups[defaultDevice][csHelper.engineType][0].contextGroupCounter);
+        EXPECT_NE(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType][0].contexts[0]);
+        EXPECT_NE(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType][0].contexts[2]);
     }
 
-    EXPECT_EQ(0u, helper.contextGroups[defaultDevice][csHelper.engineType].contextGroupCounter);
-    EXPECT_EQ(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType].contexts[0]);
-    EXPECT_EQ(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType].contexts[2]);
+    EXPECT_EQ(0u, helper.contextGroups[defaultDevice][csHelper.engineType][0].contextGroupCounter);
+    EXPECT_EQ(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType][0].contexts[0]);
+    EXPECT_EQ(nullptr, helper.contextGroups[defaultDevice][csHelper.engineType][0].contexts[2]);
+}
+
+TEST_F(HardwareContextTest, givenMultipleContextGroupsWhenHardwareContextsCreatedThenCorrectGroupIsAssigned) {
+    TEST_REQUIRES(gpu->gfxCoreFamily >= CoreFamily::XeHpcCore);
+
+    auto gpu = createGpuFunc();
+    auto gpuPtr = gpu.get();
+    MockAubManager aubManager(std::move(gpu), 1, defaultHBMSizePerDevice, 0u, true, aub_stream::mode::aubFile);
+    aubManager.initialize();
+
+    auto &csHelper = gpuPtr->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    CreateHardwareContext2Params params = {
+        0,
+        hardwareContextId::invalidContextId};
+
+    auto context0 = aubManager.createHardwareContext2(params, defaultDevice, defaultEngine, hardwareContextFlags::contextGroup);
+    context0->initialize();
+
+    EXPECT_EQ(1u, aubManager.getGroupContextHelper()->groupIds[defaultDevice][csHelper.engineType]);
+    EXPECT_EQ(0u, aubManager.getGroupContextHelper()->primaryContextIdToGroupId[defaultDevice][csHelper.engineType][0]);
+
+    CreateHardwareContext2Params params1 = {
+        1,
+        0};
+    auto context1 = aubManager.createHardwareContext2(params1, defaultDevice, defaultEngine, hardwareContextFlags::contextGroup);
+    context1->initialize();
+
+    CreateHardwareContext2Params params2 = {
+        2,
+        0};
+    auto context2 = aubManager.createHardwareContext2(params2, defaultDevice, defaultEngine, hardwareContextFlags::contextGroup);
+    context2->initialize();
+
+    EXPECT_EQ(3u, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contextGroupCounter);
+    EXPECT_EQ(1u, aubManager.getGroupContextHelper()->groupIds[defaultDevice][csHelper.engineType]);
+    EXPECT_EQ(0u, aubManager.getGroupContextHelper()->primaryContextIdToGroupId[defaultDevice][csHelper.engineType][0]);
+
+    EXPECT_EQ(context0, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contexts[0]);
+    EXPECT_EQ(context1, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contexts[1]);
+    EXPECT_EQ(context2, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contexts[2]);
+
+    CreateHardwareContext2Params params20 = {
+        20,
+        hardwareContextId::invalidContextId};
+    auto context20 = aubManager.createHardwareContext2(params20, defaultDevice, defaultEngine, hardwareContextFlags::contextGroup);
+    context20->initialize();
+
+    EXPECT_EQ(2u, aubManager.getGroupContextHelper()->groupIds[defaultDevice][csHelper.engineType]);
+    EXPECT_EQ(1u, aubManager.getGroupContextHelper()->primaryContextIdToGroupId[defaultDevice][csHelper.engineType][20]);
+
+    CreateHardwareContext2Params params21 = {
+        21,
+        20};
+    auto context21 = aubManager.createHardwareContext2(params21, defaultDevice, defaultEngine, hardwareContextFlags::contextGroup);
+    context21->initialize();
+
+    EXPECT_EQ(2u, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][1].contextGroupCounter);
+    EXPECT_EQ(2u, aubManager.getGroupContextHelper()->groupIds[defaultDevice][csHelper.engineType]);
+    EXPECT_EQ(1u, aubManager.getGroupContextHelper()->primaryContextIdToGroupId[defaultDevice][csHelper.engineType][20]);
+
+    EXPECT_EQ(context20, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][1].contexts[0]);
+    EXPECT_EQ(context21, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][1].contexts[1]);
+
+    aubManager.releaseHardwareContext(context0);
+    aubManager.releaseHardwareContext(context1);
+    aubManager.releaseHardwareContext(context2);
+    aubManager.releaseHardwareContext(context20);
+    aubManager.releaseHardwareContext(context21);
+
+    EXPECT_EQ(0u, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contextGroupCounter);
+
+    EXPECT_EQ(nullptr, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contexts[0]);
+    EXPECT_EQ(nullptr, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contexts[1]);
+    EXPECT_EQ(nullptr, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contexts[2]);
+
+    EXPECT_EQ(nullptr, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][1].contexts[0]);
+    EXPECT_EQ(nullptr, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][1].contexts[1]);
+}
+
+TEST_F(HardwareContextTest, givenNoContextGroupFlagWhenHardwareContextCreatedThenGroupIsNotAssigned) {
+    TEST_REQUIRES(gpu->gfxCoreFamily >= CoreFamily::XeHpcCore);
+
+    auto gpu = createGpuFunc();
+    auto gpuPtr = gpu.get();
+    MockAubManager aubManager(std::move(gpu), 1, defaultHBMSizePerDevice, 0u, true, aub_stream::mode::aubFile);
+    aubManager.initialize();
+
+    auto &csHelper = gpuPtr->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    CreateHardwareContext2Params params = {
+        0,
+        hardwareContextId::invalidContextId};
+
+    auto context0 = aubManager.createHardwareContext2(params, defaultDevice, defaultEngine, 0);
+    context0->initialize();
+
+    EXPECT_EQ(0u, aubManager.getGroupContextHelper()->groupIds[defaultDevice][csHelper.engineType]);
+    EXPECT_EQ(0u, aubManager.getGroupContextHelper()->primaryContextIdToGroupId[defaultDevice][csHelper.engineType].size());
+
+    EXPECT_EQ(0u, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contextGroupCounter);
+    EXPECT_EQ(0u, aubManager.getGroupContextHelper()->groupIds[defaultDevice][csHelper.engineType]);
+    EXPECT_TRUE(aubManager.getGroupContextHelper()->primaryContextIdToGroupId[defaultDevice][csHelper.engineType].empty());
+    aubManager.releaseHardwareContext(context0);
 }
 
 HWTEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContextThenContextDescriptorHasCorrectBitsSet, (HwMatcher::And<HwMatcher::coreAboveGen11, HwMatcher::coreBelowEqualGen12Core>)) {

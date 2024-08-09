@@ -33,7 +33,7 @@ TEST_F(HardwareContextTest, givenExeclistSubmitPortSubmissionEnabledWhenSubmitti
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
 
-    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, aubManager->getGroupContextHelper(), (1 << 15));
+    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, nullptr, 0);
     context0.initialize();
 
     ::testing::Mock::VerifyAndClearExpectations(&stream);

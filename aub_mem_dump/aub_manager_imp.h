@@ -43,6 +43,7 @@ class AubManagerImp : public AubManager {
     AubManagerImp(const AubManagerImp &) = delete;
 
     HardwareContext *createHardwareContext(uint32_t device, uint32_t engine, uint32_t flags) override;
+    HardwareContext *createHardwareContext2(const CreateHardwareContext2Params &params, uint32_t device, uint32_t engine, uint32_t flags) override;
 
     void open(const std::string &aubFileName) override;
     void close() override;
