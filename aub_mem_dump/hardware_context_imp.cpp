@@ -319,6 +319,7 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
     }
 
     if (this->contextGroupId != -1) {
+        auto lock = csTraits.obtainUniqueLock();
         csTraits.submit(stream, contextGroup->contexts, ppgtt.getNumAddressBits() != 32);
     } else {
         csTraits.submit(stream, ggttLRCA, ppgtt.getNumAddressBits() != 32, contextId, priority);

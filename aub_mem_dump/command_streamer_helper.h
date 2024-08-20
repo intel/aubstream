@@ -12,6 +12,7 @@
 #include "aubstream/engine_node.h"
 #include <cstdint>
 #include <vector>
+#include <mutex>
 
 namespace aub_stream {
 
@@ -150,10 +151,14 @@ struct CommandStreamerHelper {
     virtual void setRingDataHead(void *ringData, uint32_t ringHead) const {}
     virtual void setRingDataTail(void *ringData, uint32_t ringTail) const {}
     virtual uint32_t getHintForInRingCtx() const { return 0; }
+    std::unique_lock<std::mutex> obtainUniqueLock() const {
+        return std::unique_lock<std::mutex>(mutex);
+    }
 
   protected:
     virtual void submitContext(AubStream &stream, std::vector<MiContextDescriptorReg> &contextDescriptor) const = 0;
     virtual void setPriority(MiContextDescriptorReg &contextDescriptor, uint32_t priority) const {};
+    mutable std::mutex mutex;
 };
 
 struct CommandStreamerHelperRcs : public CommandStreamerHelper {
