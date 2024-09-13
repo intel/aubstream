@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022 Intel Corporation
+# Copyright (C) 2022-2024 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -20,7 +20,7 @@ if(SUPPORT_GEN11)
   subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "*")
 
   foreach(subdir ${SUBDIRS})
-    MESSAGE(STATUS "Adding directory: ${subdir}")
+    MESSAGE(STATUS "Adding directory: gen11.${subdir}")
     add_subdirectory(${subdir})
   endforeach()
 endif()

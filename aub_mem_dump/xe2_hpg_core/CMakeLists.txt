@@ -20,7 +20,7 @@ if(SUPPORT_XE2_HPG_CORE)
   subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "*")
 
   foreach(subdir ${SUBDIRS})
-    MESSAGE(STATUS "Adding directory: ${subdir}")
+    MESSAGE(STATUS "Adding directory: xe2_hpg_core.${subdir}")
     add_subdirectory(${subdir})
   endforeach()
 endif()
