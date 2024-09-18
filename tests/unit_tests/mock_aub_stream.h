@@ -10,6 +10,7 @@
 #include "aub_mem_dump/aub_stream.h"
 #include "aub_mem_dump/tbx_stream.h"
 #include "aub_mem_dump/tbx_shm_stream.h"
+#include "aub_mem_dump/aub_shm_stream.h"
 #include "gmock/gmock.h"
 #include "tests/unit_tests/white_box.h"
 

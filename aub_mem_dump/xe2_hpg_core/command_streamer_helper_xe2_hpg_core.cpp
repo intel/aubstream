@@ -160,8 +160,9 @@ bool GpuXe2HpgCore::isValidDataStolenMemorySize(uint64_t dataStolenMemorySize) c
 }
 
 void GpuXe2HpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {
-    if ((stream.getStreamMode() == aub_stream::mode::tbx || stream.getStreamMode() == aub_stream::mode::aubFileAndTbx ||
-         stream.getStreamMode() == aub_stream::mode::tbxShm || stream.getStreamMode() == aub_stream::mode::tbxShm4)) {
+    if (stream.getStreamMode() == aub_stream::mode::tbx || stream.getStreamMode() == aub_stream::mode::aubFileAndTbx ||
+        stream.getStreamMode() == aub_stream::mode::tbxShm || stream.getStreamMode() == aub_stream::mode::tbxShm4 ||
+        stream.getStreamMode() == aub_stream::mode::aubFileAndShm || stream.getStreamMode() == aub_stream::mode::aubFileAndShm4) {
         auto flatCcsSize = memoryBankSize / 512;
 
         for (uint32_t i = 0; i < devicesCount; i++) {
