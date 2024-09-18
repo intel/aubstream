@@ -381,7 +381,7 @@ HWTEST_F(AubManagerTest, givenInvalidSHMPointersForSHM3ModeWhenAubManagerCreateC
     EXPECT_EQ(nullptr, aubManager);
 }
 
-HWTEST_F(AubManagerTest, givenInvalidProductFamilyForSHM3AndExceptionsEnabledWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse, HwMatcher::coreBelowEqualGen12Core) {
+HWTEST_F(AubManagerTest, givenInvalidProductFamilyForSHM3AndExceptionsEnabledWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse, HwMatcher::coreEqualGen12Core) {
     AubManagerOptions options;
     options.version = 1;
     options.productFamily = static_cast<uint32_t>(gpu->productFamily);
@@ -397,7 +397,7 @@ HWTEST_F(AubManagerTest, givenInvalidProductFamilyForSHM3AndExceptionsEnabledWhe
     EXPECT_THROW(AubManager::create(options), std::logic_error);
 }
 
-HWTEST_F(AubManagerTest, givenInvalidProductFamilyForSHM3WhenAubManagerCreateCalledThenNullptrReturned, HwMatcher::coreBelowEqualGen12Core) {
+HWTEST_F(AubManagerTest, givenInvalidProductFamilyForSHM3WhenAubManagerCreateCalledThenNullptrReturned, HwMatcher::coreEqualGen12Core) {
     AubManagerOptions options;
     options.version = 1;
     options.productFamily = static_cast<uint32_t>(gpu->productFamily);

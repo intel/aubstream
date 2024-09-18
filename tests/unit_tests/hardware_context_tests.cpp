@@ -532,7 +532,7 @@ TEST_F(HardwareContextTest, givenNoContextGroupFlagWhenHardwareContextCreatedThe
     aubManager.releaseHardwareContext(context0);
 }
 
-HWTEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContextThenContextDescriptorHasCorrectBitsSet, (HwMatcher::And<HwMatcher::coreAboveGen11, HwMatcher::coreBelowEqualGen12Core>)) {
+HWTEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContextThenContextDescriptorHasCorrectBitsSet, HwMatcher::coreEqualGen12Core) {
     PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
@@ -565,7 +565,7 @@ HWTEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContext
 
     context0->submitBatchBuffer(0x100, false);
 }
-HWTEST_F(HardwareContextTest, givenLowPriorityFlagWhenSubmittingHardwareContextThenContextDescriptorHasCorrectBitsSet, (HwMatcher::And<HwMatcher::coreAboveGen11, HwMatcher::coreBelowEqualGen12Core>)) {
+HWTEST_F(HardwareContextTest, givenLowPriorityFlagWhenSubmittingHardwareContextThenContextDescriptorHasCorrectBitsSet, HwMatcher::coreEqualGen12Core) {
     PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);

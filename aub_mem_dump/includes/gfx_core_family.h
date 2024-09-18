@@ -11,14 +11,11 @@
 namespace aub_stream {
 
 enum class CoreFamily : uint32_t {
-    Gen8,
-    Gen9,
-    Gen11,
-    Gen12lp,
-    XeHpCore,
-    XeHpgCore,
-    XeHpcCore,
-    Xe2HpgCore,
+    Gen12lp = 3,
+    XeHpCore = 4,
+    XeHpgCore = 5,
+    XeHpcCore = 6,
+    Xe2HpgCore = 7,
     MaxCore,
 };
 

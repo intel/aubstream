@@ -457,25 +457,11 @@ TEST_F(AubStreamTest, givenGGTT64KBPageEntriesAre4KBAndArePhysicallyContiguous) 
 
 using AubFileStreamTest = ::testing::Test;
 
-HWTEST_F(AubFileStreamTest, givenLowerThanGen12CoreFamilyWhenAubFileStreamIsInitializedThenDumpBinIsNotSupported, HwMatcher::coreBelowGen12Core) {
-    WhiteBox<AubFileStream> stream;
-    stream.init(SteppingValues::A, *gpu);
-
-    EXPECT_FALSE(stream.dumpBinSupported);
-}
-
 HWTEST_F(AubFileStreamTest, givenCoreFamilyXeHpOrAboveWhenAubFileStreamIsInitializedThenDumpBinIsSupported, HwMatcher::coreAboveEqualXeHp) {
     WhiteBox<AubFileStream> stream;
     stream.init(SteppingValues::A, *gpu);
 
     EXPECT_TRUE(stream.dumpBinSupported);
-}
-
-HWTEST_F(AubFileStreamTest, givenLowerThanGen12CoreFamilyWhenAubFileStreamIsInitializedThenDumpSurfaceIsNotSupported, HwMatcher::coreBelowGen12Core) {
-    WhiteBox<AubFileStream> stream;
-    stream.init(SteppingValues::A, *gpu);
-
-    EXPECT_FALSE(stream.dumpSurfaceSupported);
 }
 
 HWTEST_F(AubFileStreamTest, givenCoreFamilyXeHpOrAboveWhenAubFileStreamIsInitializedThenDumpSurfaceIsSupported, HwMatcher::coreAboveEqualXeHp) {
