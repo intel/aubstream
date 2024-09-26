@@ -1,10 +1,11 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
  */
 
+#pragma once
 #include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/physical_address_allocator.h"
 #include "test_defaults.h"
@@ -15,18 +16,29 @@
 
 namespace aub_stream {
 
-class HardwareContextTest : public MockAubStreamFixture, public ::testing::Test {
+class HardwareContextFixture : public MockAubStreamFixture {
   public:
-    void SetUp() override {
+    void SetUp() {
         MockAubStreamFixture::SetUp();
         aubManager = std::make_unique<::testing::NiceMock<MockAubManager>>(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     }
 
-    void TearDown() override {
+    void TearDown() {
         MockAubStreamFixture::TearDown();
     }
 
     PhysicalAddressAllocatorSimple allocator;
     std::unique_ptr<::testing::NiceMock<MockAubManager>> aubManager;
+};
+
+class HardwareContextTest : public HardwareContextFixture, public ::testing::Test {
+  public:
+    void SetUp() override {
+        HardwareContextFixture::SetUp();
+    }
+
+    void TearDown() override {
+        HardwareContextFixture::TearDown();
+    }
 };
 } // namespace aub_stream

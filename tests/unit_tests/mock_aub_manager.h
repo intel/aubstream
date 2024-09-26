@@ -9,6 +9,7 @@
 #include "aub_mem_dump/aub_manager_imp.h"
 #include "aub_mem_dump/aub_stream.h"
 #include "aub_mem_dump/aub_tbx_stream.h"
+#include "aub_mem_dump/memory_banks.h"
 #include "aubstream/aubstream.h"
 #include "tests/unit_tests/mock_aub_stream.h"
 
