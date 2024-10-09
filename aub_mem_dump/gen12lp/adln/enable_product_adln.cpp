@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -7,10 +7,8 @@
 
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/gpu.h"
-
 #include "aubstream/product_family.h"
+
 namespace aub_stream {
-#ifdef SUPPORT_PVC
-static RegisterFamily<ProductFamily::Pvc> registerFamilyPvc;
-#endif
+static RegisterFamily<ProductFamily::Adln> registerFamilyAdln;
 } // namespace aub_stream

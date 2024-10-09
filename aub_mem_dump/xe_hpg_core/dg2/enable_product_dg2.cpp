@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -10,10 +10,5 @@
 #include "aubstream/product_family.h"
 
 namespace aub_stream {
-#ifdef SUPPORT_MTL
-static RegisterFamily<ProductFamily::Mtl> registerFamilyMtl;
-#endif
-#ifdef SUPPORT_DG2
 static RegisterFamily<ProductFamily::Dg2> registerFamilyDg2;
-#endif
 } // namespace aub_stream

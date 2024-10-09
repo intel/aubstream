@@ -12,11 +12,6 @@ if(SUPPORT_GEN12LP)
                  ${CMAKE_CURRENT_SOURCE_DIR}/command_streamer_helper_gen12lp.h
   )
 
-  target_sources(${PROJECT_NAME}_all_hw
-                 PRIVATE
-                 ${CMAKE_CURRENT_SOURCE_DIR}/enable_gen12lp.cpp
-  )
-
   subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "*")
 
   foreach(subdir ${SUBDIRS})
