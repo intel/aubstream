@@ -181,7 +181,10 @@ TEST_F(CommandStreamerHelperTest, CheckBCSFlushCommands) {
 
     size_t sizeOfCommands = 0;
     // Verify the flush dword
-    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x13000000);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x13000003);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
 
     // Finally make sure that we don't have any more commands
@@ -198,7 +201,10 @@ TEST_F(CommandStreamerHelperTest, CheckVCSFlushCommands) {
 
     size_t sizeOfCommands = 0;
     // Verify the flush dword
-    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x13000000);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x13000003);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
 
     // Finally make sure that we don't have any more commands
@@ -215,7 +221,10 @@ TEST_F(CommandStreamerHelperTest, CheckVECSFlushCommands) {
 
     size_t sizeOfCommands = 0;
     // Verify the flush dword
-    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x13000000);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x13000003);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
 
     // Finally make sure that we don't have any more commands

@@ -219,7 +219,10 @@ struct CommandStreamerHelperBcs : public CommandStreamerHelper {
 
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override {
         // MI_FLUSH_DW
-        ringBuffer.push_back(0x13000000);
+        ringBuffer.push_back(0x13000003);
+        ringBuffer.push_back(0);
+        ringBuffer.push_back(0);
+        ringBuffer.push_back(0);
         ringBuffer.push_back(0);
     }
 };
@@ -236,7 +239,10 @@ struct CommandStreamerHelperVcs : public CommandStreamerHelper {
 
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override {
         // MI_FLUSH_DW
-        ringBuffer.push_back(0x13000000);
+        ringBuffer.push_back(0x13000003);
+        ringBuffer.push_back(0);
+        ringBuffer.push_back(0);
+        ringBuffer.push_back(0);
         ringBuffer.push_back(0);
     }
 };
@@ -251,7 +257,10 @@ struct CommandStreamerHelperVecs : public CommandStreamerHelper {
 
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override {
         // MI_FLUSH_DW
-        ringBuffer.push_back(0x13000000);
+        ringBuffer.push_back(0x13000003);
+        ringBuffer.push_back(0);
+        ringBuffer.push_back(0);
+        ringBuffer.push_back(0);
         ringBuffer.push_back(0);
     }
 };
@@ -317,7 +326,10 @@ struct CommandStreamerHelperLinkBcs : public CommandStreamerHelper {
 
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override {
         // MI_FLUSH_DW
-        ringBuffer.push_back(0x13000000);
+        ringBuffer.push_back(0x13000003);
+        ringBuffer.push_back(0);
+        ringBuffer.push_back(0);
+        ringBuffer.push_back(0);
         ringBuffer.push_back(0);
     }
 };
