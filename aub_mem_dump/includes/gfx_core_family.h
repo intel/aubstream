@@ -16,6 +16,7 @@ enum class CoreFamily : uint32_t {
     XeHpgCore = 5,
     XeHpcCore = 6,
     Xe2HpgCore = 7,
+    Xe3Core = 8,
     MaxCore,
 };
 
