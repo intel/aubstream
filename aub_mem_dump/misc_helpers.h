@@ -6,6 +6,9 @@
  */
 
 #pragma once
+
+#include <type_traits>
+
 namespace aub_stream {
 
 constexpr uint16_t countBits(uint16_t v) {
@@ -19,6 +22,11 @@ constexpr uint16_t countBits(uint16_t v) {
 template <typename T, size_t n>
 constexpr size_t arrayCount(const T (&)[n]) {
     return n;
+}
+
+namespace TypeTraits {
+template <typename T>
+constexpr bool isPodV = std::is_standard_layout_v<T> && std::is_trivial_v<T> && std::is_trivially_copyable_v<T>;
 }
 
 } // namespace aub_stream
