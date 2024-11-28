@@ -24,9 +24,4 @@ constexpr size_t arrayCount(const T (&)[n]) {
     return n;
 }
 
-namespace TypeTraits {
-template <typename T>
-constexpr bool isPodV = std::is_standard_layout_v<T> && std::is_trivial_v<T> && std::is_trivially_copyable_v<T>;
-}
-
 } // namespace aub_stream
