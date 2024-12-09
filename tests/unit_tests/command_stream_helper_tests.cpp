@@ -94,7 +94,7 @@ TEST_F(CommandStreamerHelperTest, csHelperHasValidParams) {
     const uint32_t numEngines = 4;
     EngineType engines[numEngines] = {ENGINE_RCS, ENGINE_BCS, ENGINE_VCS, ENGINE_VECS};
 
-    for (int i = 0; i < numEngines; i++) {
+    for (auto i = 0u; i < numEngines; i++) {
         if (!gpu->isEngineSupported(engines[i])) {
             continue;
         }

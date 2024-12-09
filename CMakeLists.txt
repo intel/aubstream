@@ -103,6 +103,17 @@ if(MSVC)
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DAUBSTREAM_SETTINGS_DISABLE=1")
 endif()
 
+# compiler warning flags
+if(NOT MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Winvalid-pch")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wvla")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas") # needed for pragmas in case of MSVC
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter") # needed for unused function arguments
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers") # needed for allow implicit zero-initialization
+endif()
+
 option(AUBSTREAM_CCACHE_ALLOWED "allow use of ccache" TRUE)
 find_program(CCACHE_EXE_FOUND ccache)
 if(CCACHE_EXE_FOUND AND AUBSTREAM_CCACHE_ALLOWED)

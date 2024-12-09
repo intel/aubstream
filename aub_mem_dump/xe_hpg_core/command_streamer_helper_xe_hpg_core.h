@@ -50,7 +50,7 @@ struct CommandStreamerHelperXeHpgCore : public Helper {
         return execlistSubmitPortEnabled;
     }
 
-    const uint32_t getPollForCompletionMask() const override { return 0x00008000; }
+    uint32_t getPollForCompletionMask() const override { return 0x00008000; }
 
     const MMIOList getEngineMMIO() const override;
 

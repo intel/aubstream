@@ -298,7 +298,7 @@ TEST(AubShmStreamTest, writeContiguousPagesInSHMModeWithCorrectValuesThenTransla
     MockTbxShmStream stream(mode::tbxShm);
     uint64_t inVal = 1977;
     uint64_t outVal = 0;
-    stream.baseInit([&outVal, &inVal](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
+    stream.baseInit([&outVal](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
         EXPECT_EQ(physAddress, 0x1AC000);
         EXPECT_EQ(size, sizeof(inVal));
         p = &outVal;
@@ -313,7 +313,7 @@ TEST(AubShmStreamTest, writeContiguousPagesInSHM3ModeWithCorrectValuesThenTransl
     MockTbxShmStream stream(mode::tbxShm3);
     uint64_t inVal = 1977;
     uint64_t outVal = 0;
-    stream.baseInit([&outVal, &inVal](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
+    stream.baseInit([&outVal](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
         EXPECT_EQ(physAddress, 0x1AC000);
         EXPECT_EQ(size, sizeof(inVal));
         p = &outVal;
@@ -328,7 +328,7 @@ TEST(AubShmStreamTest, writeContiguousPagesInSHM4ModeWithCorrectValuesThenTransl
     MockTbxShmStream stream(mode::tbxShm4);
     uint64_t inVal = 1977;
     uint64_t outVal = 0;
-    stream.baseInit([&outVal, &inVal](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
+    stream.baseInit([&outVal](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
         EXPECT_EQ(physAddress, 0x1AB000);
         EXPECT_EQ(size, sizeof(inVal));
         p = &outVal;

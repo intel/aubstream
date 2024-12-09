@@ -135,7 +135,7 @@ struct CommandStreamerHelper {
 
     virtual void submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId, uint32_t priority) const;
     void submit(AubStream &stream, const std::vector<HardwareContextImp *> &hwContexts, bool is48Bits) const;
-    virtual const uint32_t getPollForCompletionMask() const { return 0x00000100; }
+    virtual uint32_t getPollForCompletionMask() const { return 0x00000100; }
     void pollForCompletion(AubStream &stream) const;
     void initializeEngineMMIO(AubStream &stream) const;
     virtual const MMIOList getEngineMMIO() const = 0;

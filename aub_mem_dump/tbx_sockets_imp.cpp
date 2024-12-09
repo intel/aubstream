@@ -99,7 +99,7 @@ bool TbxSocketsImp::stillConnected() {
 }
 
 void TbxSocketsImp::logErrorInfo(const char *tag) {
-    bool assertValue = false;
+    [[maybe_unused]] bool assertValue = false;
 #ifdef _WIN32
     auto error = WSAGetLastError();
     cerrStream << tag << " TbxSocketsImp Error: <" << error << ">" << std::endl;
@@ -213,7 +213,7 @@ bool TbxSocketsImp::connectToServer(const std::string &hostNameOrIp, uint16_t po
         clientService.sin_port = htons(port);
 
         if (::connect(m_socket, (SOCKADDR *)&clientService, sizeof(clientService)) == SOCKET_ERROR) {
-            auto timeDiff = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - startTime).count();
+            auto timeDiff = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - startTime).count());
             if (timeDiff < timeoutInSeconds) {
                 retryOnError = true;
                 continue;

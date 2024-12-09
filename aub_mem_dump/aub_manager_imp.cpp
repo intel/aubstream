@@ -36,10 +36,10 @@ Settings *globalSettings = nullptr;
 
 AubManagerImp::AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOptions &options) : gpu(std::move(gpu)),
                                                                                                   devicesCount(options.devicesCount),
-                                                                                                  localMemorySupported(options.localMemorySupported),
-                                                                                                  stepping(options.stepping),
                                                                                                   memoryBankSize(options.memoryBankSize),
+                                                                                                  localMemorySupported(options.localMemorySupported),
                                                                                                   streamMode(options.mode),
+                                                                                                  stepping(options.stepping),
                                                                                                   gpuAddressSpace(options.gpuAddressSpace),
                                                                                                   stolenMem(StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3, options.devicesCount, options.memoryBankSize, options.dataStolenMemorySize)),
                                                                                                   sharedMemoryInfo(options.sharedMemoryInfo),

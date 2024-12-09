@@ -342,8 +342,8 @@ TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExec
 
     // Initialize contextGroups contexts
     auto contextGroupCount = gpu->getContextGroupCount();
-    for (auto i = 0; i < arrayCount(helper.contextGroups); i++) {
-        for (auto j = 0; j < arrayCount(helper.contextGroups[i]); j++) {
+    for (auto i = 0u; i < arrayCount(helper.contextGroups); i++) {
+        for (auto j = 0u; j < arrayCount(helper.contextGroups[i]); j++) {
             helper.contextGroups[i][j].resize(1);
             helper.contextGroups[i][j][0].contexts.resize(contextGroupCount);
         }
@@ -397,8 +397,8 @@ TEST_F(HardwareContextTest, givenGroupContextWhenMainHardwareContextDestroyedThe
 
     // Initialize contextGroups contexts
     auto contextGroupCount = gpu->getContextGroupCount();
-    for (auto i = 0; i < arrayCount(helper.contextGroups); i++) {
-        for (auto j = 0; j < arrayCount(helper.contextGroups[i]); j++) {
+    for (auto i = 0u; i < arrayCount(helper.contextGroups); i++) {
+        for (auto j = 0u; j < arrayCount(helper.contextGroups[i]); j++) {
             helper.contextGroups[i][j].resize(1);
             helper.contextGroups[i][j][0].contexts.resize(contextGroupCount);
         }

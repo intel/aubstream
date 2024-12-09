@@ -57,6 +57,7 @@ struct SimpleAllocator {
             usedAllocationsMap.erase(usedAllocationIt);
         }
     }
+    virtual ~SimpleAllocator() = default;
 
   protected:
     std::mutex mutex;

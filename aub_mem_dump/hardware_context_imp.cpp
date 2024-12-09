@@ -157,7 +157,7 @@ void HardwareContextImp::initialize() {
 
     stream.declareContextForDumping(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this)), &ppgtt);
 
-    if (this->contextGroupId != -1) {
+    if (this->contextGroupId != std::numeric_limits<uint32_t>::max()) {
 
         assert(contextGroup->contexts[this->contextGroupId] == nullptr);
 
@@ -170,7 +170,7 @@ void HardwareContextImp::release() {
     pLRCA = nullptr;
 
     delete[] pRingData;
-    if (this->contextGroupId != -1) {
+    if (this->contextGroupId != std::numeric_limits<uint32_t>::max()) {
         contextGroup->contexts[this->contextGroupId] = nullptr;
 
         if (this->contextGroupId == 0) {
@@ -318,7 +318,7 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
             pageSize);
     }
 
-    if (this->contextGroupId != -1) {
+    if (this->contextGroupId != std::numeric_limits<uint32_t>::max()) {
         auto lock = csTraits.obtainUniqueLock();
         csTraits.submit(stream, contextGroup->contexts, ppgtt.getNumAddressBits() != 32);
     } else {

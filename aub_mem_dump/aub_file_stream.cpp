@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2024 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -16,8 +16,6 @@
 #include <algorithm>
 
 namespace aub_stream {
-
-const size_t g_dwordCountMax = 65536;
 
 AubFileStream::~AubFileStream() {
     if (fileHandle.is_open()) {
@@ -196,7 +194,7 @@ void getHeaderStr(uint32_t caller, char *header) {
 }
 
 void AubFileStream::expectMemoryTable(const void *memory, size_t size, const std::vector<PageInfo> &entries, uint32_t compareOperation) {
-    size_t sizeWritten = 0;
+    [[maybe_unused]] size_t sizeWritten = 0;
     for (auto &entry : entries) {
         CmdServicesMemTraceMemoryCompare cmd = {};
         cmd.setHeader();
@@ -260,7 +258,7 @@ void AubFileStream::writeContiguousPages(const void *memory, size_t size, uint64
     auto sizeMemoryWriteHeader = sizeof(CmdServicesMemTraceMemoryWrite) - sizeof(CmdServicesMemTraceMemoryWrite::data);
     auto alignedBlockSize = (size + sizeof(uint32_t) - 1) & ~(sizeof(uint32_t) - 1);
     auto dwordCount = (sizeMemoryWriteHeader + alignedBlockSize) / sizeof(uint32_t);
-    assert(dwordCount <= aub_stream::g_dwordCountMax);
+    assert(dwordCount <= std::numeric_limits<uint16_t>::max());
 
     header.setHeader();
     header.dwordCount = static_cast<uint32_t>(dwordCount - 1);
@@ -304,7 +302,7 @@ void AubFileStream::writeDiscontiguousPages(const void *memory, size_t size, con
         cmd.dwordCount = 0;
 
         auto index = 0u;
-        size_t writtenSize = 0;
+        [[maybe_unused]] size_t writtenSize = 0;
         auto itorCurrent = writeInfoTable.begin();
         auto itorDumpStart = itorCurrent;
         auto ptrDump = memory;
