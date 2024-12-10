@@ -75,32 +75,6 @@ struct CmdServicesMemTraceVersion {
                AubDump = 4,
                AubStream = 5 };
     };
-    struct DeviceValues {
-        enum {
-            Blc = 2,
-            Il = 5,
-            Glk = 17,
-            Skl = 12,
-            Hsw = 9,
-            Bxt = 14,
-            Sbr = 6,
-            Cnl = 15,
-            Ivb = 7,
-            Chv = 13,
-            El = 4,
-            Ctg = 3,
-            Lrb2 = 8,
-            Bwr = 0,
-            Vlv = 10,
-            Cln = 1,
-            Icl = 18,
-            Kbl = 16,
-            Bdw = 11,
-            Icllp = 19,
-            Cfl = 24,
-            Dg1 = 30
-        };
-    };
     struct RecordingMethodValues {
         enum { Phy = 1,
                Gfx = 0 };
