@@ -112,6 +112,7 @@ if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas") # needed for pragmas in case of MSVC
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter") # needed for unused function arguments
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers") # needed for allow implicit zero-initialization
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS) # needed for getenv function which is marked as deprecated
 endif()
 
 option(AUBSTREAM_CCACHE_ALLOWED "allow use of ccache" TRUE)
