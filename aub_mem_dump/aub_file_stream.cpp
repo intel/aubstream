@@ -143,8 +143,8 @@ void AubFileStream::dumpSurface(PageTableType gttType, const SurfaceInfo &surfac
 }
 
 bool AubFileStream::init(int stepping, const GpuDescriptor &gpu) {
-    this->dumpBinSupported = gpu.gfxCoreFamily >= CoreFamily::XeHpCore;
-    this->dumpSurfaceSupported = gpu.gfxCoreFamily >= CoreFamily::XeHpCore;
+    this->dumpBinSupported = gpu.gfxCoreFamily >= CoreFamily::XeHpCore && gpu.gfxCoreFamily <= CoreFamily::Xe3Core;
+    this->dumpSurfaceSupported = gpu.gfxCoreFamily >= CoreFamily::XeHpCore && gpu.gfxCoreFamily <= CoreFamily::Xe3Core;
 
     CmdServicesMemTraceVersion header = {};
 
