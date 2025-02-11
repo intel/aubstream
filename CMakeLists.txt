@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022-2024 Intel Corporation
+# Copyright (C) 2022-2025 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -73,7 +73,7 @@ set(CMAKE_SKIP_RPATH YES)
 
 string(REPLACE " " ";" AUBSTREAM_RUN_INTERCEPTOR_LIST "${AUBSTREAM_RUN_INTERCEPTOR}")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(MSVC)
@@ -113,6 +113,12 @@ if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter") # needed for unused function arguments
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers") # needed for allow implicit zero-initialization
   add_definitions(-D_CRT_SECURE_NO_WARNINGS) # needed for getenv function which is marked as deprecated
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-restrict") # due to false positive issues in GCC
+  endif()
 endif()
 
 option(AUBSTREAM_CCACHE_ALLOWED "allow use of ccache" TRUE)
