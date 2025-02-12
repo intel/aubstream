@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -13,6 +13,8 @@
 #include "aubstream/hardware_context.h"
 #include "aubstream/aubstream.h"
 #include "tests/simple_batch_buffer.h"
+
+#include "test.h"
 
 using namespace aub_stream;
 struct AubTbxSimpleBatchBuffer : public ::testing::Test {
@@ -44,6 +46,8 @@ void AubTbxSimpleBatchBuffer::initializeStream(const GpuDescriptor &desc) {
     internal_options.gpuAddressSpace = gpuAddressSpace48;
     mgr = new AubManagerImp(std::move(gpu), internal_options);
     mgr->initialize();
+    auto fileName = getAubFileName(desc);
+    mgr->open(fileName);
 }
 
 void AubTbxSimpleBatchBuffer::SetUp() {
@@ -59,6 +63,15 @@ TEST_F(AubTbxSimpleBatchBuffer, simpleBatchBufferRCS) {
     initializeStream(desc);
 
     ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_RCS, 0);
+    addSimpleBatchBuffer(ctxt, defaultMemoryBank);
+    ctxt->pollForCompletion();
+}
+
+TEST_F(AubTbxSimpleBatchBuffer, simpleBatchBufferCCS) {
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS));
+    initializeStream(desc);
+
+    ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_CCS, 0);
     addSimpleBatchBuffer(ctxt, defaultMemoryBank);
     ctxt->pollForCompletion();
 }
