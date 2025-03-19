@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -36,7 +36,14 @@ struct SimpleBatchBuffer : public ::testing::TestWithParam<uint32_t> {
 
     void initializeStream(const GpuDescriptor &desc) {
         auto gpu = createGpuFunc();
-        auto fileName = getAubFileName(desc);
+        gpu->deviceCount = desc.deviceCount;
+        gpu->deviceId = desc.deviceId;
+
+        assert(gpu->gfxCoreFamily == desc.gfxCoreFamily);
+        assert(gpu->productAbbreviation == desc.productAbbreviation);
+        assert(gpu->productFamily == desc.productFamily);
+
+        auto fileName = getAubFileName(*gpu);
         assert(!mgr);
         auto supportsLocalMemory =
             gpu->isMemorySupported(MEMORY_BANK_0, 4096u) ||

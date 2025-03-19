@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -54,6 +54,15 @@ enum MemoryBank : uint32_t {
 
 inline uint32_t MEMORY_BANK(uint32_t device) {
     return MEMORY_BANK_0 << device;
+}
+
+constexpr uint32_t toMemoryBankId(MemoryBank mb) {
+    uint32_t id = 0;
+    uint32_t bank = static_cast<uint32_t>(mb);
+    while (bank >>= 1) {
+        id++;
+    }
+    return id;
 }
 
 std::string memoryBanksToString(uint32_t banks, const std::string &separator = "");

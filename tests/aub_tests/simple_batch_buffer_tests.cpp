@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -22,6 +22,9 @@ using namespace aub_stream;
 
 TEST_P(SimpleBatchBuffer, rcs) {
     TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
     initializeStream(desc);
 
     ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_RCS, 0);
@@ -31,6 +34,8 @@ TEST_P(SimpleBatchBuffer, rcs) {
 
 TEST_P(SimpleBatchBuffer, bcs) {
     TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
     initializeStream(desc);
 
     ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_BCS, 0);
@@ -41,6 +46,8 @@ TEST_P(SimpleBatchBuffer, bcs) {
 TEST_P(SimpleBatchBuffer, vcs) {
     TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_VCS));
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
     initializeStream(desc);
 
     ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_VCS, 0);
@@ -51,6 +58,8 @@ TEST_P(SimpleBatchBuffer, vcs) {
 TEST_P(SimpleBatchBuffer, vecs) {
     TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_VECS));
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
     initializeStream(desc);
 
     ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_VECS, 0);
@@ -62,6 +71,7 @@ TEST_P(SimpleBatchBuffer, ccs) {
     TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS));
 
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
     initializeStream(desc);
 
     ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_CCS, 0);
@@ -71,6 +81,9 @@ TEST_P(SimpleBatchBuffer, ccs) {
 
 TEST_P(SimpleBatchBuffer, dualBatchBufferRcs) {
     TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
     initializeStream(desc);
 
     ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_RCS, 0);
@@ -80,6 +93,8 @@ TEST_P(SimpleBatchBuffer, dualBatchBufferRcs) {
 }
 
 HWTEST_P(SimpleBatchBuffer, tile1Rcs, MatchMultiDevice::moreThanOne) {
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
+
     desc.deviceCount = 4;
     initializeStream(desc);
 
@@ -90,6 +105,8 @@ HWTEST_P(SimpleBatchBuffer, tile1Rcs, MatchMultiDevice::moreThanOne) {
 }
 
 HWTEST_P(SimpleBatchBuffer, tile2Rcs, MatchMultiDevice::moreThanTwo) {
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
+
     desc.deviceCount = 4;
     initializeStream(desc);
 
@@ -100,6 +117,8 @@ HWTEST_P(SimpleBatchBuffer, tile2Rcs, MatchMultiDevice::moreThanTwo) {
 }
 
 HWTEST_P(SimpleBatchBuffer, tile3Rcs, MatchMultiDevice::moreThanThree) {
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
+
     desc.deviceCount = 4;
     initializeStream(desc);
 
@@ -112,7 +131,9 @@ HWTEST_P(SimpleBatchBuffer, tile3Rcs, MatchMultiDevice::moreThanThree) {
 TEST_P(SimpleBatchBuffer, dualContext) {
     TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS));
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
 
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
     initializeStream(desc);
 
     ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_RCS, 0);
