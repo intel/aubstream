@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -16,6 +16,7 @@
 #include <functional>
 
 namespace aub_stream {
+struct TestTraits;
 
 constexpr uint64_t maxNBitValue(uint32_t N) {
     return (1ull << N) - 1;
@@ -41,6 +42,7 @@ extern std::string fileSeparator;
 
 struct AubFileStream;
 
+std::string getAubConfig(const TestTraits *traits, const GpuDescriptor &desc);
 std::string getAubFileName(const GpuDescriptor &desc);
 
 bool initializeAubStream(AubFileStream &stream);

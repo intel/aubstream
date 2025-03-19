@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -38,6 +38,22 @@ const bool localMemorySupportedInTests = defaultMemoryBank != MEMORY_BANK_SYSTEM
 std::string folderAUB = ".";
 std::string fileSeparator = "/";
 
+std::string getAubConfig(const TestTraits *traits, const GpuDescriptor &desc) {
+    std::stringstream strConfig;
+    if (desc.deviceCount > 1) {
+        strConfig << desc.deviceCount
+                  << "tx";
+    }
+
+    strConfig << traits->deviceSliceCount
+              << "x"
+              << traits->deviceSubSliceCount
+              << "x"
+              << traits->deviceEuPerSubSlice;
+
+    return strConfig.str();
+}
+
 std::string getAubFileName(const GpuDescriptor &desc) {
 
     const ::testing::TestInfo *const testInfo = ::testing::UnitTest::GetInstance()->current_test_info();
@@ -49,19 +65,12 @@ std::string getAubFileName(const GpuDescriptor &desc) {
     strfilename << desc.productAbbreviation
                 << "_";
 
-    if (desc.deviceCount > 1) {
-        strfilename << desc.deviceCount
-                    << "tx";
-    }
-
     auto traits = testTraits[static_cast<uint32_t>(desc.productFamily)];
     assert(traits);
 
-    strfilename << traits->deviceSliceCount
-                << "x"
-                << traits->deviceSubSliceCount
-                << "x"
-                << traits->deviceEuPerSubSlice
+    auto config = traits->getAubConfig(traits, desc);
+
+    strfilename << config
                 << "_"
                 << testName
                 << ".aub";
