@@ -34,11 +34,48 @@ TEST_P(SimpleBatchBuffer, rcs) {
 
 TEST_P(SimpleBatchBuffer, bcs) {
     TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_BCS));
 
     desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
     initializeStream(desc);
 
     ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_BCS, 0);
+    addSimpleBatchBuffer(ctxt, GetParam());
+    ctxt->pollForCompletion();
+}
+
+TEST_P(SimpleBatchBuffer, bcs1) {
+    TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_BCS1));
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
+    initializeStream(desc);
+
+    ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_BCS1, 0);
+    addSimpleBatchBuffer(ctxt, GetParam());
+    ctxt->pollForCompletion();
+}
+
+TEST_P(SimpleBatchBuffer, bcs2) {
+    TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_BCS2));
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
+    initializeStream(desc);
+
+    ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_BCS2, 0);
+    addSimpleBatchBuffer(ctxt, GetParam());
+    ctxt->pollForCompletion();
+}
+
+TEST_P(SimpleBatchBuffer, bcs3) {
+    TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_BCS3));
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
+    initializeStream(desc);
+
+    ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_BCS3, 0);
     addSimpleBatchBuffer(ctxt, GetParam());
     ctxt->pollForCompletion();
 }
