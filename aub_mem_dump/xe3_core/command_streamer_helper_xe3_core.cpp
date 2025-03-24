@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Intel Corporation
+ * Copyright (C) 2024-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -101,7 +101,7 @@ GpuXe3Core::GpuXe3Core() {
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_VCS] = std::make_unique<CommandStreamerHelperXe3Core<CommandStreamerHelperVcs>>(deviceId);
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_VECS] = std::make_unique<CommandStreamerHelperXe3Core<CommandStreamerHelperVecs>>(deviceId);
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_CCS] = std::make_unique<CommandStreamerHelperXe3Core<CommandStreamerHelperCcs>>(deviceId, 0);
-        commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS1] = std::make_unique<CommandStreamerHelperXe3Core<CommandStreamerHelperLinkBcs>>(deviceId, 1);
+        commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS8] = std::make_unique<CommandStreamerHelperXe3Core<CommandStreamerHelperLinkBcs>>(deviceId, 8);
     }
 }
 
@@ -263,7 +263,7 @@ void GpuXe3Core::initializeFlatCcsBaseAddressMmio(AubStream &stream, uint32_t de
 }
 const std::vector<EngineType> GpuXe3Core::getSupportedEngines() const {
     static constexpr std::array<EngineType, 6> engines = {{ENGINE_BCS, ENGINE_VCS, ENGINE_VECS,
-                                                           ENGINE_CCS, ENGINE_CCCS, ENGINE_BCS1}};
+                                                           ENGINE_CCS, ENGINE_CCCS, ENGINE_BCS8}};
     return std::vector<EngineType>(engines.begin(), engines.end());
 }
 
