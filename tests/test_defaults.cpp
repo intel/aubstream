@@ -38,9 +38,10 @@ const bool localMemorySupportedInTests = defaultMemoryBank != MEMORY_BANK_SYSTEM
 std::string folderAUB = ".";
 std::string fileSeparator = "/";
 
+template <bool requireTile>
 std::string getAubConfig(const TestTraits *traits, const GpuDescriptor &desc) {
     std::stringstream strConfig;
-    if (desc.deviceCount > 1) {
+    if (requireTile || desc.deviceCount > 1) {
         strConfig << desc.deviceCount
                   << "tx";
     }
@@ -52,6 +53,13 @@ std::string getAubConfig(const TestTraits *traits, const GpuDescriptor &desc) {
               << traits->deviceEuPerSubSlice;
 
     return strConfig.str();
+}
+
+std::string getAubConfigWithoutTile(const TestTraits *traits, const GpuDescriptor &desc) {
+    return getAubConfig<false>(traits, desc);
+}
+std::string getAubConfigWithTile(const TestTraits *traits, const GpuDescriptor &desc) {
+    return getAubConfig<true>(traits, desc);
 }
 
 std::string getAubFileName(const GpuDescriptor &desc) {

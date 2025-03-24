@@ -41,8 +41,8 @@ extern std::string folderAUB;
 extern std::string fileSeparator;
 
 struct AubFileStream;
-
-std::string getAubConfig(const TestTraits *traits, const GpuDescriptor &desc);
+std::string getAubConfigWithTile(const TestTraits *traits, const GpuDescriptor &desc);
+std::string getAubConfigWithoutTile(const TestTraits *traits, const GpuDescriptor &desc);
 std::string getAubFileName(const GpuDescriptor &desc);
 
 bool initializeAubStream(AubFileStream &stream);

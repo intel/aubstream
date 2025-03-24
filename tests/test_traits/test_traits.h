@@ -29,7 +29,7 @@ struct TestTraits {
 
 extern const TestTraits *testTraits[static_cast<uint32_t>(ProductFamily::MaxProduct)];
 
-template <ProductFamily productFamily, auto getConfig = getAubConfig>
+template <ProductFamily productFamily, auto getConfig = getAubConfigWithTile>
 struct EnableTestTraits {
     EnableTestTraits() = delete;
 
@@ -37,7 +37,7 @@ struct EnableTestTraits {
         static TestTraits traits(static_cast<uint32_t>((config >> 32) & 0xFFFF),
                                  static_cast<uint32_t>((config >> 16) & 0xFFFF),
                                  static_cast<uint32_t>(config & 0xFFFF),
-                                 getConfig);
+                                 productFamily < ProductFamily::Bmg ? getAubConfigWithoutTile : getConfig);
 
         assert(!testTraits[static_cast<uint32_t>(productFamily)]);
 
