@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -143,8 +143,8 @@ void AubFileStream::dumpSurface(PageTableType gttType, const SurfaceInfo &surfac
 }
 
 bool AubFileStream::init(int stepping, const GpuDescriptor &gpu) {
-    this->dumpBinSupported = gpu.gfxCoreFamily >= CoreFamily::XeHpCore && gpu.gfxCoreFamily <= CoreFamily::Xe3Core;
-    this->dumpSurfaceSupported = gpu.gfxCoreFamily >= CoreFamily::XeHpCore && gpu.gfxCoreFamily <= CoreFamily::Xe3Core;
+    this->dumpBinSupported = gpu.gfxCoreFamily >= CoreFamily::XeHpCore && gpu.gfxCoreFamily <= CoreFamily::XeHpgCore;
+    this->dumpSurfaceSupported = gpu.gfxCoreFamily >= CoreFamily::XeHpCore && gpu.gfxCoreFamily <= CoreFamily::XeHpgCore;
 
     CmdServicesMemTraceVersion header = {};
 

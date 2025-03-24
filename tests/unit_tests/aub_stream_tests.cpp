@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -457,14 +457,14 @@ TEST_F(AubStreamTest, givenGGTT64KBPageEntriesAre4KBAndArePhysicallyContiguous) 
 
 using AubFileStreamTest = ::testing::Test;
 
-HWTEST_F(AubFileStreamTest, givenCoreFamilyXeHpOrAboveWhenAubFileStreamIsInitializedThenDumpBinIsSupported, (HwMatcher::And<HwMatcher::coreAboveEqualXeHp, HwMatcher::coreBelowEqualXe3Core>)) {
+HWTEST_F(AubFileStreamTest, givenCoreFamilyXeHpOrAboveWhenAubFileStreamIsInitializedThenDumpBinIsSupported, (HwMatcher::And<HwMatcher::coreAboveEqualXeHp, HwMatcher::coreBelowEqualXeHpgCore>)) {
     WhiteBox<AubFileStream> stream;
     stream.init(SteppingValues::A, *gpu);
 
     EXPECT_TRUE(stream.dumpBinSupported);
 }
 
-HWTEST_F(AubFileStreamTest, givenCoreFamilyXeHpOrAboveWhenAubFileStreamIsInitializedThenDumpSurfaceIsSupported, (HwMatcher::And<HwMatcher::coreAboveEqualXeHp, HwMatcher::coreBelowEqualXe3Core>)) {
+HWTEST_F(AubFileStreamTest, givenCoreFamilyXeHpOrAboveWhenAubFileStreamIsInitializedThenDumpSurfaceIsSupported, (HwMatcher::And<HwMatcher::coreAboveEqualXeHp, HwMatcher::coreBelowEqualXeHpgCore>)) {
     WhiteBox<AubFileStream> stream;
     stream.init(SteppingValues::A, *gpu);
 
