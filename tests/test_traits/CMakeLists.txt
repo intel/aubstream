@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022 Intel Corporation
+# Copyright (C) 2022-2025 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -12,11 +12,23 @@ set(TEST_TRAITS_SOURCES
 
 set_property(GLOBAL APPEND PROPERTY TEST_TRAITS_SOURCES_property "${TEST_TRAITS_SOURCES}")
 
-function(GENERATE_CONFIG Product DefaultConfig)
-  set(VALUE "${DefaultConfig}")
+set(AUBCONFIG_PATH "${AUB_STREAM_DIR}/../aub_configs/CMakeLists.txt")
+if(EXISTS ${AUBCONFIG_PATH})
+  include(${AUBCONFIG_PATH})
+else()
+  message(WARNING "aub_configs NOT FOUND. Using 1x2x3 as default config.")
+  set(DEFAULT_CONFIG 0x100020003)
+endif()
 
-  if(DEFINED AUB_STREAM_${Product}_CONFIG)
-    set(VALUE "${AUB_STREAM_${Product}_CONFIG}")
+function(GENERATE_CONFIG Product)
+  if(DEFINED ${Product}_CONFIG_HEX)
+    set(VALUE "${${Product}_CONFIG_HEX}")
+  else()
+    if(DEFINED DEFAULT_CONFIG)
+      set(VALUE "${DEFAULT_CONFIG}")
+    else()
+      message(FATAL_ERROR "${Product} config not defined in aub_configs")
+    endif()
   endif()
 
   get_property(HasProperty GLOBAL PROPERTY TEST_TRAITS_MACROS_property)
@@ -32,4 +44,3 @@ subdirlist(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR} "*")
 foreach(subdir ${SUBDIRS})
   add_subdirectory(${subdir})
 endforeach()
-
