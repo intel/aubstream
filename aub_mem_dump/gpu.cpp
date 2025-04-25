@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -54,17 +54,25 @@ void Gpu::initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount, uint64_
     for (const auto &mmioPair : globalMMIOPlatformSpecific) {
         stream.writeMMIO(mmioPair.first, mmioPair.second);
     }
-
-    // Add injected MMIO
-    for (const auto &mmioPair : MMIOListInjected) {
-        stream.writeMMIO(mmioPair.first, mmioPair.second);
-    }
 }
 
 CommandStreamerHelper &Gpu::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
     auto &csh = commandStreamerHelperTable[device][engineType];
     csh->gpu = this;
     return *csh;
+}
+
+void Gpu::injectMMIOs(AubStream &stream, uint32_t devicesCount) const {
+    uint32_t mmioDevice = 0;
+
+    for (uint32_t device = 0; device < devicesCount; device++) {
+        // Add injected MMIO
+        for (const auto &mmioPair : MMIOListInjected) {
+            stream.writeMMIO(mmioDevice + mmioPair.first, mmioPair.second);
+        }
+
+        mmioDevice += mmioDeviceOffset;
+    }
 }
 
 StolenMemoryInHeap::StolenMemoryInHeap(uint32_t deviceCount, uint64_t memoryBankSize, uint64_t dataStolenMemorySize) : StolenMemory(dataStolenMemorySize) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -351,11 +351,6 @@ void GpuXeHpCore::initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount,
     for (uint32_t device = 0; device < devicesCount; device++) {
         const auto &globalMMIO = getGlobalMMIO();
         for (const auto &mmioPair : globalMMIO) {
-            stream.writeMMIO(mmioDevice + mmioPair.first, mmioPair.second);
-        }
-
-        // Add injected MMIO
-        for (const auto &mmioPair : MMIOListInjected) {
             stream.writeMMIO(mmioDevice + mmioPair.first, mmioPair.second);
         }
 

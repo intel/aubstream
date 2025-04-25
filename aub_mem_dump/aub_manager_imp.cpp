@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -133,6 +133,11 @@ void AubManagerImp::initialize() {
     }
 
     gpu->initializeDefaultMemoryPools(*getStream(), devicesCount, memoryBankSize, *stolenMem);
+    if (streamTbx) {
+        gpu->injectMMIOs(*streamTbx, devicesCount);
+    } else if (streamTbxShm) {
+        gpu->injectMMIOs(*streamTbxShm, devicesCount);
+    }
 }
 
 void AubManagerImp::createStream() {
@@ -196,6 +201,7 @@ void AubManagerImp::open(const std::string &aubFileName) {
         streamAub->init(stepping, *gpu);
         gpu->initializeGlobalMMIO(*streamAub, devicesCount, memoryBankSize, stepping);
         gpu->setMemoryBankSize(*streamAub, devicesCount, memoryBankSize);
+        gpu->injectMMIOs(*streamAub, devicesCount);
     }
 
     for (auto &ctxt : hwContexts) {

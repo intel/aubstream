@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -16,7 +16,6 @@
 #include "aub_mem_dump/options.h"
 
 namespace aub_stream {
-constexpr uint32_t mmioDeviceOffset = 16 * MB;
 
 template <typename Helper>
 struct CommandStreamerHelperXeHpCore : public Helper {

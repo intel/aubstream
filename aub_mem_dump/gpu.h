@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -7,6 +7,7 @@
 
 #pragma once
 #include "aub_mem_dump/aub_stream.h"
+#include "aub_mem_dump/memory_banks.h"
 #include "aubstream/engine_node.h"
 #include "aubstream/allocation_params.h"
 
@@ -26,6 +27,8 @@ struct GGTT;
 struct PageTable;
 struct PhysicalAddressAllocator;
 enum class ProductFamily : uint32_t;
+
+constexpr uint32_t mmioDeviceOffset = 16 * MB;
 
 struct StolenMemory {
     StolenMemory(uint64_t dataStolenMemorySize) : dsmSize(dataStolenMemorySize) {}
@@ -80,6 +83,7 @@ struct Gpu : public GpuDescriptor {
 
     virtual void initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping) const;
     virtual void initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {};
+    virtual void injectMMIOs(AubStream &stream, uint32_t devicesCount) const;
     bool isEngineSupported(uint32_t engine) const;
 
     virtual bool isValidDataStolenMemorySize(uint64_t dataStolenMemorySize) const;

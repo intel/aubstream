@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -37,20 +37,6 @@ TEST(Gpu, initializeGlobalMMIOIsWithinDeviceMmioRange) {
     VerifyMmioAubStream stream(0, gpu->deviceCount * 16 * MB);
 
     gpu->initializeGlobalMMIO(stream, 1, 1, 0u);
-}
-
-TEST(Gpu, initializeGlobalMMIOAlsoWritesMmioListInjected) {
-    MMIOListInjected.push_back(MMIOPair(0xE48C, 0x20002));
-    MMIOListInjected.push_back(MMIOPair(0xE4F0, 0x20002));
-
-    MockAubStream stream;
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(0xE48C, 0x20002)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0xE4F0, 0x20002)).Times(1);
-
-    gpu->initializeGlobalMMIO(stream, 1, 1, 0u);
-
-    MMIOListInjected.resize(0);
 }
 
 TEST(Gpu, gen12lpGivenOneIntegratedDeviceSetMemoryBankSizeOnlyDefinesOneBank) {

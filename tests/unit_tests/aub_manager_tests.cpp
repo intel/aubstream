@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -14,6 +14,7 @@
 #include "aub_mem_dump/tbx_stream.h"
 #include "aubstream/aubstream.h"
 #include "aubstream/hardware_context.h"
+#include "aub_mem_dump/options.h"
 
 #include "test_defaults.h"
 #include "tests/unit_tests/mock_aub_manager.h"
@@ -26,6 +27,7 @@
 
 using namespace aub_stream;
 using ::testing::_;
+using ::testing::AtLeast;
 
 TEST(AubManagerTest, givenNotSupportedGenWhenAubManagerIsCreatedUsingOldInterfaceThenNullptrIsReturnedUsingOptions) {
     AubManagerOptions internalOptions;
@@ -600,6 +602,34 @@ TEST(AubManager, initializeAlsoInitializesGlobalMmio) {
     MockAubManager aubManager(std::move(mockGpu), deviceCount, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::aubFile);
     aubManager.initialize();
     aubManager.open("test.aub");
+}
+
+TEST(AubManager, initializeInjectsMMIOsLast) {
+    MMIOListInjected.push_back(MMIOPair(0xABCD, 0x20002));
+    MMIOListInjected.push_back(MMIOPair(0xDEAD, 0x20002));
+    MMIOListInjected.push_back(MMIOPair(0x20d8, 0x1111));
+
+    MockAubManager aubManager(createGpuFunc(), gpu->deviceCount, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
+    aubManager.createMockAubFileStream = true;
+    aubManager.createStream();
+    auto &stream = *aubManager.getMockAubFileStream();
+
+    uint32_t regAddr = 0;
+    uint32_t regVal = 0;
+
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0xABCD, 0x20002)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0xDEAD, 0x20002)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x20d8, _)).Times(AtLeast(1)).WillRepeatedly(::testing::Invoke([&](uint32_t registerOffset, uint32_t value) { 
+            regAddr = registerOffset; 
+            regVal = value; }));
+
+    aubManager.initialize();
+    aubManager.open("test.aub");
+
+    EXPECT_EQ(0x1111u, regVal);
+
+    MMIOListInjected.resize(0);
 }
 
 TEST(AubManager, initializeAlsoSetsMemoryBankSize) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -38,8 +38,13 @@ class MockAubManager : public AubManagerImp {
         : AubManagerImp(std::move(gpu), {/* version */ 0, /* Product Family not used*/ 0, devicesCount, memoryBankSize, stepping, localMemorySupported, streamMode, gpuAddressSpace48, sharedMemoryInfo, {}, 4 * MB}) {}
 
     virtual void createStream() override {
-        if (gpu->productFamily <= ProductFamily::Arl) {
-            AubManagerImp::createStream();
+        if (streamCreated) {
+            return;
+        }
+
+        if (createMockAubFileStream && streamMode == aub_stream::mode::aubFile) {
+            mockAubFileStream = new MockAubFileStream();
+            streamAub.reset(mockAubFileStream);
         } else if (streamMode == aub_stream::mode::tbx) {
             streamTbx = std::make_unique<MockReadMMIOTbxStream>();
             uint32_t localMemDevicesCount = 0;
@@ -49,7 +54,7 @@ class MockAubManager : public AubManagerImp {
             if (localMemDevicesCount == 0) {
                 EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(0);
             } else {
-                EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(localMemDevicesCount).WillRepeatedly(::testing::Return(0x10000));
+                ON_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).WillByDefault(::testing::Return(0x10000));
             }
         } else if (streamMode == aub_stream::mode::tbxShm || streamMode == aub_stream::mode::tbxShm4) {
             uint32_t localMemDevicesCount = 0;
@@ -60,7 +65,7 @@ class MockAubManager : public AubManagerImp {
             if (localMemDevicesCount == 0) {
                 EXPECT_CALL(*static_cast<MockReadMMIOTbxShmStream *>(streamTbxShm.get()), readMMIO(0x9118)).Times(0);
             } else {
-                EXPECT_CALL(*static_cast<MockReadMMIOTbxShmStream *>(streamTbxShm.get()), readMMIO(0x9118)).Times(localMemDevicesCount).WillRepeatedly(::testing::Return(0x10000));
+                ON_CALL(*static_cast<MockReadMMIOTbxShmStream *>(streamTbxShm.get()), readMMIO(0x9118)).WillByDefault(::testing::Return(0x10000));
             }
         } else if (streamMode == aub_stream::mode::aubFileAndTbx) {
             uint32_t localMemDevicesCount = 0;
@@ -73,12 +78,20 @@ class MockAubManager : public AubManagerImp {
             if (localMemDevicesCount == 0) {
                 EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(0);
             } else {
-                EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(localMemDevicesCount).WillRepeatedly(::testing::Return(0x10000));
+                ON_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).WillByDefault(::testing::Return(0x10000));
             }
         } else {
             AubManagerImp::createStream();
         }
+        streamCreated = true;
     }
+
+    MockAubFileStream *getMockAubFileStream() const {
+        return mockAubFileStream;
+    }
+    bool createMockAubFileStream = false;
+    MockAubFileStream *mockAubFileStream = nullptr;
+    bool streamCreated = false;
 };
 
 } // namespace aub_stream
