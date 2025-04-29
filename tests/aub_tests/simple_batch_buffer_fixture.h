@@ -14,6 +14,8 @@
 #include "test_defaults.h"
 #include "tests/unit_tests/mock_aub_manager.h"
 #include "gtest/gtest.h"
+#include "aub_mem_dump/options.h"
+#include "variable_backup.h"
 
 namespace aub_stream {
 
@@ -58,6 +60,12 @@ struct SimpleBatchBuffer : public ::testing::TestWithParam<uint32_t> {
         mgr = new AubManagerImp(std::move(gpu), internal_options);
         mgr->initialize();
         mgr->open(fileName);
+    }
+
+    void initializeStreamWithMultipleCCS(const GpuDescriptor &desc) {
+        VariableBackup<MMIOList> injectListRestorer(&MMIOListInjected);
+        injectMMIOList(MMIOList{MMIOPair(0x00014804, 0xFFF0688)});
+        initializeStream(desc);
     }
 
     GpuDescriptor desc;

@@ -292,7 +292,7 @@ const MMIOList GpuXeHpgCore::getGlobalMMIO() const {
         MMIOPair(0x0000ce90, 0x00030003), // GFX_MULT_CTXT_CTL
         MMIOPair(0x0000cf58, 0x80000000), // LMEM_CFG for local memory
         MMIOPair(0x0000e194, 0xffff0002), // CHICKEN_SAMPLER_2
-        MMIOPair(0x00014800, 0x00010001), // RCU_MODE
+        MMIOPair(0x00014800, 0x00030003), // RCU_MODE
         MMIOPair(0x0001a0d8, 0x00020000), // CS_DEBUG_MODE2_CCSUNIT
         MMIOPair(0x00042080, 0x00000000), // CHICKEN_MISC_1
     };
