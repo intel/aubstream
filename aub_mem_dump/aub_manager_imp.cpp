@@ -201,6 +201,7 @@ void AubManagerImp::open(const std::string &aubFileName) {
         streamAub->init(stepping, *gpu);
         gpu->initializeGlobalMMIO(*streamAub, devicesCount, memoryBankSize, stepping);
         gpu->setMemoryBankSize(*streamAub, devicesCount, memoryBankSize);
+        setCCSMode(*streamAub, ccsCount);
         gpu->injectMMIOs(*streamAub, devicesCount);
     }
 
@@ -595,6 +596,39 @@ uint32_t AubManagerImp::readMMIO(uint32_t offset) {
     }
     AubStream *stream = getStream();
     return stream->readMMIO(offset);
+}
+
+void AubManagerImp::setCCSMode(AubStream &stream, uint32_t ccsCount) {
+    if (!hwContexts.empty()) {
+        if (enableThrow) {
+            throw std::logic_error("Cannot set CCS mode after hardware contexts have been created.");
+        }
+        return;
+    }
+
+    this->ccsCount = ccsCount;
+    uint32_t mmioDevice = 0;
+    uint32_t mmioCCSValue = 0;
+
+    if (ccsCount <= 1) {
+        mmioCCSValue = 0xFFF0000;
+    } else if (ccsCount == 2) {
+        mmioCCSValue = 0xFFF0240;
+    } else {
+        if (ccsCount > 4) {
+            PRINT_LOG_INFO("Unsupported number of CCS provided: %d, using value of 4 CCS", ccsCount);
+        }
+        mmioCCSValue = 0xFFF0688;
+    }
+
+    for (uint32_t device = 0; device < devicesCount; device++) {
+        stream.writeMMIO(mmioDevice + 0x14804, mmioCCSValue);
+        mmioDevice += mmioDeviceOffset;
+    }
+}
+
+void AubManagerImp::setCCSMode(uint32_t ccsCount) {
+    setCCSMode(*getStream(), ccsCount);
 }
 
 void AubManagerImp::throwErrorIfEnabled(const std::string &str) const {

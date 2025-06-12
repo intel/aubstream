@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -77,6 +77,7 @@ class AubManagerImp : public AubManager {
     uint32_t readPCICFG(uint32_t offset) override;
     uint32_t readMMIO(uint32_t offset) override;
     void writeMMIO(uint32_t offset, uint32_t value) override;
+    void setCCSMode(uint32_t ccsCount) override;
 
     bool releaseHardwareContext(HardwareContext *context) override;
 
@@ -85,6 +86,7 @@ class AubManagerImp : public AubManager {
     AubStream *getStream() const;
     void adjustPageSize(uint32_t memoryBanks, size_t &pageSize);
     void throwErrorIfEnabled(const std::string &) const;
+    void setCCSMode(AubStream &stream, uint32_t ccsCount);
 
     std::unique_ptr<Gpu> gpu;
     const uint32_t devicesCount;
@@ -93,6 +95,7 @@ class AubManagerImp : public AubManager {
     const uint32_t streamMode;
     const uint32_t stepping;
     uint64_t gpuAddressSpace;
+    uint32_t ccsCount{};
 
     std::unique_ptr<StolenMemory> stolenMem;
     std::unique_ptr<AubFileStream> streamAub;

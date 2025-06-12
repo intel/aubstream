@@ -37,6 +37,9 @@ class MockAubManager : public AubManagerImp {
     MockAubManager(std::unique_ptr<Gpu> gpu, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping, bool localMemorySupported, uint32_t streamMode, const SharedMemoryInfo &sharedMemoryInfo)
         : AubManagerImp(std::move(gpu), {/* version */ 0, /* Product Family not used*/ 0, devicesCount, memoryBankSize, stepping, localMemorySupported, streamMode, gpuAddressSpace48, sharedMemoryInfo, {}, 4 * MB}) {}
 
+    MockAubManager(std::unique_ptr<Gpu> gpu, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping, bool localMemorySupported, uint32_t streamMode, const SharedMemoryInfo &sharedMemoryInfo, bool enableThrow)
+        : AubManagerImp(std::move(gpu), {/* version */ 0, /* Product Family not used*/ 0, devicesCount, memoryBankSize, stepping, localMemorySupported, streamMode, gpuAddressSpace48, sharedMemoryInfo, enableThrow, 4 * MB}) {}
+
     virtual void createStream() override {
         if (streamCreated) {
             return;

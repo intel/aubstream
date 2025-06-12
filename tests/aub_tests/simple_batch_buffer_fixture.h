@@ -62,12 +62,6 @@ struct SimpleBatchBuffer : public ::testing::TestWithParam<uint32_t> {
         mgr->open(fileName);
     }
 
-    void initializeStreamWithMultipleCCS(const GpuDescriptor &desc) {
-        VariableBackup<MMIOList> injectListRestorer(&MMIOListInjected);
-        injectMMIOList(MMIOList{MMIOPair(0x00014804, 0xFFF0688)});
-        initializeStream(desc);
-    }
-
     GpuDescriptor desc;
     AubManagerImp *mgr;
     HardwareContext *ctxt;

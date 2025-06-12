@@ -292,6 +292,92 @@ TEST(AubManagerImp, whenAubManagerIsCreatedWithAubFileModeAndSteppingParamThenSt
     EXPECT_EQ(stepping, aubManager.stepping);
 }
 
+TEST(AubManagerImp, whenSetCCSModeWith1CCSCountIsCalledThenProperMMIOIsWritten) {
+    MockAubManager aubManager(createGpuFunc(), 4, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
+    aubManager.createMockAubFileStream = true;
+    aubManager.createStream();
+    auto &stream = *aubManager.getMockAubFileStream();
+    aubManager.initialize();
+
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0000)).Times(1);
+
+    aubManager.setCCSMode(1);
+}
+
+TEST(AubManagerImp, whenSetCCSModeWith2CCSCountIsCalledThenProperMMIOIsWritten) {
+    MockAubManager aubManager(createGpuFunc(), 4, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
+    aubManager.createMockAubFileStream = true;
+    aubManager.createStream();
+    auto &stream = *aubManager.getMockAubFileStream();
+    aubManager.initialize();
+
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0240)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0240)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0240)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0240)).Times(1);
+
+    aubManager.setCCSMode(2);
+}
+
+TEST(AubManagerImp, whenSetCCSModeWith4CCSCountIsCalledThenProperMMIOIsWritten) {
+    MockAubManager aubManager(createGpuFunc(), 4, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
+    aubManager.createMockAubFileStream = true;
+    aubManager.createStream();
+    auto &stream = *aubManager.getMockAubFileStream();
+    aubManager.initialize();
+
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0688)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0688)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0688)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0688)).Times(1);
+
+    aubManager.setCCSMode(4);
+}
+
+TEST(AubManagerImp, whenSetCCSModeWithLargeCCSCountIsCalledThenDefaultMMIOIsWritten) {
+    MockAubManager aubManager(createGpuFunc(), 4, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
+    aubManager.createMockAubFileStream = true;
+    aubManager.createStream();
+    auto &stream = *aubManager.getMockAubFileStream();
+    aubManager.initialize();
+
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0688)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0688)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0688)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0688)).Times(1);
+
+    aubManager.setCCSMode(8);
+}
+
+TEST(AubManagerImp, whenSetCCSModeIsCalledAfterHwContextCreationAndEnableThrowIsTrueThenExceptionIsThrown) {
+    MockAubManager aubManager(createGpuFunc(), 4, defaultHBMSizePerDevice, 0u, true, mode::aubFile, {}, true);
+    aubManager.createStream();
+    aubManager.initialize();
+    aubManager.createHardwareContext(0, 0, 0);
+
+    EXPECT_THROW(aubManager.setCCSMode(1), std::logic_error);
+    EXPECT_THROW(aubManager.setCCSMode(2), std::logic_error);
+    EXPECT_THROW(aubManager.setCCSMode(4), std::logic_error);
+}
+
+TEST(AubManagerImp, whenSetCCSModeIsCalledAfterHwContextCreationAndEnableThrowIsFalseThenExceptionIsNotThrown) {
+    MockAubManager aubManager(createGpuFunc(), 4, defaultHBMSizePerDevice, 0u, true, mode::aubFile, {}, false);
+    aubManager.createStream();
+    aubManager.initialize();
+    aubManager.createHardwareContext(0, 0, 0);
+
+    EXPECT_NO_THROW(aubManager.setCCSMode(1));
+    EXPECT_NO_THROW(aubManager.setCCSMode(2));
+    EXPECT_NO_THROW(aubManager.setCCSMode(4));
+}
+
 using AubManagerTest = ::testing::Test;
 HWTEST_F(AubManagerTest, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxShm3Stream, HwMatcher::coreAboveEqualXeHp) {
     MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::tbxShm3);
@@ -578,7 +664,7 @@ HWTEST_F(AubManagerTest, whenAubManagerWritesMemoryThenPageTablesParamsCloned, M
     }
 }
 
-TEST(AubManager, whenAubManagerWritesPageTableEntiesThenPhysicalMemory) {
+TEST(AubManagerImp, whenAubManagerWritesPageTableEntiesThenPhysicalMemory) {
     bool localMemorySupport = false;
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     auto gfxAddress = 0x1000;
@@ -592,7 +678,7 @@ TEST(AubManager, whenAubManagerWritesPageTableEntiesThenPhysicalMemory) {
     EXPECT_EQ(lastLevelentries.size(), 1);
 }
 
-TEST(AubManager, initializeAlsoInitializesGlobalMmio) {
+TEST(AubManagerImp, initializeAlsoInitializesGlobalMmio) {
     auto mockGpu = std::make_unique<MockGpu>();
     bool localMemorySupport = defaultMemoryBank != MEMORY_BANK_SYSTEM;
 
@@ -604,7 +690,7 @@ TEST(AubManager, initializeAlsoInitializesGlobalMmio) {
     aubManager.open("test.aub");
 }
 
-TEST(AubManager, initializeInjectsMMIOsLast) {
+TEST(AubManagerImp, initializeInjectsMMIOsLast) {
     MMIOListInjected.push_back(MMIOPair(0xABCD, 0x20002));
     MMIOListInjected.push_back(MMIOPair(0xDEAD, 0x20002));
     MMIOListInjected.push_back(MMIOPair(0x20d8, 0x1111));
