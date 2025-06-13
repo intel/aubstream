@@ -316,10 +316,10 @@ TEST(AubManagerImp, whenSetCCSModeWith2CCSCountIsCalledThenProperMMIOIsWritten) 
     aubManager.initialize();
 
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0240)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0240)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0240)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0240)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0208)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0208)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0208)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0208)).Times(1);
 
     aubManager.setCCSMode(2);
 }

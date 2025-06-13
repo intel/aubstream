@@ -613,7 +613,7 @@ void AubManagerImp::setCCSMode(AubStream &stream, uint32_t ccsCount) {
     if (ccsCount <= 1) {
         mmioCCSValue = 0xFFF0000;
     } else if (ccsCount == 2) {
-        mmioCCSValue = 0xFFF0240;
+        mmioCCSValue = 0xFFF0208;
     } else {
         if (ccsCount > 4) {
             PRINT_LOG_INFO("Unsupported number of CCS provided: %d, using value of 4 CCS", ccsCount);
