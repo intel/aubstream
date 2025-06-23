@@ -664,7 +664,7 @@ HWTEST_F(AubManagerTest, whenAubManagerWritesMemoryThenPageTablesParamsCloned, M
     }
 }
 
-TEST(AubManagerImp, whenAubManagerWritesPageTableEntiesThenPhysicalMemory) {
+TEST(AubManager, whenAubManagerWritesPageTableEntiesThenPhysicalMemory) {
     bool localMemorySupport = false;
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     auto gfxAddress = 0x1000;
@@ -678,7 +678,7 @@ TEST(AubManagerImp, whenAubManagerWritesPageTableEntiesThenPhysicalMemory) {
     EXPECT_EQ(lastLevelentries.size(), 1);
 }
 
-TEST(AubManagerImp, initializeAlsoInitializesGlobalMmio) {
+TEST(AubManager, initializeAlsoInitializesGlobalMmio) {
     auto mockGpu = std::make_unique<MockGpu>();
     bool localMemorySupport = defaultMemoryBank != MEMORY_BANK_SYSTEM;
 
@@ -690,7 +690,7 @@ TEST(AubManagerImp, initializeAlsoInitializesGlobalMmio) {
     aubManager.open("test.aub");
 }
 
-TEST(AubManagerImp, initializeInjectsMMIOsLast) {
+TEST(AubManager, initializeInjectsMMIOsLast) {
     MMIOListInjected.push_back(MMIOPair(0xABCD, 0x20002));
     MMIOListInjected.push_back(MMIOPair(0xDEAD, 0x20002));
     MMIOListInjected.push_back(MMIOPair(0x20d8, 0x1111));
