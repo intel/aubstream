@@ -86,7 +86,6 @@ class AubManagerImp : public AubManager {
     AubStream *getStream() const;
     void adjustPageSize(uint32_t memoryBanks, size_t &pageSize);
     void throwErrorIfEnabled(const std::string &) const;
-    void setCCSMode(AubStream &stream, uint32_t ccsCount);
 
     std::unique_ptr<Gpu> gpu;
     const uint32_t devicesCount;
