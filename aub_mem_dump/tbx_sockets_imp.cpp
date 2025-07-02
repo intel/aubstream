@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -109,7 +109,10 @@ void TbxSocketsImp::logErrorInfo(const char *tag) {
 #else
     cerrStream << tag << " TbxSocketsImp Error: " << strerror(errno) << std::endl;
 #endif
-    assert(assertValue);
+    if (!assertValue) {
+        inErrorState = true;
+        assert(false);
+    }
 }
 
 bool TbxSocketsImp::init(const std::string &hostNameOrIp, uint16_t port, bool frontdoor) {
@@ -253,7 +256,12 @@ bool TbxSocketsImp::checkServerConfig(bool frontdoor) {
 }
 
 bool TbxSocketsImp::readMMIO(uint32_t offset, uint32_t *data) {
+    if (inErrorState) {
+        return false;
+    }
+
     bool success;
+
     do {
         std::lock_guard<std::mutex> lock(socket_mutex);
         HAS_MSG cmd;

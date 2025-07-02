@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -32,4 +32,17 @@ TEST(TbxSocketsTest, givenTbxServerInFrontdoorModeWhenReadOrWriteMemoryIsCalledT
 
     tbxSocket.readMemory(0, nullptr, 0, true);
     tbxSocket.writeMemory(0, nullptr, 0, true);
+}
+
+TEST(TbxSocketsTest, givenTbxSocketInErrorStateWhenReadMMIOIsCalledThenReturnEarly) {
+    MockTbxSocketsImp tbxSocket;
+    tbxSocket.inErrorState = true;
+    EXPECT_CALL(tbxSocket, readMMIO(_, _)).Times(1).WillOnce([&](uint32_t offset, uint32_t *data) {
+        return tbxSocket.TbxSocketsImp::readMMIO(offset, data);
+    });
+
+    EXPECT_CALL(tbxSocket, sendWriteData(_, _)).Times(0);
+    EXPECT_CALL(tbxSocket, getResponseData(_, _)).Times(0);
+
+    EXPECT_FALSE(tbxSocket.readMMIO(0, nullptr));
 }
