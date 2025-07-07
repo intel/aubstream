@@ -116,6 +116,45 @@ TEST_P(SimpleBatchBuffer, ccs) {
     ctxt->pollForCompletion();
 }
 
+TEST_P(SimpleBatchBuffer, ccs1) {
+    TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS1));
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
+    initializeStream(desc);
+    mgr->setCCSMode(2);
+
+    ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_CCS1, 0);
+    addSimpleBatchBuffer(ctxt, GetParam());
+    ctxt->pollForCompletion();
+}
+
+TEST_P(SimpleBatchBuffer, ccs2) {
+    TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS2));
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
+    initializeStream(desc);
+    mgr->setCCSMode(4);
+
+    ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_CCS2, 0);
+    addSimpleBatchBuffer(ctxt, GetParam());
+    ctxt->pollForCompletion();
+}
+
+TEST_P(SimpleBatchBuffer, ccs3) {
+    TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS3));
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
+    initializeStream(desc);
+    mgr->setCCSMode(4);
+
+    ctxt = mgr->createHardwareContext(defaultDevice, ENGINE_CCS3, 0);
+    addSimpleBatchBuffer(ctxt, GetParam());
+    ctxt->pollForCompletion();
+}
+
 TEST_P(SimpleBatchBuffer, dualBatchBufferRcs) {
     TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
@@ -183,6 +222,190 @@ TEST_P(SimpleBatchBuffer, dualContext) {
     ccs->pollForCompletion();
 
     delete ccs;
+}
+
+TEST_P(SimpleBatchBuffer, multiContext) {
+    TEST_REQUIRES(gpu->isMemorySupported(GetParam(), 4096) || gpu->isMemorySupported(GetParam(), 65536));
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS3));
+
+    bool rcsSupported = gpu->isEngineSupported(ENGINE_CCS3);
+
+    desc.deviceCount = toMemoryBankId(static_cast<MemoryBank>(GetParam())) + 1;
+    initializeStream(desc);
+    mgr->setCCSMode(4);
+
+    std::unique_ptr<HardwareContext> rcs;
+    if (rcsSupported) {
+        rcs = std::unique_ptr<HardwareContext>(mgr->createHardwareContext(defaultDevice, ENGINE_RCS, 0));
+        addSimpleBatchBuffer(rcs.get(), GetParam());
+    }
+
+    auto ccs = std::unique_ptr<HardwareContext>(mgr->createHardwareContext(defaultDevice, ENGINE_CCS, 0));
+    auto ccs1 = std::unique_ptr<HardwareContext>(mgr->createHardwareContext(defaultDevice, ENGINE_CCS1, 0));
+    auto ccs2 = std::unique_ptr<HardwareContext>(mgr->createHardwareContext(defaultDevice, ENGINE_CCS2, 0));
+    auto ccs3 = std::unique_ptr<HardwareContext>(mgr->createHardwareContext(defaultDevice, ENGINE_CCS3, 0));
+
+    addSimpleBatchBuffer(ccs.get(), GetParam());
+    addSimpleBatchBuffer(ccs1.get(), GetParam());
+    addSimpleBatchBuffer(ccs2.get(), GetParam());
+    addSimpleBatchBuffer(ccs3.get(), GetParam());
+
+    if (rcsSupported) {
+        rcs->pollForCompletion();
+    }
+    ccs->pollForCompletion();
+    ccs1->pollForCompletion();
+    ccs2->pollForCompletion();
+    ccs3->pollForCompletion();
+}
+
+// This test submits 20 contexts where each tile has it's own process using 5 streams.
+TEST_F(SimpleBatchBuffer, multiContextTile) {
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS3));
+    TEST_REQUIRES(gpu->deviceCount > 3);
+
+    desc.deviceCount = 4;
+
+    initializeStream(desc);
+    mgr->setCCSMode(4);
+
+    auto device = 0;
+    auto rcs_t0 = mgr->createHardwareContext(device, ENGINE_RCS, 0);
+    auto ccs_t0 = mgr->createHardwareContext(device, ENGINE_CCS, 0);
+    auto ccs1_t0 = mgr->createHardwareContext(device, ENGINE_CCS1, 0);
+    auto ccs2_t0 = mgr->createHardwareContext(device, ENGINE_CCS2, 0);
+    auto ccs3_t0 = mgr->createHardwareContext(device, ENGINE_CCS3, 0);
+
+    addSimpleBatchBuffer(rcs_t0, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs_t0, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs1_t0, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs2_t0, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs3_t0, MEMORY_BANK(device));
+
+    device = 1;
+    auto rcs_t1 = mgr->createHardwareContext(device, ENGINE_RCS, 0);
+    auto ccs_t1 = mgr->createHardwareContext(device, ENGINE_CCS, 0);
+    auto ccs1_t1 = mgr->createHardwareContext(device, ENGINE_CCS1, 0);
+    auto ccs2_t1 = mgr->createHardwareContext(device, ENGINE_CCS2, 0);
+    auto ccs3_t1 = mgr->createHardwareContext(device, ENGINE_CCS3, 0);
+
+    addSimpleBatchBuffer(rcs_t1, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs_t1, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs1_t1, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs2_t1, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs3_t1, MEMORY_BANK(device));
+
+    device = 2;
+    auto rcs_t2 = mgr->createHardwareContext(device, ENGINE_RCS, 0);
+    auto ccs_t2 = mgr->createHardwareContext(device, ENGINE_CCS, 0);
+    auto ccs1_t2 = mgr->createHardwareContext(device, ENGINE_CCS1, 0);
+    auto ccs2_t2 = mgr->createHardwareContext(device, ENGINE_CCS2, 0);
+    auto ccs3_t2 = mgr->createHardwareContext(device, ENGINE_CCS3, 0);
+
+    addSimpleBatchBuffer(rcs_t2, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs_t2, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs1_t2, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs2_t2, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs3_t2, MEMORY_BANK(device));
+
+    device = 3;
+    auto rcs_t3 = mgr->createHardwareContext(device, ENGINE_RCS, 0);
+    auto ccs_t3 = mgr->createHardwareContext(device, ENGINE_CCS, 0);
+    auto ccs1_t3 = mgr->createHardwareContext(device, ENGINE_CCS1, 0);
+    auto ccs2_t3 = mgr->createHardwareContext(device, ENGINE_CCS2, 0);
+    auto ccs3_t3 = mgr->createHardwareContext(device, ENGINE_CCS3, 0);
+
+    addSimpleBatchBuffer(rcs_t3, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs_t3, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs1_t3, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs2_t3, MEMORY_BANK(device));
+    addSimpleBatchBuffer(ccs3_t3, MEMORY_BANK(device));
+
+    rcs_t0->pollForCompletion();
+    ccs_t0->pollForCompletion();
+    ccs1_t0->pollForCompletion();
+    ccs2_t0->pollForCompletion();
+    ccs3_t0->pollForCompletion();
+
+    rcs_t1->pollForCompletion();
+    ccs_t1->pollForCompletion();
+    ccs1_t1->pollForCompletion();
+    ccs2_t1->pollForCompletion();
+    ccs3_t1->pollForCompletion();
+
+    rcs_t2->pollForCompletion();
+    ccs_t2->pollForCompletion();
+    ccs1_t2->pollForCompletion();
+    ccs2_t2->pollForCompletion();
+    ccs3_t2->pollForCompletion();
+
+    rcs_t3->pollForCompletion();
+    ccs_t3->pollForCompletion();
+    ccs1_t3->pollForCompletion();
+    ccs2_t3->pollForCompletion();
+    ccs3_t3->pollForCompletion();
+
+    delete rcs_t0;
+    delete ccs_t0;
+    delete ccs1_t0;
+    delete ccs2_t0;
+    delete ccs3_t0;
+
+    delete rcs_t1;
+    delete ccs_t1;
+    delete ccs1_t1;
+    delete ccs2_t1;
+    delete ccs3_t1;
+
+    delete rcs_t2;
+    delete ccs_t2;
+    delete ccs1_t2;
+    delete ccs2_t2;
+    delete ccs3_t2;
+
+    delete rcs_t3;
+    delete ccs_t3;
+    delete ccs1_t3;
+    delete ccs2_t3;
+    delete ccs3_t3;
+}
+
+HWTEST_F(SimpleBatchBuffer, submitSingleBatchBufferToMultipleTiles, MatchMultiDevice::moreThanOne) {
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
+
+    uintptr_t ppgttBatchBuffer = 0x8000003000;
+
+    // Initialize batch buffer
+    uint32_t batchCommands[] = {
+        0x00000001,
+        0x00000002,
+        0x00000003,
+        0x00000004,
+        0x05000000,
+    };
+
+    desc.deviceCount = 4;
+
+    initializeStream(desc);
+
+    // All tiles refer to single physical storage
+    mgr->writeMemory2({0x8000003000, batchCommands, sizeof(batchCommands), MemoryBank::MEMORY_BANK_0, CmdServicesMemTraceMemoryWrite::DataTypeHintValues::TraceBatchBuffer, defaultPageSize});
+
+    auto device = 0;
+    auto rcs_t0 = static_cast<HardwareContextImp *>(mgr->createHardwareContext(device, ENGINE_RCS, 0));
+    rcs_t0->initialize();
+    rcs_t0->submitBatchBuffer(ppgttBatchBuffer, false);
+
+    device = 1;
+    auto rcs_t1 = static_cast<HardwareContextImp *>(mgr->createHardwareContext(device, ENGINE_RCS, 0));
+    rcs_t1->initialize();
+    rcs_t1->submitBatchBuffer(ppgttBatchBuffer, false);
+
+    rcs_t0->pollForCompletion();
+    rcs_t1->pollForCompletion();
+
+    delete rcs_t0;
+    delete rcs_t1;
 }
 
 static uint32_t batchBufferMemoryBanks[] = {
