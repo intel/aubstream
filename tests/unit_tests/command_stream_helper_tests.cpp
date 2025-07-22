@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -23,7 +23,7 @@
 using namespace aub_stream;
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesLRISettingDebugMode) {
-    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
@@ -35,7 +35,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 }
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesBbCurrentHeadReg) {
-    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
 
     auto sizeLRCA = rcs.sizeLRCA;
     auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[rcs.sizeLRCA / sizeof(uint32_t)]);
@@ -48,7 +48,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 }
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesPDPRegisters) {
-    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
     PhysicalAddressAllocatorSimple allocator;
     PDP4 pageTable(*gpu, &allocator, MEMORY_BANK_SYSTEM);
 
@@ -74,7 +74,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 }
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesPML4Register) {
-    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
     PhysicalAddressAllocatorSimple allocator;
     PDP4 pageTable(*gpu, &allocator, MEMORY_BANK_SYSTEM);
 

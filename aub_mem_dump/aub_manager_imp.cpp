@@ -336,7 +336,7 @@ bool AubManagerImp::releaseHardwareContext(HardwareContext *context) {
 }
 
 void AubManagerImp::adjustPageSize(uint32_t memoryBanks, size_t &pageSize) {
-    auto &csTraits = gpu->getCommandStreamerHelper(0, static_cast<EngineType>(ENGINE_RCS));
+    auto &csTraits = gpu->getCommandStreamerHelper(0, static_cast<EngineType>(ENGINE_CCS));
 
     if (!csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize))) {
         pageSize = pageSize == 65536u ? 4096u : 65536u;

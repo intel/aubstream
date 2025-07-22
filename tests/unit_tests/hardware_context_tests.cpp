@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -40,7 +40,7 @@ TEST_F(HardwareContextTest, whenHardwareContextIsCreatedThenItHasCorrectDeviceIn
 TEST_F(HardwareContextTest, whenHardwareContextIsInitializedThenItAllocatesLRCA) {
     MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     aubManager.initialize();
-    auto context = aubManager.createHardwareContext(0, ENGINE_RCS, 0);
+    auto context = aubManager.createHardwareContext(0, ENGINE_CCS, 0);
 
     context->initialize();
     ASSERT_NE(nullptr, context);
@@ -53,7 +53,7 @@ TEST_F(HardwareContextTest, whenHardwareContextIsInitializedThenItAllocatesLRCA)
 TEST_F(HardwareContextTest, whenHardwareContextIsInitializedTwiceThenItDoesntReallocatesLRCA) {
     MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     aubManager.initialize();
-    auto context = aubManager.createHardwareContext(0, ENGINE_RCS, 0);
+    auto context = aubManager.createHardwareContext(0, ENGINE_CCS, 0);
 
     context->initialize();
     ASSERT_NE(nullptr, context);

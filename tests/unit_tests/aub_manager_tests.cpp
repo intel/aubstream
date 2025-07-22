@@ -94,7 +94,7 @@ TEST(AubManagerImp, givenNullStreamModeWhenAubManagerIsCreatedThenNoStreamIsCrea
 TEST(AubManagerImp, givenNullStreamModeWhenAubManagerIsCreatedThenAllMethodsThatRequireStreamReturnsEarlyWithoutCrash) {
     MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, aub_stream::mode::null);
     aubManager.initialize();
-    auto hwContext = aubManager.createHardwareContext(0, 0, 0);
+    auto hwContext = aubManager.createHardwareContext(0, ENGINE_CCS, 0);
     EXPECT_NE(nullptr, hwContext);
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
@@ -360,7 +360,7 @@ TEST(AubManagerImp, whenSetCCSModeIsCalledAfterHwContextCreationAndEnableThrowIs
     MockAubManager aubManager(createGpuFunc(), 4, defaultHBMSizePerDevice, 0u, true, mode::aubFile, {}, true);
     aubManager.createStream();
     aubManager.initialize();
-    aubManager.createHardwareContext(0, 0, 0);
+    aubManager.createHardwareContext(0, ENGINE_CCS, 0);
 
     EXPECT_THROW(aubManager.setCCSMode(1), std::logic_error);
     EXPECT_THROW(aubManager.setCCSMode(2), std::logic_error);
@@ -371,7 +371,7 @@ TEST(AubManagerImp, whenSetCCSModeIsCalledAfterHwContextCreationAndEnableThrowIs
     MockAubManager aubManager(createGpuFunc(), 4, defaultHBMSizePerDevice, 0u, true, mode::aubFile, {}, false);
     aubManager.createStream();
     aubManager.initialize();
-    aubManager.createHardwareContext(0, 0, 0);
+    aubManager.createHardwareContext(0, ENGINE_CCS, 0);
 
     EXPECT_NO_THROW(aubManager.setCCSMode(1));
     EXPECT_NO_THROW(aubManager.setCCSMode(2));
@@ -596,7 +596,7 @@ TEST(AubManagerImp, createHardwareContextShouldReturnValidHardwareContext) {
     MockAubManager aubManager(createGpuFunc(), gpu->deviceCount, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::aubFile);
     aubManager.initialize();
 
-    auto hardwareContext = aubManager.createHardwareContext(0, ENGINE_RCS, 0);
+    auto hardwareContext = aubManager.createHardwareContext(0, ENGINE_CCS, 0);
 
     EXPECT_NE(nullptr, hardwareContext);
     delete hardwareContext;
@@ -607,7 +607,7 @@ TEST(AubManagerImp, releaseHardwareContextRemovesContextFromVectorAndDeletesObje
     MockAubManager aubManager(createGpuFunc(), gpu->deviceCount, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::aubFile);
     aubManager.initialize();
 
-    auto hardwareContext = aubManager.createHardwareContext(0, ENGINE_RCS, 0);
+    auto hardwareContext = aubManager.createHardwareContext(0, ENGINE_CCS, 0);
 
     EXPECT_NE(nullptr, hardwareContext);
     EXPECT_EQ(1u, aubManager.hwContexts.size());
@@ -834,7 +834,7 @@ TEST(AubManager, givenAubManagerCreatedWithAubFileAndTbxModeWhenHardwareContextI
 
     aubManager.streamAubTbx.reset(mockAubTbxStream);
     EXPECT_CALL(*mockAubTbxStream, declareContextForDumping(_, _)).Times(1);
-    auto hwContext = std::unique_ptr<HardwareContext>(aubManager.createHardwareContext(0, ENGINE_RCS, 0));
+    auto hwContext = std::unique_ptr<HardwareContext>(aubManager.createHardwareContext(0, ENGINE_CCS, 0));
     hwContext->initialize();
 }
 
