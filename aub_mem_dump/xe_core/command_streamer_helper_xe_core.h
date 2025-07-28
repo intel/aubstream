@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -18,7 +18,7 @@
 namespace aub_stream {
 
 template <typename Helper>
-struct CommandStreamerHelperXeHpCore : public Helper {
+struct CommandStreamerHelperXeCore : public Helper {
     using Helper::Helper;
 
     void setPriority(MiContextDescriptorReg &contextDescriptor, uint32_t priority) const override {
@@ -48,15 +48,7 @@ struct CommandStreamerHelperXeHpCore : public Helper {
     using Helper::mmioEngine;
 };
 
-struct GpuXeHpCore : public Gpu {
-    const std::vector<EngineType> getSupportedEngines() const override;
-
-    const MMIOList getGlobalMMIO() const override;
-
-    void initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping) const override;
-
-    bool isMemorySupported(uint32_t memoryBanks, uint32_t alignment) const override;
-
+struct GpuXeCore : public Gpu {
     void setMemoryBankSize(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize) const override;
 
     void setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const override;
@@ -65,9 +57,11 @@ struct GpuXeHpCore : public Gpu {
 
     PageTable *allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const override;
 
+    void initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const override;
+
     void initializeFlatCcsBaseAddressMmio(AubStream &stream, uint32_t deviceIndex, uint64_t flatCcsBaseAddress) const;
 
-    void initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const override;
+    bool isMemorySupported(uint32_t memoryBanks, uint32_t alignment) const override;
 };
 
 } // namespace aub_stream

@@ -1,18 +1,18 @@
 /*
- * Copyright (C) 2024 Intel Corporation
+ * Copyright (C) 2024-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
  */
 
 #pragma once
-#include "aub_mem_dump/xe_hp_core/command_streamer_helper_xe_hp_core.h"
+#include "aub_mem_dump/xe_core/command_streamer_helper_xe_core.h"
 
 namespace aub_stream {
 
 template <typename Helper>
-struct CommandStreamerHelperXe3Core : public CommandStreamerHelperXeHpCore<Helper> {
-    using CommandStreamerHelperXeHpCore<Helper>::CommandStreamerHelperXeHpCore;
+struct CommandStreamerHelperXe3Core : public CommandStreamerHelperXeCore<Helper> {
+    using CommandStreamerHelperXeCore<Helper>::CommandStreamerHelperXeCore;
 
     const MMIOList getEngineMMIO() const override;
 
@@ -20,7 +20,7 @@ struct CommandStreamerHelperXe3Core : public CommandStreamerHelperXeHpCore<Helpe
     using Helper::mmioEngine;
 };
 
-struct GpuXe3Core : public GpuXeHpCore {
+struct GpuXe3Core : public GpuXeCore {
     GpuXe3Core();
     static constexpr uint32_t numSupportedDevices = 1;
     static constexpr uint64_t patIndexBit0 = toBitValue(3);

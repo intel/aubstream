@@ -123,7 +123,7 @@ const MMIOList CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs>::get
 }
 
 GpuXeHpcCore::GpuXeHpcCore() {
-    for (auto deviceId = 0u; deviceId < GpuXeHpCore::numSupportedDevices; deviceId++) {
+    for (auto deviceId = 0u; deviceId < GpuXeCore::numSupportedDevices; deviceId++) {
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_CCCS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperCccs>>(deviceId);
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_RCS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperRcs>>(deviceId);
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperBcs>>(deviceId);
