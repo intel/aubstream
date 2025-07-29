@@ -13,6 +13,8 @@
 #include <atomic>
 #include <vector>
 #include <inttypes.h>
+#include <chrono>
+#include <thread>
 
 namespace aub_stream {
 
@@ -195,7 +197,19 @@ void HardwareContextImp::pollForFenceCompletion() {
                           ? 65536u
                           : 4096u;
 
+    uint32_t sleepMS = 1;
+    uint32_t spinCount = 0;
+    constexpr uint32_t maxSpinCount = 16;
+    constexpr uint32_t maxSleepMS = 256;
+
     do {
+        if (spinCount >= maxSpinCount) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMS));
+            // Exponential sleep time, capped by maxSleepMS.
+            sleepMS = std::min(maxSleepMS, sleepMS << 1);
+        } else {
+            ++spinCount;
+        }
         std::atomic_thread_fence(std::memory_order_acquire);
         stream.readMemory(&ggtt, ggttContextFence, &currentValue, sizeof(currentValue), ggtt.getMemoryBank(), pageSize);
     } while (currentValue != contextFenceValue);

@@ -22,6 +22,7 @@
 #include "tests/unit_tests/mock_aub_manager.h"
 #include "tests/variable_backup.h"
 #include "test.h"
+#include "aub_mem_dump/memcpy_s.h"
 #include <memory>
 
 using namespace aub_stream;
@@ -308,6 +309,21 @@ TEST_F(HardwareContextTest, pollForFenceCompletionShouldForwardToReadMemory) {
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
 
     EXPECT_CALL(stream, readDiscontiguousPages(_, _, _)).Times(1);
+    context.pollForFenceCompletion();
+}
+
+TEST_F(HardwareContextTest, pollForFenceCompletionShouldForwardToReadMemoryUntilExpectedValue) {
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+    HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
+    context.contextFenceValue = 17;
+    uint32_t v = 0;
+    EXPECT_CALL(stream, readDiscontiguousPages(_, _, _)).Times(18).WillRepeatedly([&v](void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable) {
+        memcpy_s(memory, size, &v, sizeof(v));
+        v++;
+    });
     context.pollForFenceCompletion();
 }
 
