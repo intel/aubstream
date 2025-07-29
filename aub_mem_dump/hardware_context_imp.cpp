@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -318,8 +318,8 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
             pageSize);
     }
 
+    auto lock = csTraits.obtainUniqueLock();
     if (this->contextGroupId != std::numeric_limits<uint32_t>::max()) {
-        auto lock = csTraits.obtainUniqueLock();
         csTraits.submit(stream, contextGroup->contexts, ppgtt.getNumAddressBits() != 32);
     } else {
         csTraits.submit(stream, ggttLRCA, ppgtt.getNumAddressBits() != 32, contextId, priority);
