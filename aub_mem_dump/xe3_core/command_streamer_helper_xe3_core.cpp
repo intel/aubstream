@@ -280,105 +280,12 @@ constexpr uint32_t GpuXe3Core::getPatIndexMmioAddr(uint32_t index) {
 
 const MMIOList GpuXe3Core::getGlobalMMIO() const {
     const MMIOList globalMMIO = {
-        MMIOPair(0x00002090, 0xffff0000), // CHICKEN_PWR_CTX_RASTER_1
-        MMIOPair(0x000020d8, 0x00020000), // CS_DEBUG_MODE2_RCSUNIT
-        MMIOPair(0x000020e0, 0xffff4000), // FF_SLICE_CS_CHICKEN1_RCSUNIT
-        MMIOPair(0x000020e4, 0xffff0000), // FF_SLICE_CS_CHICKEN2_RCSUNIT
-        MMIOPair(0x000020ec, 0xffff0051), // CS_DEBUG_MODE1
-        MMIOPair(0x00002580, 0xffff0005), // CS_CHICKEN1
-
-        // GLOBAL_MOCS
-        // bits: 8: IG_PAT, 7-6: L3_CLOS, 5-4: L3_CACHE_POLICY, 3-2:L4_CACHE_POLICY, 1-0:0
-        MMIOPair(0x00004000, 0b0000'0000'1100), // IG_PAT (PAT)  L3_CLOS (0), L3 (WB), L4 (UC)
-        MMIOPair(0x00004004, 0b0001'0000'1100), // IG_PAT (MOCS) L3_CLOS (0), L3 (WB), L4 (UC)
-        MMIOPair(0x00004008, 0b0001'0011'0000), // IG_PAT (MOCS) L3_CLOS (0), L3 (UC), L4 (WB)
-        MMIOPair(0x0000400C, 0b0001'0011'1100), // IG_PAT (MOCS) L3_CLOS (0), L3 (UC), L4 (UC)
-        MMIOPair(0x00004010, 0b0001'0000'0000), // IG_PAT (MOCS) L3_CLOS (0), L3 (WB), L4 (WB)
-        MMIOPair(0x00004014, 0x00060038),
-        MMIOPair(0x00004018, 0x00000000),
-        MMIOPair(0x0000401C, 0x00000033),
-        MMIOPair(0x00004020, 0x00060037),
-        MMIOPair(0x00004024, 0x0000003B),
-        MMIOPair(0x00004028, 0x00000032),
-        MMIOPair(0x0000402C, 0x00000036),
-        MMIOPair(0x00004030, 0x0000003A),
-        MMIOPair(0x00004034, 0x00000033),
-        MMIOPair(0x00004038, 0x00000037),
-        MMIOPair(0x0000403C, 0x0000003B),
-        MMIOPair(0x00004040, 0x00000030),
-        MMIOPair(0x00004044, 0x00000034),
-        MMIOPair(0x00004048, 0x00000038),
-        MMIOPair(0x0000404C, 0x00000031),
-        MMIOPair(0x00004050, 0x00000032),
-        MMIOPair(0x00004054, 0x00000036),
-        MMIOPair(0x00004058, 0x0000003A),
-        MMIOPair(0x0000405C, 0x00000033),
-        MMIOPair(0x00004060, 0x00000037),
-        MMIOPair(0x00004064, 0x0000003B),
-        MMIOPair(0x00004068, 0x00000032),
-        MMIOPair(0x0000406C, 0x00000036),
-        MMIOPair(0x00004070, 0x0000003A),
-        MMIOPair(0x00004074, 0x00000033),
-        MMIOPair(0x00004078, 0x00000037),
-        MMIOPair(0x0000407C, 0x0000003B),
-        MMIOPair(0x00004080, 0x00000030),
-        MMIOPair(0x00004084, 0x00000034),
-        MMIOPair(0x00004088, 0x00000038),
-        MMIOPair(0x0000408C, 0x00000031),
-        MMIOPair(0x00004090, 0x00000032),
-        MMIOPair(0x00004094, 0x00000036),
-        MMIOPair(0x00004098, 0x0000003A),
-        MMIOPair(0x0000409C, 0x00000033),
-        MMIOPair(0x000040A0, 0x00000037),
-        MMIOPair(0x000040A4, 0x0000003B),
-        MMIOPair(0x000040A8, 0x00000032),
-        MMIOPair(0x000040AC, 0x00000036),
-        MMIOPair(0x000040B0, 0x0000003A),
-        MMIOPair(0x000040B4, 0x00000033),
-        MMIOPair(0x000040B8, 0x00000037),
-        MMIOPair(0x000040BC, 0x0000003B),
-        MMIOPair(0x000040C0, 0x00000038),
-        MMIOPair(0x000040C4, 0x00000034),
-        MMIOPair(0x000040C8, 0x00000038),
-        MMIOPair(0x000040CC, 0x00000031),
-        MMIOPair(0x000040D0, 0x00000032),
-        MMIOPair(0x000040D4, 0x00000036),
-        MMIOPair(0x000040D8, 0x0000003A),
-        MMIOPair(0x000040DC, 0x00000033),
-        MMIOPair(0x000040E0, 0x00000037),
-        MMIOPair(0x000040E4, 0x0000003B),
-        MMIOPair(0x000040E8, 0x00000032),
-        MMIOPair(0x000040EC, 0x00000036),
-        MMIOPair(0x000040F0, 0x00000038),
-        MMIOPair(0x000040F4, 0x00000038),
-        MMIOPair(0x000040F8, 0x00000038),
-        MMIOPair(0x000040FC, 0x00000038),
-
-        // PAT_INDEX
-        MMIOPair(0x00004100, 0x0000000),
-        MMIOPair(0x00004104, 0x0000000),
-        MMIOPair(0x00004108, 0x0000000),
-        MMIOPair(0x0000410c, 0x0000000),
-        MMIOPair(0x00004110, 0x0000000),
-        MMIOPair(0x00004114, 0x0000000),
-        MMIOPair(0x00004118, 0x0000000),
-        MMIOPair(0x0000411c, 0x0000000),
-
-        MMIOPair(0x00004b80, 0xffff1001), // GACB_PERF_CTRL_REG
-        MMIOPair(0x00007000, 0xffff0000), // CACHE_MODE_0
-        MMIOPair(0x00007004, 0xffff0000), // CACHE_MODE_1
-        MMIOPair(0x00009008, 0x00000200), // IDICR
-        MMIOPair(0x0000900c, 0x00001b40), // SNPCR
-        MMIOPair(0x0000b120, 0x14000002), // LTCDREG
-        MMIOPair(0x0000b134, 0xa0000000), // L3ALLOCREG
-        MMIOPair(0x0000b234, 0xa0000000), // L3ALLOCREG_CCS0
-        MMIOPair(0x0000ce90, 0x00030003), // GFX_MULT_CTXT_CTL
-        MMIOPair(0x0000cf58, 0x80000000), // LMEM_CFG for local memory
-        MMIOPair(0x0000e194, 0xffff0002), // CHICKEN_SAMPLER_2
-        MMIOPair(0x00014800, 0x00030003), // RCU_MODE
-        MMIOPair(0x00014804, 0x0fff0000), // CCS_MODE
-        MMIOPair(0x0001a0d8, 0x00020000), // CS_DEBUG_MODE2_CCSUNIT
-        MMIOPair(0x00042080, 0x00000000), // CHICKEN_MISC_1
+        // bits: 8: IG_PAT, 7-6: L3_CLOS, 5-4: L3_CACHE_POLICY, 3-2:L4_CACHE_POLICY
+        MMIOPair(0x00004000, 0b0000'0000'1100), // Defer to PAT
+        MMIOPair(0x00004004, 0b0001'0000'1100), // L3
+        MMIOPair(0x00004008, 0b0001'0011'0000), // L4
+        MMIOPair(0x0000400C, 0b0001'0011'1100), // UC
+        MMIOPair(0x00004010, 0b0001'0000'0000), // L3 + L4
 
         // bits: 10: NO_PROMOTE, 9: COMP_EN, 7-6: L3_CLOS, 5-4: L3_CACHE_POLICY, 3-2:L4_CACHE_POLICY, 1-0: COH_MODE
         MMIOPair(getPatIndexMmioAddr(0), 0b0000'0000'1100),  // L3
@@ -397,7 +304,8 @@ const MMIOList GpuXe3Core::getGlobalMMIO() const {
         MMIOPair(getPatIndexMmioAddr(13), 0b0000'0000'0000), // L3 + L4
         MMIOPair(getPatIndexMmioAddr(14), 0b0010'0000'0000), // L3 + L4 Commpressed
         MMIOPair(getPatIndexMmioAddr(15), 0b0110'0001'0100), // L3:XD + L4:WT Compressed
-        // PatIndex 16..19 Reserved
+        MMIOPair(getPatIndexMmioAddr(16), 0b0010'0000'1110), // L3 Compressed (1-Way Coherent)
+        // PatIndex 17..19 Reserved
         MMIOPair(getPatIndexMmioAddr(20), 0b0000'0100'1100), // CLOS1 L3
         MMIOPair(getPatIndexMmioAddr(21), 0b0010'0100'1100), // CLOS1 L3 Compressed
         MMIOPair(getPatIndexMmioAddr(22), 0b0000'0100'1110), // CLOS1 L3 (1-Way Coherent)
@@ -410,6 +318,32 @@ const MMIOList GpuXe3Core::getGlobalMMIO() const {
         MMIOPair(getPatIndexMmioAddr(29), 0b0010'1100'1100), // CLOS3 L3 Compressed
         MMIOPair(getPatIndexMmioAddr(30), 0b0000'1100'1110), // CLOS3 L3 (1-Way Coherent)
         MMIOPair(getPatIndexMmioAddr(31), 0b0000'1100'1111), // CLOS3 L3 (2-Way Coherent)
+
+        MMIOPair(0x000047FC, 0b0000'0000'1111), // PAT_ATS: PCIe ATS/PASID
+        MMIOPair(0x00004820, 0b0000'0000'1100), // PTA_MODE: PPGTT/TRTT
+
+        MMIOPair(0x00002090, 0xffff0000), // CHICKEN_PWR_CTX_RASTER_1
+        MMIOPair(0x000020d8, 0x00020000), // CS_DEBUG_MODE2_RCSUNIT
+        MMIOPair(0x000020e0, 0xffff4000), // FF_SLICE_CS_CHICKEN1_RCSUNIT
+        MMIOPair(0x000020e4, 0xffff0000), // FF_SLICE_CS_CHICKEN2_RCSUNIT
+        MMIOPair(0x000020ec, 0xffff0051), // CS_DEBUG_MODE1
+        MMIOPair(0x00002580, 0xffff0005), // CS_CHICKEN1
+
+        MMIOPair(0x00004b80, 0xffff1001), // GACB_PERF_CTRL_REG
+        MMIOPair(0x00007000, 0xffff0000), // CACHE_MODE_0
+        MMIOPair(0x00007004, 0xffff0000), // CACHE_MODE_1
+        MMIOPair(0x00009008, 0x00000200), // IDICR
+        MMIOPair(0x0000900c, 0x00001b40), // SNPCR
+        MMIOPair(0x0000b120, 0x14000002), // LTCDREG
+        MMIOPair(0x0000b134, 0xa0000000), // L3ALLOCREG
+        MMIOPair(0x0000b234, 0xa0000000), // L3ALLOCREG_CCS0
+        MMIOPair(0x0000ce90, 0x00030003), // GFX_MULT_CTXT_CTL
+        MMIOPair(0x0000cf58, 0x80000000), // LMEM_CFG for local memory
+        MMIOPair(0x0000e194, 0xffff0002), // CHICKEN_SAMPLER_2
+        MMIOPair(0x00014800, 0x00030003), // RCU_MODE
+        MMIOPair(0x00014804, 0x0fff0000), // CCS_MODE
+        MMIOPair(0x0001a0d8, 0x00020000), // CS_DEBUG_MODE2_CCSUNIT
+        MMIOPair(0x00042080, 0x00000000), // CHICKEN_MISC_1
     };
     return globalMMIO;
 }
