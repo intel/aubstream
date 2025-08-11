@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-2024 Intel Corporation
+ * Copyright (C) 2023-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -110,12 +110,20 @@ class Settings {
 
 #define PRINT_LOG_VERBOSE(str, ...)                            \
     if (globalSettings->LogLevel.get() & LogLevels::verbose) { \
-        PRINT_LOG("[VERBOSE] " str, __VA_ARGS__);              \
+        PRINT_LOG("[VERBOSE] %s", "")                          \
+        PRINT_LOG(str, __VA_ARGS__)                            \
     }
 
 #define PRINT_LOG_INFO(str, ...)                            \
     if (globalSettings->LogLevel.get() & LogLevels::info) { \
-        PRINT_LOG("[INFO] " str, __VA_ARGS__);              \
+        PRINT_LOG("[INFO] %s", "")                          \
+        PRINT_LOG(str, __VA_ARGS__)                         \
+    }
+
+#define PRINT_LOG_ERROR(str, ...)                            \
+    if (globalSettings->LogLevel.get() & LogLevels::error) { \
+        PRINT_LOG("[ERROR] %s", "")                          \
+        PRINT_LOG(str, __VA_ARGS__)                          \
     }
 
 } // namespace aub_stream

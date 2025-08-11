@@ -150,6 +150,7 @@ void AubManagerImp::createStream() {
 
     if (createAubFileStream) {
         streamAub = std::make_unique<AubFileStream>();
+        streamAub->enableThrowOnError(enableThrow);
     }
     if (createTbxStream) {
         streamTbx = std::make_unique<TbxStream>();

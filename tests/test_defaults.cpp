@@ -101,7 +101,7 @@ bool initializeAubStream(AubFileStream &stream,
 
     auto filePath = getAubFileName(desc);
 
-    stream.fileHandle.open(filePath, std::ofstream::binary);
+    stream.fileHandle.open(filePath.c_str(), std::ofstream::binary);
     return stream.init(SteppingValues::A, desc);
 }
 

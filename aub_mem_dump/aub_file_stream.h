@@ -8,10 +8,79 @@
 #pragma once
 #include <fstream>
 #include "aub_stream.h"
+#include "settings.h"
+#include <string>
 
 namespace aub_stream {
 struct AubTbxStream;
 struct AubShmStream;
+
+struct FileHandleWrapper {
+    bool write(const char *memory, size_t size) {
+        fileHandle.write(memory, size);
+        if (fileHandle.bad()) {
+            const char *message = "write() to file failed\n";
+            PRINT_LOG_ERROR(message, "");
+            if (throwOnError) {
+                throw std::runtime_error(message);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    bool flush() {
+        fileHandle.flush();
+        if (fileHandle.bad()) {
+            const char *message = "flush() to file failed\n";
+            PRINT_LOG_ERROR(message, "");
+            if (throwOnError) {
+                throw std::runtime_error(message);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    void clear() {
+        fileHandle.clear();
+    }
+
+    bool close() {
+        fileHandle.close();
+        if (fileHandle.bad()) {
+            const char *message = "close() file failed\n";
+            PRINT_LOG_ERROR(message, "");
+            if (throwOnError) {
+                throw std::runtime_error(message);
+            }
+            return false;
+        }
+        return true;
+    }
+    bool open(const char *name, std::ios_base::openmode flags) {
+        fileHandle.open(name, flags);
+        if (fileHandle.bad()) {
+            const char *message = "open() file failed\n";
+            PRINT_LOG_ERROR(message, "");
+            if (throwOnError) {
+                throw std::runtime_error(message);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    bool isOpen() {
+        return fileHandle.is_open();
+    }
+
+    bool isBad() {
+        return fileHandle.bad();
+    }
+    std::ofstream fileHandle;
+    bool throwOnError = false;
+};
 
 struct AubFileStream : public AubStream {
     virtual ~AubFileStream();
@@ -39,7 +108,11 @@ struct AubFileStream : public AubStream {
     const std::string &getFileName();
     void write(const char *buffer, std::streamsize size);
 
-    std::ofstream fileHandle;
+    void enableThrowOnError(bool enabled) {
+        fileHandle.throwOnError = enabled;
+    }
+
+    FileHandleWrapper fileHandle;
     std::string fileName;
     friend AubTbxStream;
     friend AubShmStream;

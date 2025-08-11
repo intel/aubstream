@@ -18,7 +18,7 @@
 namespace aub_stream {
 
 AubFileStream::~AubFileStream() {
-    if (fileHandle.is_open()) {
+    if (fileHandle.isOpen()) {
         fileHandle.close();
     }
 }
@@ -508,7 +508,7 @@ void AubFileStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_
 
 void AubFileStream::open(const char *name) {
     fileHandle.open(name, std::ofstream::binary);
-    if (!fileHandle.is_open()) {
+    if (!fileHandle.isOpen()) {
         assert(false);
     }
     fileName.assign(name);
@@ -520,7 +520,7 @@ void AubFileStream::close() {
 }
 
 bool AubFileStream::isOpen() {
-    return fileHandle.is_open();
+    return fileHandle.isOpen();
 }
 
 const std::string &AubFileStream::getFileName() {
@@ -528,9 +528,6 @@ const std::string &AubFileStream::getFileName() {
 }
 
 void AubFileStream::write(const char *buffer, std::streamsize size) {
-    if (!fileHandle.is_open()) {
-        return;
-    }
     if (buffer == nullptr) {
         assert(false);
         return;
@@ -541,9 +538,9 @@ void AubFileStream::write(const char *buffer, std::streamsize size) {
     }
 
     // First attempt: direct write
-    fileHandle.write(buffer, size);
+    fileHandle.write(buffer, static_cast<size_t>(size));
 
-    if (!fileHandle) {
+    if (fileHandle.isBad()) {
         int error = errno;
         if (error == EFAULT) {
             // Write failed due to inaccessible memory -> fallback to host buffer
@@ -552,23 +549,22 @@ void AubFileStream::write(const char *buffer, std::streamsize size) {
             fileHandle.clear();
             fileHandle.close();
 
-            fileHandle.open(fileName, std::ofstream::binary | std::ios::app);
-            if (!fileHandle.is_open()) {
-                assert(false);
+            if (!fileHandle.open(fileName.c_str(), std::ofstream::binary | std::ios::app)) {
+                PRINT_LOG_ERROR("Failed to open file: %s (errno=%d: %s)\n", fileName.c_str(), error, strerror(error));
                 return;
             }
 
             // - copy to host buffer and retry
             std::vector<char> hostBuffer(static_cast<size_t>(size));
             memcpy(hostBuffer.data(), buffer, static_cast<size_t>(size));
-            fileHandle.write(hostBuffer.data(), size);
-
-            if (!fileHandle) {
-                assert(false);
+            if (!fileHandle.write(hostBuffer.data(), static_cast<size_t>(size))) {
+                PRINT_LOG_ERROR("AUB write failed after memcpy fallback: buffer=%p size=%lld (badbit=%d, failbit=%d) (errno=%d: %s)\n",
+                                buffer, static_cast<long long>(size), fileHandle.fileHandle.bad(), fileHandle.fileHandle.fail(), error, strerror(error));
             }
         } else {
             // Write failed due to other errors -> print and assert
-            assert(false);
+            PRINT_LOG_ERROR("AUB write failed: buffer=%p size=%lld (badbit=%d, failbit=%d) (errno=%d: %s)\n",
+                            buffer, static_cast<long long>(size), fileHandle.fileHandle.bad(), fileHandle.fileHandle.fail(), error, strerror(error));
         }
     }
 }

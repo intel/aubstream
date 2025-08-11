@@ -12,11 +12,15 @@
 #include "test_defaults.h"
 #include "tests/unit_tests/page_table_helper.h"
 #include "gtest/gtest.h"
+#include "tests/variable_backup.h"
 
 #include "test.h"
 
 using namespace aub_stream;
 using ::testing::_;
+namespace mock_os_calls {
+extern std::unordered_map<std::string, std::string> environmentStrings;
+}
 
 struct AubStreamTest : public MockAubStreamFixture, public ::testing::Test {
     void SetUp() override {
@@ -469,4 +473,29 @@ HWTEST_F(AubFileStreamTest, givenCoreFamilyXeHpOrAboveWhenAubFileStreamIsInitial
     stream.init(SteppingValues::A, *gpu);
 
     EXPECT_TRUE(stream.dumpSurfaceSupported);
+}
+
+TEST_F(AubFileStreamTest, givenErrorLogLevelWhenOperationFailsThenErrorIsPrinted) {
+    if (Settings::disabled()) {
+        GTEST_SKIP();
+    }
+    auto settings = std::make_unique<Settings>();
+    VariableBackup<Settings *> backup(&globalSettings);
+    globalSettings = settings.get();
+    globalSettings->LogLevel.set(LogLevels::error);
+
+    WhiteBox<AubFileStream> stream;
+    ::testing::internal::CaptureStdout();
+    errno = 0;
+    stream.init(SteppingValues::A, *gpu);
+    std::string output = testing::internal::GetCapturedStdout();
+    EXPECT_THAT(output, ::testing::HasSubstr("[ERROR] write() to file failed\n"));
+    EXPECT_THAT(output, ::testing::HasSubstr("[ERROR] flush() to file failed\n"));
+}
+
+TEST_F(AubFileStreamTest, givenThrowOnErrorWhenOperationFailsThenExcepionIsThrown) {
+    WhiteBox<AubFileStream> stream;
+    stream.enableThrowOnError(true);
+
+    EXPECT_THROW(stream.init(SteppingValues::A, *gpu), std::runtime_error);
 }
