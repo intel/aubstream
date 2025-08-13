@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -37,6 +37,7 @@ struct AubFileStream : public AubStream {
     void close();
     bool isOpen();
     const std::string &getFileName();
+    void write(const char *buffer, std::streamsize size);
 
     std::ofstream fileHandle;
     std::string fileName;

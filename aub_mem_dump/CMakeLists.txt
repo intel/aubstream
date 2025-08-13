@@ -1,11 +1,15 @@
 #
-# Copyright (C) 2022-2024 Intel Corporation
+# Copyright (C) 2022-2025 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
 
 if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive")
+endif()
+
+if(WIN32)
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
 if(NOT WIN32)

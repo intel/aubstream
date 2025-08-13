@@ -36,13 +36,13 @@ void AubFileStream::addComment(const char *message) {
     auto dwordLen = ((messageLen + sizeof(uint32_t) - 1) & ~(sizeof(uint32_t) - 1)) / sizeof(uint32_t);
     cmd.dwordCount = static_cast<uint32_t>(dwordLen + 1);
 
-    fileHandle.write(reinterpret_cast<char *>(&cmd), sizeof(cmd) - sizeof(cmd.comment));
-    fileHandle.write(message, messageLen);
+    write(reinterpret_cast<char *>(&cmd), sizeof(cmd) - sizeof(cmd.comment));
+    write(message, messageLen);
     auto remainder = messageLen & (sizeof(uint32_t) - 1);
     if (remainder) {
         // if size is not 4 byte aligned, write extra zeros to AUB
         uint32_t zero = 0;
-        fileHandle.write(reinterpret_cast<char *>(&zero), sizeof(uint32_t) - remainder);
+        write(reinterpret_cast<char *>(&zero), sizeof(uint32_t) - remainder);
     }
     fileHandle.flush();
 }
@@ -70,7 +70,7 @@ void AubFileStream::declareContextForDumping(uint32_t handleDumpContext, PageTab
         cmd.PageDirPointer[3] = entry ? entry->getPhysicalAddress() : 0;
     }
 
-    fileHandle.write((char *)&cmd, sizeof(cmd));
+    write((char *)&cmd, sizeof(cmd));
     fileHandle.flush();
 }
 
@@ -92,7 +92,7 @@ void AubFileStream::dumpBufferBIN(AubStream::PageTableType gttType, uint64_t gfx
     cmd.GttType = gttType;
     cmd.DirectoryHandle = handleDumpContext;
 
-    fileHandle.write(reinterpret_cast<char *>(&cmd), sizeof(cmd));
+    write(reinterpret_cast<char *>(&cmd), sizeof(cmd));
     fileHandle.flush();
 }
 
@@ -138,7 +138,7 @@ void AubFileStream::dumpSurface(PageTableType gttType, const SurfaceInfo &surfac
     cmd.auxSurfaceTilingType = surfaceInfo.auxSurfaceTilingType;
     cmd.auxEncodingFormat = surfaceInfo.auxEncodingFormat;
 
-    fileHandle.write(reinterpret_cast<char *>(&cmd), sizeof(cmd));
+    write(reinterpret_cast<char *>(&cmd), sizeof(cmd));
     fileHandle.flush();
 }
 
@@ -165,7 +165,7 @@ bool AubFileStream::init(int stepping, const GpuDescriptor &gpu) {
     }
     getHeaderStr(aubStreamCaller, header.commandLine);
 
-    fileHandle.write(reinterpret_cast<char *>(&header), sizeof(header));
+    write(reinterpret_cast<char *>(&header), sizeof(header));
     fileHandle.flush();
     return true;
 }
@@ -222,13 +222,13 @@ void AubFileStream::expectMemoryTable(const void *memory, size_t size, const std
         cmd.dwordCount = static_cast<uint32_t>(dwordCount - 1);
         cmd.dataSizeInBytes = static_cast<uint32_t>(sizeThisIteration);
 
-        fileHandle.write((char *)&cmd, headerSize);
-        fileHandle.write((char *)memory, entry.size);
+        write((char *)&cmd, headerSize);
+        write((char *)memory, entry.size);
 
         auto remainder = entry.size & (sizeof(uint32_t) - 1);
         if (remainder) {
             uint32_t zero = 0;
-            fileHandle.write((const char *)&zero, sizeof(uint32_t) - remainder);
+            write((const char *)&zero, sizeof(uint32_t) - remainder);
         }
 
         memory = entry.size + (uint8_t *)memory;
@@ -248,7 +248,7 @@ void AubFileStream::reserveContiguousPages(const std::vector<uint64_t> &entries)
         // If a 64KB page, reserve that region
         cmd.regionSize = 0x10000;
         cmd.address = page;
-        fileHandle.write((char *)&cmd, sizeof(cmd));
+        write((char *)&cmd, sizeof(cmd));
     }
     fileHandle.flush();
 }
@@ -269,13 +269,13 @@ void AubFileStream::writeContiguousPages(const void *memory, size_t size, uint64
     header.addressSpace = addressSpace;
     header.dataSizeInBytes = static_cast<uint32_t>(size);
 
-    fileHandle.write(reinterpret_cast<const char *>(&header), sizeMemoryWriteHeader);
-    fileHandle.write((const char *)memory, size);
+    write(reinterpret_cast<const char *>(&header), sizeMemoryWriteHeader);
+    write((const char *)memory, size);
 
     auto remainder = size & (sizeof(uint32_t) - 1);
     if (remainder) {
         uint32_t zero = 0;
-        fileHandle.write((const char *)&zero, sizeof(uint32_t) - remainder);
+        write((const char *)&zero, sizeof(uint32_t) - remainder);
     }
     fileHandle.flush();
 }
@@ -318,7 +318,7 @@ void AubFileStream::writeDiscontiguousPages(const void *memory, size_t size, con
             if (index >= maxEntries || ((dwordCount + cmd.dwordCount) > 65535)) {
                 // if not, flush out existing token
                 cmd.numberOfAddressDataPairs = index;
-                fileHandle.write((char *)&cmd, headerSize);
+                write((char *)&cmd, headerSize);
 
                 // Write the data
                 while (itorDumpStart != itorCurrent) {
@@ -326,7 +326,7 @@ void AubFileStream::writeDiscontiguousPages(const void *memory, size_t size, con
                     bool unalignedAddress = itorDumpStart->physicalAddress & (sizeof(uint32_t) - 1);
                     bool differentAddressSpace = (isLocalMemory != itorDumpStart->isLocalMemory);
                     if (!unalignedSize && !unalignedAddress && !differentAddressSpace) {
-                        fileHandle.write((const char *)ptrDump, itorDumpStart->size);
+                        write((const char *)ptrDump, itorDumpStart->size);
                     }
 
                     ptrDump = itorDumpStart->size + (uint8_t *)ptrDump;
@@ -375,7 +375,7 @@ void AubFileStream::writeDiscontiguousPages(const void *memory, size_t size, con
 
             // if not, flush out existing token
             cmd.numberOfAddressDataPairs = index;
-            fileHandle.write((char *)&cmd, headerSize);
+            write((char *)&cmd, headerSize);
 
             // Write the data
             while (itorDumpStart != itorCurrent) {
@@ -384,7 +384,7 @@ void AubFileStream::writeDiscontiguousPages(const void *memory, size_t size, con
                 bool unalignedAddress = writeInfo.physicalAddress & (sizeof(uint32_t) - 1);
                 bool differentAddressSpace = (isLocalMemory != writeInfo.isLocalMemory);
                 if (!unalignedSize && !unalignedAddress && !differentAddressSpace) {
-                    fileHandle.write((const char *)ptrDump, writeInfo.size);
+                    write((const char *)ptrDump, writeInfo.size);
                 }
 
                 ptrDump = writeInfo.size + (uint8_t *)ptrDump;
@@ -426,11 +426,11 @@ void AubFileStream::writeDiscontiguousPages(const std::vector<PageEntryInfo> &wr
             if (index >= maxEntries || ((dwordCount + cmd.dwordCount) > 65535)) {
                 // if not, flush out existing token
                 cmd.numberOfAddressDataPairs = index;
-                fileHandle.write((char *)&cmd, headerSize);
+                write((char *)&cmd, headerSize);
 
                 // Write the data
                 while (itorDumpStart != itorCurrent) {
-                    fileHandle.write((const char *)&itorDumpStart->tableEntry, sizeof(itorDumpStart->tableEntry));
+                    write((const char *)&itorDumpStart->tableEntry, sizeof(itorDumpStart->tableEntry));
                     ++itorDumpStart;
                 }
 
@@ -460,12 +460,12 @@ void AubFileStream::writeDiscontiguousPages(const std::vector<PageEntryInfo> &wr
 
             // if not, flush out existing token
             cmd.numberOfAddressDataPairs = index;
-            fileHandle.write((char *)&cmd, headerSize);
+            write((char *)&cmd, headerSize);
 
             // Write the data
             while (itorDumpStart != itorCurrent) {
                 auto &writeInfo = *itorDumpStart;
-                fileHandle.write((const char *)&writeInfo.tableEntry, sizeof(writeInfo.tableEntry));
+                write((const char *)&writeInfo.tableEntry, sizeof(writeInfo.tableEntry));
                 ++itorDumpStart;
             }
         }
@@ -485,7 +485,7 @@ void AubFileStream::writeMMIO(uint32_t offset, uint32_t value) {
     header.writeMaskHigh = 0x00000000;
     header.data[0] = value;
 
-    fileHandle.write((char *)&header, sizeof(header));
+    write((char *)&header, sizeof(header));
     fileHandle.flush();
 }
 
@@ -502,12 +502,15 @@ void AubFileStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_
     header.data[0] = desiredValue;
     header.dwordCount = (sizeof(header) / sizeof(uint32_t)) - 1;
 
-    fileHandle.write((char *)&header, sizeof(header));
+    write((char *)&header, sizeof(header));
     fileHandle.flush();
 }
 
 void AubFileStream::open(const char *name) {
     fileHandle.open(name, std::ofstream::binary);
+    if (!fileHandle.is_open()) {
+        assert(false);
+    }
     fileName.assign(name);
 }
 
@@ -522,6 +525,52 @@ bool AubFileStream::isOpen() {
 
 const std::string &AubFileStream::getFileName() {
     return fileName;
+}
+
+void AubFileStream::write(const char *buffer, std::streamsize size) {
+    if (!fileHandle.is_open()) {
+        return;
+    }
+    if (buffer == nullptr) {
+        assert(false);
+        return;
+    }
+    if (size <= 0) {
+        assert(false);
+        return;
+    }
+
+    // First attempt: direct write
+    fileHandle.write(buffer, size);
+
+    if (!fileHandle) {
+        int error = errno;
+        if (error == EFAULT) {
+            // Write failed due to inaccessible memory -> fallback to host buffer
+
+            // - clear error flags and reopen in append mode
+            fileHandle.clear();
+            fileHandle.close();
+
+            fileHandle.open(fileName, std::ofstream::binary | std::ios::app);
+            if (!fileHandle.is_open()) {
+                assert(false);
+                return;
+            }
+
+            // - copy to host buffer and retry
+            std::vector<char> hostBuffer(static_cast<size_t>(size));
+            memcpy(hostBuffer.data(), buffer, static_cast<size_t>(size));
+            fileHandle.write(hostBuffer.data(), size);
+
+            if (!fileHandle) {
+                assert(false);
+            }
+        } else {
+            // Write failed due to other errors -> print and assert
+            assert(false);
+        }
+    }
 }
 
 void AubFileStream::writeGttPages(GGTT *ggtt, const std::vector<PageEntryInfo> &writeInfoTable) {
