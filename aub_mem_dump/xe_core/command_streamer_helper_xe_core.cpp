@@ -162,36 +162,6 @@ const MMIOList CommandStreamerHelperXeCore<CommandStreamerHelperLinkBcs>::getEng
     return engineMMIO;
 }
 
-static CommandStreamerHelperXeCore<CommandStreamerHelperRcs> rcsDevices[GpuXeCore::numSupportedDevices] = {{0}, {1}, {2}, {3}};
-static CommandStreamerHelperXeCore<CommandStreamerHelperBcs> bcsDevices[GpuXeCore::numSupportedDevices] = {{0}, {1}, {2}, {3}};
-static CommandStreamerHelperXeCore<CommandStreamerHelperVcs> vcsDevices[GpuXeCore::numSupportedDevices] = {{0}, {1}, {2}, {3}};
-static CommandStreamerHelperXeCore<CommandStreamerHelperVecs> vecsDevices[GpuXeCore::numSupportedDevices] = {{0}, {1}, {2}, {3}};
-static CommandStreamerHelperXeCore<CommandStreamerHelperCcs> ccs0Devices[GpuXeCore::numSupportedDevices] = {{0, 0}, {1, 0}, {2, 0}, {3, 0}};
-static CommandStreamerHelperXeCore<CommandStreamerHelperCcs> ccs1Devices[GpuXeCore::numSupportedDevices] = {{0, 1}, {1, 1}, {2, 1}, {3, 1}};
-static CommandStreamerHelperXeCore<CommandStreamerHelperCcs> ccs2Devices[GpuXeCore::numSupportedDevices] = {{0, 2}, {1, 2}, {2, 2}, {3, 2}};
-static CommandStreamerHelperXeCore<CommandStreamerHelperCcs> ccs3Devices[GpuXeCore::numSupportedDevices] = {{0, 3}, {1, 3}, {2, 3}, {3, 3}};
-
-static CommandStreamerHelper *commandStreamerHelperTable[GpuXeCore::numSupportedDevices][EngineType::NUM_ENGINES] = {};
-
-struct PopulateXeCore {
-    PopulateXeCore() {
-        auto fillEngine = [](EngineType engineType, CommandStreamerHelper *csHelper) {
-            for (uint32_t i = 0; i < GpuXeCore::numSupportedDevices; i++) {
-                commandStreamerHelperTable[i][engineType] = &csHelper[i];
-            }
-        };
-
-        fillEngine(EngineType::ENGINE_RCS, rcsDevices);
-        fillEngine(EngineType::ENGINE_BCS, bcsDevices);
-        fillEngine(EngineType::ENGINE_VCS, vcsDevices);
-        fillEngine(EngineType::ENGINE_VECS, vecsDevices);
-        fillEngine(EngineType::ENGINE_CCS, ccs0Devices);
-        fillEngine(EngineType::ENGINE_CCS1, ccs1Devices);
-        fillEngine(EngineType::ENGINE_CCS2, ccs2Devices);
-        fillEngine(EngineType::ENGINE_CCS3, ccs3Devices);
-    }
-} populateXeCore;
-
 void GpuXeCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {
     if (IsAnyTbxMode(stream.getStreamMode())) {
         for (uint32_t i = 0; i < devicesCount; i++) {

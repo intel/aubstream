@@ -28,6 +28,7 @@ struct GpuXeHpcCore : public GpuXeCore {
     static constexpr uint64_t patIndex0 = 0;                           // 0b0000
     static constexpr uint64_t patIndex3 = patIndexBit0 | patIndexBit1; // 0b0011
 
+    CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const override;
     const std::vector<EngineType> getSupportedEngines() const override;
 
     static constexpr uint32_t getPatIndexMmioAddr(uint32_t index);
@@ -37,6 +38,7 @@ struct GpuXeHpcCore : public GpuXeCore {
     uint64_t getPPGTTExtraEntryBits(const AllocationParams::AdditionalParams &allocationParams) const override;
 
     PageTable *allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const override;
+    std::unique_ptr<CommandStreamerHelper> commandStreamerHelperTable[numSupportedDevices][EngineType::NUM_ENGINES];
 };
 
 } // namespace aub_stream

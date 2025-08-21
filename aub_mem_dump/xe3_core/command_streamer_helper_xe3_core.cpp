@@ -94,7 +94,7 @@ const MMIOList CommandStreamerHelperXe3Core<CommandStreamerHelperLinkBcs>::getEn
 }
 
 GpuXe3Core::GpuXe3Core() {
-    for (auto deviceId = 0u; deviceId < GpuXeCore::numSupportedDevices; deviceId++) {
+    for (auto deviceId = 0u; deviceId < numSupportedDevices; deviceId++) {
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_CCCS] = std::make_unique<CommandStreamerHelperXe3Core<CommandStreamerHelperCccs>>(deviceId);
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_RCS] = std::make_unique<CommandStreamerHelperXe3Core<CommandStreamerHelperRcs>>(deviceId);
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS] = std::make_unique<CommandStreamerHelperXe3Core<CommandStreamerHelperBcs>>(deviceId);
@@ -261,6 +261,13 @@ void GpuXe3Core::initializeFlatCcsBaseAddressMmio(AubStream &stream, uint32_t de
         stream.writeMMIO(mmioDevice + 0x384910, mmioVal);
     }
 }
+
+CommandStreamerHelper &GpuXe3Core::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
+    auto &csh = commandStreamerHelperTable[device][engineType];
+    csh->gpu = this;
+    return *csh;
+}
+
 const std::vector<EngineType> GpuXe3Core::getSupportedEngines() const {
     static constexpr std::array<EngineType, 6> engines = {{ENGINE_BCS, ENGINE_VCS, ENGINE_VECS,
                                                            ENGINE_CCS, ENGINE_CCCS, ENGINE_BCS8}};

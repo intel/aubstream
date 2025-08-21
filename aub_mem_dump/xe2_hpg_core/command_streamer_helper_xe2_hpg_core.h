@@ -33,6 +33,7 @@ struct GpuXe2HpgCore : public GpuXeCore {
     static constexpr uint64_t patIndex9 = patIndexBit3 | patIndexBit0;  // 0b1001
     static constexpr uint64_t patIndex12 = patIndexBit2 | patIndexBit3; // 0b1100
 
+    CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const override;
     const std::vector<EngineType> getSupportedEngines() const override;
 
     static constexpr uint32_t getPatIndexMmioAddr(uint32_t index);
@@ -48,5 +49,6 @@ struct GpuXe2HpgCore : public GpuXeCore {
     void initializeTileRangeMmio(AubStream &stream, uint32_t deviceIndex, uint64_t lmemBaseAddress, uint64_t lmemSize) const;
 
     bool isMemorySupported(uint32_t memoryBanks, uint32_t alignment) const override;
+    std::unique_ptr<CommandStreamerHelper> commandStreamerHelperTable[numSupportedDevices][EngineType::NUM_ENGINES];
 };
 } // namespace aub_stream

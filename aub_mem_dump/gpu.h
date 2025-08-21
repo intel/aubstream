@@ -66,12 +66,10 @@ struct GpuDescriptor {
     uint32_t deviceCount{};
     virtual ~GpuDescriptor() = default;
 };
-
 struct Gpu : public GpuDescriptor {
     Gpu();
     ~Gpu() override;
-    static constexpr uint32_t numSupportedDevices = 4;
-    CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const;
+    virtual CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const = 0;
     virtual const MMIOList getGlobalMMIO() const = 0;
     virtual bool isMemorySupported(uint32_t memoryBanks, uint32_t alignment) const = 0;
     virtual const std::vector<EngineType> getSupportedEngines() const = 0;
@@ -98,7 +96,6 @@ struct Gpu : public GpuDescriptor {
     virtual uint32_t getContextGroupCount() const {
         return 8;
     }
-    std::unique_ptr<CommandStreamerHelper> commandStreamerHelperTable[Gpu::numSupportedDevices][EngineType::NUM_ENGINES];
 };
 
 } // namespace aub_stream

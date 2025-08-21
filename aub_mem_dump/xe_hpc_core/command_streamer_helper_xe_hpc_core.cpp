@@ -123,7 +123,7 @@ const MMIOList CommandStreamerHelperXeHpcCore<CommandStreamerHelperLinkBcs>::get
 }
 
 GpuXeHpcCore::GpuXeHpcCore() {
-    for (auto deviceId = 0u; deviceId < GpuXeCore::numSupportedDevices; deviceId++) {
+    for (auto deviceId = 0u; deviceId < numSupportedDevices; deviceId++) {
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_CCCS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperCccs>>(deviceId);
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_RCS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperRcs>>(deviceId);
         commandStreamerHelperTable[deviceId][EngineType::ENGINE_BCS] = std::make_unique<CommandStreamerHelperXeHpcCore<CommandStreamerHelperBcs>>(deviceId);
@@ -150,6 +150,13 @@ PageTable *GpuXeHpcCore::allocatePPGTT(PhysicalAddressAllocator *physicalAddress
     }
     return new PML4(*this, physicalAddressAllocator, memoryBank);
 }
+
+CommandStreamerHelper &GpuXeHpcCore::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
+    auto &csh = commandStreamerHelperTable[device][engineType];
+    csh->gpu = this;
+    return *csh;
+}
+
 const std::vector<EngineType> GpuXeHpcCore::getSupportedEngines() const {
     static constexpr std::array<EngineType, 17> engines = {{ENGINE_BCS, ENGINE_VCS, ENGINE_VECS,
                                                             ENGINE_CCS, ENGINE_CCS1, ENGINE_CCS2, ENGINE_CCS3, ENGINE_CCCS,

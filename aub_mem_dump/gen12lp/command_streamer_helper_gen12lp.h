@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -41,6 +41,9 @@ struct CommandStreamerHelperGen12LP : public Helper {
 
 struct GpuGen12LP : public Gpu {
     GpuGen12LP();
+    static constexpr uint32_t numSupportedDevices = 1;
+
+    CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const override;
     const std::vector<EngineType> getSupportedEngines() const override {
         static constexpr std::array<EngineType, 5> engines = {{ENGINE_RCS, ENGINE_BCS, ENGINE_VCS, ENGINE_VECS, ENGINE_CCS}};
         return std::vector<EngineType>(engines.begin(), engines.end());
@@ -204,5 +207,6 @@ struct GpuGen12LP : public Gpu {
     uint64_t getGGTTBaseAddress(uint32_t device, uint64_t memoryBankSize, uint64_t stolenMemoryBaseAddress) const override {
         return 0;
     }
+    std::unique_ptr<CommandStreamerHelper> commandStreamerHelperTable[numSupportedDevices][EngineType::NUM_ENGINES];
 };
 } // namespace aub_stream

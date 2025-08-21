@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -145,6 +145,12 @@ const MMIOList CommandStreamerHelperGen12LP<CommandStreamerHelperCcs>::getEngine
     return engineMMIO;
 }
 
+CommandStreamerHelper &GpuGen12LP::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
+    auto &csh = commandStreamerHelperTable[device][engineType];
+    csh->gpu = this;
+    return *csh;
+}
+
 GpuGen12LP::GpuGen12LP() {
     commandStreamerHelperTable[0][EngineType::ENGINE_RCS] = std::make_unique<CommandStreamerHelperGen12LP<CommandStreamerHelperRcs>>(0);
     commandStreamerHelperTable[0][EngineType::ENGINE_BCS] = std::make_unique<CommandStreamerHelperGen12LP<CommandStreamerHelperBcs>>(0);
@@ -152,4 +158,5 @@ GpuGen12LP::GpuGen12LP() {
     commandStreamerHelperTable[0][EngineType::ENGINE_VECS] = std::make_unique<CommandStreamerHelperGen12LP<CommandStreamerHelperVecs>>(0);
     commandStreamerHelperTable[0][EngineType::ENGINE_CCS] = std::make_unique<CommandStreamerHelperGen12LP<CommandStreamerHelperCcs>>(0, 0);
 }
+
 } // namespace aub_stream

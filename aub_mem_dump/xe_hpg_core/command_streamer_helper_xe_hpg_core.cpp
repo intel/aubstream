@@ -157,6 +157,13 @@ void GpuXeHpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devi
         }
     }
 }
+
+CommandStreamerHelper &GpuXeHpgCore::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
+    auto &csh = commandStreamerHelperTable[device][engineType];
+    csh->gpu = this;
+    return *csh;
+}
+
 const std::vector<EngineType> GpuXeHpgCore::getSupportedEngines() const {
     static constexpr std::array<EngineType, 4> engines = {{ENGINE_RCS, ENGINE_BCS, ENGINE_CCS}};
     return std::vector<EngineType>(engines.begin(), engines.end());

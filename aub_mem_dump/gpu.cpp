@@ -56,12 +56,6 @@ void Gpu::initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount, uint64_
     }
 }
 
-CommandStreamerHelper &Gpu::getCommandStreamerHelper(uint32_t device, EngineType engineType) const {
-    auto &csh = commandStreamerHelperTable[device][engineType];
-    csh->gpu = this;
-    return *csh;
-}
-
 void Gpu::injectMMIOs(AubStream &stream, uint32_t devicesCount) const {
     uint32_t mmioDevice = 0;
 

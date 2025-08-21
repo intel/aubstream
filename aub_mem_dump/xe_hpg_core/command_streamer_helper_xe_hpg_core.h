@@ -64,6 +64,7 @@ struct GpuXeHpgCore : public Gpu {
     static constexpr uint64_t patIndex0 = 0;            // 0b0000
     static constexpr uint64_t patIndex2 = patIndexBit1; // 0b0010
 
+    CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const override;
     const std::vector<EngineType> getSupportedEngines() const override;
 
     static constexpr uint32_t getPatIndexMmioAddr(uint32_t index) {
@@ -89,6 +90,7 @@ struct GpuXeHpgCore : public Gpu {
     void initializeFlatCcsBaseAddressMmio(AubStream &stream, uint32_t deviceIndex, uint64_t flatCcsBaseAddress) const;
 
     void initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const override;
+    std::unique_ptr<CommandStreamerHelper> commandStreamerHelperTable[numSupportedDevices][EngineType::NUM_ENGINES];
 };
 
 } // namespace aub_stream

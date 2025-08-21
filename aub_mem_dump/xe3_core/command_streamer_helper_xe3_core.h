@@ -33,6 +33,7 @@ struct GpuXe3Core : public GpuXeCore {
     static constexpr uint64_t patIndex9 = patIndexBit3 | patIndexBit0;  // 0b1001
     static constexpr uint64_t patIndex12 = patIndexBit2 | patIndexBit3; // 0b1100
 
+    CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const override;
     const std::vector<EngineType> getSupportedEngines() const override;
 
     static constexpr uint32_t getPatIndexMmioAddr(uint32_t index);
@@ -47,6 +48,7 @@ struct GpuXe3Core : public GpuXeCore {
     void initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const override;
     void initializeFlatCcsBaseAddressMmio(AubStream &stream, uint32_t deviceIndex, uint64_t flatCcsBaseAddress, uint64_t size) const;
     void initializeTileRangeMmio(AubStream &stream, uint32_t deviceIndex, uint64_t lmemBaseAddress, uint64_t lmemSize) const;
+    std::unique_ptr<CommandStreamerHelper> commandStreamerHelperTable[numSupportedDevices][EngineType::NUM_ENGINES];
 };
 
 } // namespace aub_stream
