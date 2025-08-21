@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Intel Corporation
+ * Copyright (C) 2024-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -54,7 +54,7 @@ TEST(PageTableTestsXe3Core, givenPageTableInLocalMemoryWhenCallingGetEntryValueT
         AllocationParams::AdditionalParams params = {};
         params.uncached = true;
 
-        auto expectedExtraBitsWithCompressionDisabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe3Core::patIndex2;
+        auto expectedExtraBitsWithCompressionDisabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe3Core::patIndex3;
         auto expectedExtraBitsWithCompressionEnabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe3Core::patIndex12;
         auto expectedBaseBits = physicalAddress |
                                 toBitValue(PpgttEntryBits::localMemoryBit, PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
@@ -101,7 +101,7 @@ TEST(PageTableTestsXe3Core, givenPageTableInSystemMemoryWhenCallingGetEntryValue
         AllocationParams::AdditionalParams params = {};
         params.uncached = true;
 
-        auto expectedExtraBitsWithCompressionDisabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe3Core::patIndex2;
+        auto expectedExtraBitsWithCompressionDisabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe3Core::patIndex3;
         auto expectedExtraBitsWithCompressionEnabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe3Core::patIndex12;
         auto expectedBaseBits = physicalAddress |
                                 toBitValue(PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);

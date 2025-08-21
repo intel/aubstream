@@ -28,10 +28,9 @@ struct GpuXe3Core : public GpuXeCore {
     static constexpr uint64_t patIndexBit2 = toBitValue(7);
     static constexpr uint64_t patIndexBit3 = toBitValue(62);
     static constexpr uint64_t patIndex0 = 0;                            // 0b0000
-    static constexpr uint64_t patIndex2 = patIndexBit1;                 // 0b0010
-    static constexpr uint64_t patIndex8 = patIndexBit3;                 // 0b1000
+    static constexpr uint64_t patIndex3 = patIndexBit1 | patIndexBit0;  // 0b0011
     static constexpr uint64_t patIndex9 = patIndexBit3 | patIndexBit0;  // 0b1001
-    static constexpr uint64_t patIndex12 = patIndexBit2 | patIndexBit3; // 0b1100
+    static constexpr uint64_t patIndex12 = patIndexBit3 | patIndexBit2; // 0b1100
 
     CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const override;
     const std::vector<EngineType> getSupportedEngines() const override;

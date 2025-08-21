@@ -53,7 +53,7 @@ TEST(PageTableTestsXe2HpgCore, givenPageTableInLocalMemoryWhenCallingGetEntryVal
         AllocationParams::AdditionalParams params = {};
         params.uncached = true;
 
-        auto expectedExtraBitsWithCompressionDisabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe2HpgCore::patIndex2;
+        auto expectedExtraBitsWithCompressionDisabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe2HpgCore::patIndex3;
         auto expectedExtraBitsWithCompressionEnabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe2HpgCore::patIndex12;
         auto expectedBaseBits = physicalAddress |
                                 toBitValue(PpgttEntryBits::localMemoryBit, PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
@@ -100,7 +100,7 @@ TEST(PageTableTestsXe2HpgCore, givenPageTableInSystemMemoryWhenCallingGetEntryVa
         AllocationParams::AdditionalParams params = {};
         params.uncached = true;
 
-        auto expectedExtraBitsWithCompressionDisabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe2HpgCore::patIndex2;
+        auto expectedExtraBitsWithCompressionDisabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe2HpgCore::patIndex3;
         auto expectedExtraBitsWithCompressionEnabled = toBitValue(PpgttEntryBits::atomicEnableBit) | GpuXe2HpgCore::patIndex12;
         auto expectedBaseBits = physicalAddress |
                                 toBitValue(PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);

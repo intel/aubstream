@@ -359,7 +359,7 @@ uint64_t GpuXe3Core::getPPGTTExtraEntryBits(const AllocationParams::AdditionalPa
     auto bits = toBitValue(PpgttEntryBits::atomicEnableBit);
 
     if (allocationParams.uncached) {
-        bits |= (allocationParams.compressionEnabled) ? patIndex12 : patIndex2;
+        bits |= (allocationParams.compressionEnabled) ? patIndex12 : patIndex3;
     } else {
         bits |= (allocationParams.compressionEnabled) ? patIndex9 : patIndex0;
     }
