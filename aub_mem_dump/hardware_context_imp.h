@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -61,6 +61,8 @@ struct HardwareContextImp : public HardwareContext {
     void writeMemory2(AllocationParams allocationParams) override;
     void writeMMIO(uint32_t offset, uint32_t value) override;
     void pollForFenceCompletion() override;
+    uint32_t getCurrentFence() override;
+    uint32_t getExpectedFence() override;
 
     AubStream &stream;
     const CommandStreamerHelper &csTraits;

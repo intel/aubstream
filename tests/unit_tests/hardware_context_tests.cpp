@@ -128,6 +128,28 @@ TEST_F(HardwareContextTest, submitShouldPerformAtLeastOneMMIOWrite) {
     context.writeAndSubmitBatchBuffer(ppgttBatchBuffer, &data, sizeof(data), defaultMemoryBank, defaultPageSize);
 }
 
+TEST_F(HardwareContextTest, submitShouldPerformFenceOperations) {
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+    HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
+    context.initialize();
+
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(1));
+    SimpleAllocator<uint64_t> gfxAddressAllocator(0x1000);
+    uintptr_t ppgttBatchBuffer = gfxAddressAllocator.alignedAlloc(0x2000, uint32_t(defaultPageSize));
+    EXPECT_EQ(context.getExpectedFence(), 0);
+    context.submitBatchBuffer(ppgttBatchBuffer, true);
+    EXPECT_EQ(context.getExpectedFence(), 1);
+    context.submitBatchBuffer(ppgttBatchBuffer, true);
+    EXPECT_EQ(context.getExpectedFence(), 2);
+    context.submitBatchBuffer(ppgttBatchBuffer, true);
+    EXPECT_EQ(context.getExpectedFence(), 3);
+    EXPECT_CALL(stream, readDiscontiguousPages(_, _, _)).Times(AtLeast(1));
+    context.getCurrentFence();
+}
+
 HWTEST_F(HardwareContextTest, submitBatchBufferShouldPerformAtLeastOneMMIOWriteAndDiscontiguousPageWrites, ringDataDisabled) {
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);

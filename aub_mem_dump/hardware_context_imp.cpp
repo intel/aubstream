@@ -200,7 +200,7 @@ void HardwareContextImp::pollForFenceCompletion() {
     uint32_t sleepMS = 1;
     uint32_t spinCount = 0;
     constexpr uint32_t maxSpinCount = 16;
-    constexpr uint32_t maxSleepMS = 256;
+    constexpr uint32_t maxSleepMS = 4;
 
     do {
         if (spinCount >= maxSpinCount) {
@@ -407,6 +407,21 @@ void HardwareContextImp::dumpBufferBIN(uint64_t gfxAddress, size_t size) {
 
 void HardwareContextImp::dumpSurface(const SurfaceInfo &surfaceInfo) {
     stream.dumpSurface(AubStream::PAGE_TABLE_PPGTT, surfaceInfo, static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this)));
+}
+
+uint32_t HardwareContextImp::getCurrentFence() {
+    uint32_t currentValue = 0;
+    size_t pageSize = csTraits.isMemorySupported(ggtt.getMemoryBank(), 65536u)
+                          ? 65536u
+                          : 4096u;
+
+    std::atomic_thread_fence(std::memory_order_acquire);
+    stream.readMemory(&ggtt, ggttContextFence, &currentValue, sizeof(currentValue), ggtt.getMemoryBank(), pageSize);
+    return currentValue;
+}
+
+uint32_t HardwareContextImp::getExpectedFence() {
+    return contextFenceValue;
 }
 
 } // namespace aub_stream
