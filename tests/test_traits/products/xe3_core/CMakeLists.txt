@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT
 #
 
-if(TESTS_XE3_CORE)
+if(AUBSTREAM_TESTS_XE3_CORE)
   set(TEST_TRAITS_SOURCES
       ${TEST_TRAITS_SOURCES}
       ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt

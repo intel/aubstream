@@ -1,10 +1,10 @@
 #
-# Copyright (C) 2024 Intel Corporation
+# Copyright (C) 2024-2025 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
 
-if(SUPPORT_XE2_HPG_CORE)
+if(AUBSTREAM_SUPPORT_XE2_HPG_CORE)
   target_sources(${PROJECT_NAME}
                  PRIVATE
                  ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt

@@ -1,10 +1,10 @@
 #
-# Copyright (C) 2022-2024 Intel Corporation
+# Copyright (C) 2022-2025 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
 
-if(SUPPORT_DG1)
+if(AUBSTREAM_SUPPORT_DG1)
   target_sources(${PROJECT_NAME}
                  PRIVATE
                  ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
