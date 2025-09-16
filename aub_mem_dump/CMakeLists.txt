@@ -84,7 +84,6 @@ add_library(${PROJECT_NAME}_all_hw
             OBJECT
             ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
 )
-target_compile_definitions(${PROJECT_NAME}_all_hw PRIVATE ${SUPPORTED_CORE_FLAGS_DEFINITONS})
 
 target_include_directories(${PROJECT_NAME}_all_hw
                            PRIVATE
