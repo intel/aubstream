@@ -211,6 +211,22 @@ void AubManagerImp::open(const std::string &aubFileName) {
     }
 }
 
+void AubManagerImp::closeSocket() {
+    AubStream *stream = getStream();
+    if (stream) {
+        if ((streamMode == mode::tbx) || (streamMode == mode::aubFileAndTbx)) {
+            if (streamTbx->socket) {
+                streamTbx->socket->close();
+            }
+        } else if ((IsAnyTbxShmMode(streamMode)) ||
+                   (streamMode == mode::aubFileAndShm) || (streamMode == mode::aubFileAndShm4)) {
+            if (streamTbxShm->socket) {
+                streamTbxShm->socket->close();
+            }
+        }
+    }
+}
+
 void AubManagerImp::close() {
     for (auto &ctxt : hwContexts) {
         ctxt->release();

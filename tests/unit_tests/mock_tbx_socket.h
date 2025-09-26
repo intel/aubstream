@@ -23,5 +23,6 @@ struct MockTbxSocketsImp : public TbxSocketsImp {
     MOCK_METHOD2(readMMIO, bool(uint32_t offset, uint32_t *data));
     MOCK_METHOD2(sendWriteData, bool(const void *buffer, size_t sizeInBytes));
     MOCK_METHOD2(getResponseData, bool(void *buffer, size_t sizeInBytes));
+    MOCK_METHOD0(close, void(void));
 };
 } // namespace aub_stream

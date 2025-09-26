@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -12,6 +12,7 @@
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
 #include "mock_tbx_socket.h"
+#include "mock_aub_manager.h"
 
 #include "gtest/gtest.h"
 #include <memory>
@@ -293,6 +294,36 @@ TEST(TbxStream, GivenNoContextExecutedWhenPollingForCompletionThenFunctionReturn
     tbxStream->registerPoll(0x2234, 1, 1, false, CmdServicesMemTraceRegisterPoll::TimeoutActionValues::Abort);
 }
 
+TEST(TbxStream, SocketProperClosingAtModeTbxWhenCloseSocketFunctionIsCall) {
+
+    auto tbxStream = std::make_unique<MockTbxStream>();
+    auto socket = new MockTbxSocketsImp();
+
+    MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::tbx);
+    aubManager.initialize();
+
+    tbxStream->socket = socket;
+
+    EXPECT_CALL(*socket, close()).Times(1);
+
+    aubManager.closeSocket();
+}
+
+TEST(TbxStream, SocketProperClosingAtModeAubTbxWhenCloseSocketFunctionIsCall) {
+
+    auto tbxStream = std::make_unique<MockTbxStream>();
+    auto socket = new MockTbxSocketsImp();
+
+    MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::aubFileAndTbx);
+    aubManager.initialize();
+
+    tbxStream->socket = socket;
+
+    EXPECT_CALL(*socket, close()).Times(1);
+
+    aubManager.closeSocket();
+}
+
 using AubShmStreamTest = ::testing::Test;
 TEST(AubShmStreamTest, writeContiguousPagesInSHMModeWithCorrectValuesThenTranslateCallIsExpected) {
     MockTbxShmStream stream(mode::tbxShm);
@@ -337,4 +368,30 @@ TEST(AubShmStreamTest, writeContiguousPagesInSHM4ModeWithCorrectValuesThenTransl
     EXPECT_CALL(stream, checkSocketAlive()).Times(1);
     stream.baseWriteContiguousPages(&inVal, sizeof(inVal), 0x1AB000, aub_stream::AddressSpaceValues::TraceNonlocal, 0);
     EXPECT_EQ(inVal, outVal);
+}
+
+TEST(AubShmStreamTest, SocketProperClosingAtModeTbxShmWhenCloseSocketFunctionIsCall) {
+    MockTbxShmStream stream(mode::tbxShm);
+    uint64_t inVal = 1977;
+    uint64_t outVal = 0;
+    stream.baseInit([&outVal](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
+        EXPECT_EQ(physAddress, 0x1AB000);
+        EXPECT_EQ(size, sizeof(inVal));
+        p = &outVal;
+        availableSize = size;
+    });
+
+    auto socket = new MockTbxSocketsImp();
+
+    uint8_t sysMem[0x1000];
+    uint8_t lMem[0x1000];
+    SharedMemoryInfo sharedMemoryInfo = {sysMem, 0x1000, lMem, 0x1000};
+    MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::tbxShm, sharedMemoryInfo);
+    aubManager.initialize();
+
+    stream.socket = socket;
+
+    EXPECT_CALL(*socket, close()).Times(1);
+
+    aubManager.closeSocket();
 }

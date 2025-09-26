@@ -81,6 +81,8 @@ class AubManagerImp : public AubManager {
 
     bool releaseHardwareContext(HardwareContext *context) override;
 
+    void closeSocket(void) override;
+
   protected:
     virtual void createStream();
     AubStream *getStream() const;
