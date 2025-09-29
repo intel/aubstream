@@ -83,7 +83,9 @@ if(MSVC)
   # treat warnings as errors
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX /W3 /we4189")
 
-  string(REPLACE "/GR" "/GR-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  string(REPLACE "/GR-" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  string(REPLACE "/GR" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
   add_definitions(-D_HAS_STATIC_RTTI=0)
 endif()
 
