@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -12,6 +12,7 @@
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/memory_bank_helper.h"
 #include "aub_mem_dump/page_table_entry_bits.h"
+#include "aubstream/hint_values.h"
 
 namespace aub_stream {
 

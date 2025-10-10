@@ -8,6 +8,7 @@
 #include "aub_file_stream.h"
 #include "aub_mem_dump/gpu.h"
 #include "aubstream/aubstream.h"
+#include "aubstream/hint_values.h"
 #include "gfx_core_family.h"
 #include "options.h"
 

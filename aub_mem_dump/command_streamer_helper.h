@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -10,6 +10,7 @@
 #include "aub_mem_dump/page_table.h"
 #include "aub_services.h"
 #include "aubstream/engine_node.h"
+#include "aubstream/hint_values.h"
 #include <cstdint>
 #include <vector>
 #include <mutex>
@@ -60,7 +61,6 @@ constexpr uint32_t bcsLinkEngineOffset(uint32_t engineId) {
 
 struct CommandStreamerHelper {
     using AddressSpaceValues = CmdServicesMemTraceMemoryWrite::AddressSpaceValues;
-    using DataTypeHintValues = CmdServicesMemTraceMemoryWrite::DataTypeHintValues;
 
     CommandStreamerHelper() = default;
     virtual ~CommandStreamerHelper() = default;

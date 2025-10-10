@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -9,6 +9,7 @@
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/page_table_entry_bits.h"
 #include "mock_aub_stream.h"
+#include "aubstream/hint_values.h"
 #include "test_defaults.h"
 #include "gtest/gtest.h"
 

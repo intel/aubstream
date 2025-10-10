@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -9,6 +9,7 @@
 #include "tbx_sockets.h"
 #include "options.h"
 #include "aub_mem_dump/settings.h"
+#include "aubstream/hint_values.h"
 
 #include <cassert>
 

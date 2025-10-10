@@ -13,6 +13,7 @@
 #include "tests/unit_tests/page_table_helper.h"
 #include "gtest/gtest.h"
 #include "tests/variable_backup.h"
+#include "aubstream/hint_values.h"
 
 #include "test.h"
 

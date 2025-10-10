@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -15,6 +15,7 @@
 #include "aub_services.h"
 #include "aubstream/aubstream.h"
 #include "aubstream/allocation_params.h"
+#include "aubstream/stepping_values.h"
 
 namespace aub_stream {
 
@@ -22,9 +23,7 @@ struct GpuDescriptor;
 using MMIOPair = std::pair<uint32_t, uint32_t>;
 using MMIOList = std::vector<MMIOPair>;
 
-using SteppingValues = CmdServicesMemTraceVersion::SteppingValues;
 using AddressSpaceValues = CmdServicesMemTraceMemoryWrite::AddressSpaceValues;
-using DataTypeHintValues = CmdServicesMemTraceMemoryWrite::DataTypeHintValues;
 
 enum class CoreFamily : uint32_t;
 struct AubStream {

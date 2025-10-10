@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -12,6 +12,7 @@
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
 #include "tests/unit_tests/mock_physical_address_allocator.h"
+#include "aubstream/hint_values.h"
 
 #include "gtest/gtest.h"
 

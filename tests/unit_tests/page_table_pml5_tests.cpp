@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -10,6 +10,7 @@
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table_pml5.h"
 #include "aubstream/allocation_params.h"
+#include "aubstream/hint_values.h"
 #include "test_defaults.h"
 #include "tests/unit_tests/hardware_context_tests.h"
 #include "tests/unit_tests/mock_aub_stream.h"

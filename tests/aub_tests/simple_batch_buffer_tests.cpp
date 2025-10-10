@@ -389,7 +389,7 @@ HWTEST_F(SimpleBatchBuffer, submitSingleBatchBufferToMultipleTiles, MatchMultiDe
     initializeStream(desc);
 
     // All tiles refer to single physical storage
-    mgr->writeMemory2({0x8000003000, batchCommands, sizeof(batchCommands), MemoryBank::MEMORY_BANK_0, CmdServicesMemTraceMemoryWrite::DataTypeHintValues::TraceBatchBuffer, defaultPageSize});
+    mgr->writeMemory2({0x8000003000, batchCommands, sizeof(batchCommands), MemoryBank::MEMORY_BANK_0, DataTypeHintValues::TraceBatchBuffer, defaultPageSize});
 
     auto device = 0;
     auto rcs_t0 = static_cast<HardwareContextImp *>(mgr->createHardwareContext(device, ENGINE_RCS, 0));

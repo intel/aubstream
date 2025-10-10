@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -89,36 +89,6 @@ struct CmdServicesMemTraceVersion {
                PantherPoint = 3,
                Default = 0,
                IbexPeak = 1 };
-    };
-    struct SteppingValues {
-        enum {
-            N = 13,
-            O = 14,
-            L = 11,
-            M = 12,
-            B = 1,
-            C = 2,
-            A = 0,
-            F = 5,
-            G = 6,
-            D = 3,
-            E = 4,
-            Z = 25,
-            X = 23,
-            Y = 24,
-            R = 17,
-            S = 18,
-            P = 15,
-            Q = 16,
-            V = 21,
-            W = 22,
-            T = 19,
-            U = 20,
-            J = 9,
-            K = 10,
-            H = 7,
-            I = 8
-        };
     };
 };
 
@@ -687,77 +657,6 @@ struct CmdServicesMemTraceMemoryWrite {
     struct RepeatMemoryValues {
         enum { NoRepeat = 0,
                Repeat = 1 };
-    };
-    struct DataTypeHintValues {
-        enum {
-            TraceRingContextVcs = 57,
-            TraceIndexBuffer = 13,
-            TraceCubeMap = 7,
-            TraceScratchSpace = 27,
-            TraceBatchBufferPrimary = 42,
-            TraceCommandBufferPrimary = 39,
-            TraceBinBuffer = 2,
-            TraceVldState = 30,
-            TraceSlowStateBuffer = 4,
-            TraceRenderSurfaceState = 35,
-            TraceBindingTableState = 34,
-            TraceCommandBufferBlt = 40,
-            Trace1DMap = 10,
-            TraceWindowerIzState = 20,
-            TracePpgttLevel1 = 65,
-            TraceInterfaceDescriptor = 29,
-            TraceCommandBufferMfx = 41,
-            TraceCommandBuffer = 38,
-            TraceGucProcessDescriptor = 60,
-            TraceKernelInstructions = 26,
-            TraceClipperState = 18,
-            TraceBatchBufferBlt = 43,
-            TraceDepthStencilState = 33,
-            TraceNotype = 0,
-            TraceSfViewport = 23,
-            TraceLogicalRingContextCcs = 64,
-            TraceClipViewport = 22,
-            TraceLogicalRingContextBcs = 49,
-            TraceRingContextRcs = 55,
-            TraceDummyGgttEntry = 62,
-            TraceVertexShaderState = 16,
-            TracePpgttLevel4 = 68,
-            TracePpgttLevel5 = 69,
-            TraceIndirectStateBuffer = 8,
-            TraceAudioLinkTable = 46,
-            TraceBlendState = 32,
-            TraceColorCalcState = 21,
-            TraceCcViewport = 24,
-            TraceSamplerDefaultColor = 28,
-            TraceBatchBufferMfx = 44,
-            TraceRemap = 37,
-            TracePpgttLevel3 = 67,
-            TraceAudioData = 47,
-            TraceSamplerState = 25,
-            TraceLogicalRingContextRcs = 48,
-            TraceVolumeMap = 9,
-            TraceConstantBuffer = 11,
-            TraceExtendedRootTableEntry = 52,
-            TraceRingContextVecs = 58,
-            TracePasidTableEntry = 54,
-            TracePpgttLevel2 = 66,
-            TraceLogicalRingContextVecs = 51,
-            Trace2DMap = 6,
-            TraceGucContextDescriptor = 61,
-            TraceAudioCommandBuffer = 45,
-            TraceMediaObjectIndirectData = 36,
-            TraceRingContextBcs = 56,
-            TraceVfeState = 31,
-            TraceLri = 59,
-            TraceConstantUrbEntry = 12,
-            TraceLogicalRingContextVcs = 50,
-            TraceBinPointerList = 3,
-            TraceBatchBuffer = 1,
-            TraceExtendedContextTableEntry = 53,
-            TraceGeometryShaderState = 17,
-            TraceVertexBufferState = 5,
-            TraceStripsFansState = 19
-        };
     };
     struct TilingValues {
         enum { NoTiling = 0,
