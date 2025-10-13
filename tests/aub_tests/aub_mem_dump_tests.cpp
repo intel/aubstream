@@ -11,13 +11,12 @@
 #include "aubstream/aubstream.h"
 #include "aubstream/hint_values.h"
 #include "test_defaults.h"
+#include "aubstream/hardware_context.h"
 #include "gtest/gtest.h"
 
 #include "test.h"
 
 using namespace aub_stream;
-
-using CompareOperationValues = CmdServicesMemTraceMemoryCompare::CompareOperationValues;
 
 template <typename Type>
 struct AubTests : public ::testing::Test {

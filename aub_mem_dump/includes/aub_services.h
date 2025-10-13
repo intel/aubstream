@@ -453,10 +453,6 @@ struct CmdServicesMemTraceMemoryCompare {
             TracePhysicalPdpEntry = 8
         };
     };
-    struct CompareOperationValues {
-        enum { CompareNotEqual = 1,
-               CompareEqual = 0 };
-    };
     struct DeferCompareEvaluationValues {
         enum { StoreComparison = 1,
                CompareImmediately = 0 };

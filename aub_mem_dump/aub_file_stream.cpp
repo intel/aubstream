@@ -9,6 +9,7 @@
 #include "aub_mem_dump/gpu.h"
 #include "aubstream/aubstream.h"
 #include "aubstream/hint_values.h"
+#include "aubstream/hardware_context.h"
 #include "gfx_core_family.h"
 #include "options.h"
 
@@ -210,7 +211,7 @@ void AubFileStream::expectMemoryTable(const void *memory, size_t size, const std
         cmd.addressSpace = entry.isLocalMemory
                                ? AddressSpaceValues::TraceLocal
                                : AddressSpaceValues::TraceNonlocal;
-        cmd.deferCompareEvaluation = ((&entry == &entries.back()) || (compareOperation == CmdServicesMemTraceMemoryCompare::CompareOperationValues::CompareEqual))
+        cmd.deferCompareEvaluation = ((&entry == &entries.back()) || (compareOperation == CompareOperationValues::CompareEqual))
                                          ? CmdServicesMemTraceMemoryCompare::DeferCompareEvaluationValues::CompareImmediately
                                          : CmdServicesMemTraceMemoryCompare::DeferCompareEvaluationValues::StoreComparison;
 

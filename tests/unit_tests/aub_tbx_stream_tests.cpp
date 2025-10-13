@@ -16,6 +16,7 @@
 
 #include "gtest/gtest.h"
 #include <memory>
+#include "aubstream/hardware_context.h"
 
 using namespace aub_stream;
 using ::testing::_;
@@ -99,7 +100,7 @@ TEST(AubTbxStream, RedirectMethodsToAubFileAndTbxStreams) {
     aubTbxStream->readMMIO(24);
 
     std::vector<PageInfo> writeInfoTable;
-    aubTbxStream->expectMemoryTable(nullptr, 0, writeInfoTable, CmdServicesMemTraceMemoryCompare::CompareOperationValues::CompareEqual);
+    aubTbxStream->expectMemoryTable(nullptr, 0, writeInfoTable, CompareOperationValues::CompareEqual);
 
     std::vector<uint64_t> entries;
     aubTbxStream->reserveContiguousPages(entries);
@@ -181,7 +182,7 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenAubFileStreamIsPaused) {
     aubTbxStream->readPCICFG(0x84);
 
     std::vector<PageInfo> writeInfoTable;
-    aubTbxStream->expectMemoryTable(nullptr, 0, writeInfoTable, CmdServicesMemTraceMemoryCompare::CompareOperationValues::CompareEqual);
+    aubTbxStream->expectMemoryTable(nullptr, 0, writeInfoTable, CompareOperationValues::CompareEqual);
 
     std::vector<uint64_t> entries;
     aubTbxStream->reserveContiguousPages(entries);
@@ -256,7 +257,7 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenTbxStreamIsPaused) {
     aubShmStream->readPCICFG(0x84);
 
     std::vector<PageInfo> writeInfoTable;
-    aubShmStream->expectMemoryTable(nullptr, 0, writeInfoTable, CmdServicesMemTraceMemoryCompare::CompareOperationValues::CompareEqual);
+    aubShmStream->expectMemoryTable(nullptr, 0, writeInfoTable, CompareOperationValues::CompareEqual);
 
     std::vector<uint64_t> entries;
     aubShmStream->reserveContiguousPages(entries);
