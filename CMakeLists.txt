@@ -6,14 +6,15 @@
 
 cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
 
+# Override project name if requested
+if(NOT DEFINED AUB_STREAM_PROJECT_NAME)
+  set(AUB_STREAM_PROJECT_NAME aub_stream)
+endif()
+project(${AUB_STREAM_PROJECT_NAME} LANGUAGES CXX)
 # Set custom build types for multi-configuration generators
 set(CMAKE_CONFIGURATION_TYPES "Release;ReleaseInternal;Debug")
 
-if(NOT BUILD_BITS)
-  set(BUILD_BITS 64)
-endif()
-
-if(BUILD_BITS EQUAL 64)
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(ARCH "x64")
 else()
   if(NOT WIN32)
@@ -22,7 +23,7 @@ else()
   set(ARCH "x86")
 endif()
 
-if(DEFINED CMAKE_BUILD_TYPE)
+if(NOT ("${CMAKE_BUILD_TYPE}" STREQUAL ""))
   get_property(is_mc GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
   if(${is_mc})
     message(WARNING "Invalid use of CMAKE_BUILD_TYPE with multi-configuration generator")
@@ -42,12 +43,6 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
-
-# Override project name if requested
-if(NOT DEFINED AUB_STREAM_PROJECT_NAME)
-  set(AUB_STREAM_PROJECT_NAME aub_stream)
-endif()
-project(${AUB_STREAM_PROJECT_NAME} LANGUAGES CXX)
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.branch" AND NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.branch")
   file(READ ".branch" BRANCH_TYPE)
