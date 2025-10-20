@@ -616,11 +616,14 @@ uint32_t AubManagerImp::readMMIO(uint32_t offset) {
 }
 
 void AubManagerImp::setCCSMode(uint32_t ccsCount) {
-    if (!hwContexts.empty()) {
-        if (enableThrow) {
-            throw std::logic_error("Cannot set CCS mode after hardware contexts have been created.");
+    {
+        std::lock_guard<std::mutex> lock(hwContextsMutex);
+        if (!hwContexts.empty()) {
+            if (enableThrow) {
+                throw std::logic_error("Cannot set CCS mode after hardware contexts have been created.");
+            }
+            return;
         }
-        return;
     }
 
     this->ccsCount = ccsCount;
