@@ -85,6 +85,7 @@ struct Gpu : public GpuDescriptor {
     bool isEngineSupported(uint32_t engine) const;
 
     virtual bool isValidDataStolenMemorySize(uint64_t dataStolenMemorySize) const;
+    virtual uint64_t getDefaultDataStolenMemorySize() const { return 4 * 1024 * 1024; };
 
     virtual uint64_t getPPGTTExtraEntryBits(const AllocationParams::AdditionalParams &allocationParams) const { return 0; }
 

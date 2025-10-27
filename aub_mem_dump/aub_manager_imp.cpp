@@ -41,7 +41,7 @@ AubManagerImp::AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOp
                                                                                                   streamMode(options.mode),
                                                                                                   stepping(options.stepping),
                                                                                                   gpuAddressSpace(options.gpuAddressSpace),
-                                                                                                  stolenMem(StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3, options.devicesCount, options.memoryBankSize, options.dataStolenMemorySize)),
+                                                                                                  stolenMem(StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3, options.devicesCount, options.memoryBankSize, options.dataStolenMemorySize ? options.dataStolenMemorySize : this->gpu->getDefaultDataStolenMemorySize())),
                                                                                                   sharedMemoryInfo(options.sharedMemoryInfo),
                                                                                                   enableThrow(options.throwOnError) {
     groupContextHelper = std::make_unique<GroupContextHelper>();
