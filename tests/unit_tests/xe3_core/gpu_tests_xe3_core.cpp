@@ -62,5 +62,23 @@ TEST(Gpu, givenXe3WhenInitializingGlobalMmiosThenProgramMocsAndPatIndex) {
     EXPECT_CALL(stream, writeMMIO(0x47FC, 0b0000'0000'1111)).Times(1);
     EXPECT_CALL(stream, writeMMIO(0x4820, 0b0000'0000'1100)).Times(1);
 
+    EXPECT_CALL(stream, writeMMIO(0x00004b80, 0xffff1001)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x00007000, 0xffff0000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x00007004, 0xffff0000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x00009008, 0x00000200)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x0000900c, 0x00001b40)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x0000b120, 0x14000002)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x0000b134, 0xa0000000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x0000b234, 0xa0000000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x0000ce90, 0x00030003)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x0000cf58, 0x80000000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x0000e194, 0xffff0002)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x00014800, 0x00030003)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x00014804, 0x0fff0000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x0001a0d8, 0x00020000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x00042080, 0x00000000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x0000e7c8, 0x00000000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x0000e7cc, 0x00001000)).Times(1);
+
     gpu->initializeGlobalMMIO(stream, 1, 1, 0);
 }
