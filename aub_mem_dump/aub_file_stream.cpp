@@ -530,6 +530,10 @@ const std::string &AubFileStream::getFileName() {
 }
 
 void AubFileStream::write(const char *buffer, std::streamsize size) {
+    if (!fileHandle.isOpen()) {
+        return;
+    }
+
     if (buffer == nullptr) {
         assert(false);
         return;

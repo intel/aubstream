@@ -486,9 +486,14 @@ TEST_F(AubFileStreamTest, givenErrorLogLevelWhenOperationFailsThenErrorIsPrinted
     globalSettings->LogLevel.set(LogLevels::error);
 
     WhiteBox<AubFileStream> stream;
-    ::testing::internal::CaptureStdout();
+
     errno = 0;
     stream.init(SteppingValues::A, *gpu);
+
+    ::testing::internal::CaptureStdout();
+    char temp = 0;
+    stream.fileHandle.write(&temp, 1);
+    stream.fileHandle.flush();
     std::string output = testing::internal::GetCapturedStdout();
     EXPECT_THAT(output, ::testing::HasSubstr("[ERROR] write() to file failed\n"));
     EXPECT_THAT(output, ::testing::HasSubstr("[ERROR] flush() to file failed\n"));
@@ -497,6 +502,7 @@ TEST_F(AubFileStreamTest, givenErrorLogLevelWhenOperationFailsThenErrorIsPrinted
 TEST_F(AubFileStreamTest, givenThrowOnErrorWhenOperationFailsThenExcepionIsThrown) {
     WhiteBox<AubFileStream> stream;
     stream.enableThrowOnError(true);
-
-    EXPECT_THROW(stream.init(SteppingValues::A, *gpu), std::runtime_error);
+    stream.init(SteppingValues::A, *gpu);
+    char temp = 0;
+    EXPECT_THROW(stream.fileHandle.write(&temp, 1);, std::runtime_error);
 }
