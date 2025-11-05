@@ -98,7 +98,6 @@ class AubManagerImp : public AubManager {
     uint64_t gpuAddressSpace;
     uint32_t ccsCount{};
 
-    std::unique_ptr<StolenMemory> stolenMem;
     std::unique_ptr<AubFileStream> streamAub;
     std::unique_ptr<TbxStream> streamTbx;
     std::unique_ptr<AubTbxStream> streamAubTbx;

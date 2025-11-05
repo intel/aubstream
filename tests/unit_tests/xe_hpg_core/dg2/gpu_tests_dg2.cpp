@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -28,7 +28,7 @@ TEST(Gpu, givenDg2WhenInitializeDefaultMemoryPoolsThenNotInitializeFlatCcsBaseAd
     constexpr uint64_t perDeviceHbmSize = 8llu * GB;
 
     MockTbxStream stream;
-    auto sm = StolenMemory::CreateStolenMemory(false, numDevices, perDeviceHbmSize, 1 * MB);
+    gpu->stolenMemory = StolenMemory::CreateStolenMemory(false, numDevices, perDeviceHbmSize, 1 * MB);
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
 
     for (uint32_t i = 0; i > numDevices; i++) {
@@ -41,29 +41,29 @@ TEST(Gpu, givenDg2WhenInitializeDefaultMemoryPoolsThenNotInitializeFlatCcsBaseAd
         EXPECT_CALL(stream, writeMMIO((i * mmioDeviceOffset) + 0x00004910, mmioValue)).Times(0);
     }
 
-    gpu->initializeDefaultMemoryPools(stream, numDevices, perDeviceHbmSize, *sm);
+    gpu->initializeDefaultMemoryPools(stream, numDevices, perDeviceHbmSize);
 }
 
 TEST(Gpu, givenDg2AndFileStreamWhenInitializeDefaultMemoryPoolsThenFlatCcsBaseAddressIsProgrammed) {
     TEST_REQUIRES(gpu->productFamily == ProductFamily::Dg2);
 
     MockAubFileStream stream;
-    auto sm = StolenMemory::CreateStolenMemory(false, 1, 1, 1 & MB);
+    gpu->stolenMemory = StolenMemory::CreateStolenMemory(false, 1, 1, 1 & MB);
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
     EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(0);
 
-    gpu->initializeDefaultMemoryPools(stream, 1, 1, *sm);
+    gpu->initializeDefaultMemoryPools(stream, 1, 1);
 }
 
 TEST(Gpu, givenDg2AndTbxStreamInitializeDefaultMemoryPoolsThenFlatCcsBaseAddressIsProgrammed) {
     TEST_REQUIRES(gpu->productFamily == ProductFamily::Dg2);
 
     MockTbxStream stream;
-    auto sm = StolenMemory::CreateStolenMemory(false, 1, 16 * MB, 1 * MB);
+    gpu->stolenMemory = StolenMemory::CreateStolenMemory(false, 1, 16 * MB, 1 * MB);
     EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
     EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(1);
 
-    gpu->initializeDefaultMemoryPools(stream, 1, 1, *sm);
+    gpu->initializeDefaultMemoryPools(stream, 1, 1);
 }
 TEST(Gpu, givenDg2WhenCheckEngineSuportThenAllExpectedEnginesAreSupported) {
     TEST_REQUIRES(gpu->productFamily == ProductFamily::Dg2);

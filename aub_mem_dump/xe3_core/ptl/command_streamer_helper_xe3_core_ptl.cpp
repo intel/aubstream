@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Intel Corporation
+ * Copyright (C) 2024-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -22,7 +22,7 @@ struct GpuPtl : public GpuXe3Core {
         deviceCount = GpuPtl::numSupportedDevices;
     }
 
-    void setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const override {
+    void setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize) const override {
         assert(deviceCount > 0u);
         assert(deviceCount <= this->deviceCount);
         assert(GpuPtl::numSupportedDevices == this->deviceCount);
@@ -30,7 +30,7 @@ struct GpuPtl : public GpuXe3Core {
         const uint32_t mmioDevice[1] = {0};
         const uint32_t gsmBase = 0x108100;
 
-        uint64_t gttBase = getGGTTBaseAddress(0, memoryBankSize, stolenMemory.getBaseAddress(0));
+        uint64_t gttBase = getGSMBaseAddress(0);
         stream.writeMMIO(mmioDevice[0] + gsmBase + 4, static_cast<uint32_t>(gttBase >> 32));
         stream.writeMMIO(mmioDevice[0] + gsmBase + 0, static_cast<uint32_t>(gttBase & 0xFFF00000));
     }

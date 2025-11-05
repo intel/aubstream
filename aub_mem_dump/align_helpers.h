@@ -1,11 +1,14 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
  */
 
 #pragma once
+
+#include <cstdint>
+
 namespace aub_stream {
 
 constexpr uint64_t alignUp(uint64_t size, uint64_t alignementBits) {

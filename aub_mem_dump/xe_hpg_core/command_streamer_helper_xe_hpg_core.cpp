@@ -148,11 +148,11 @@ GpuXeHpgCore::GpuXeHpgCore() {
     commandStreamerHelperTable[0][EngineType::ENGINE_CCS3] = std::make_unique<CommandStreamerHelperXeHpgCore<CommandStreamerHelperCcs>>(0, 3);
 }
 
-void GpuXeHpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {
+void GpuXeHpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize) const {
     if (IsAnyTbxMode(stream.getStreamMode())) {
         for (uint32_t i = 0; i < devicesCount; i++) {
             // put flat ccs at the beginning of stolen memory
-            uint64_t flatCcsBaseAddr = stolenMemory.getBaseAddress(i);
+            uint64_t flatCcsBaseAddr = stolenMemory->getBaseAddress(i);
             initializeFlatCcsBaseAddressMmio(stream, i, flatCcsBaseAddr);
         }
     }
@@ -370,7 +370,7 @@ void GpuXeHpgCore::setMemoryBankSize(AubStream &stream, uint32_t deviceCount, ui
     }
 }
 
-void GpuXeHpgCore::setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {
+void GpuXeHpgCore::setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize) const {
     assert(deviceCount > 0u);
     assert(deviceCount <= this->deviceCount);
     assert(GpuXeHpgCore::numSupportedDevices == this->deviceCount);
@@ -381,7 +381,7 @@ void GpuXeHpgCore::setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount,
     const uint32_t gsmBaseRem2 = 0x108110;
     const uint32_t gsmBaseRem3 = 0x108118;
     for (auto device = 0u; device < deviceCount; ++device) {
-        uint64_t gttBase = getGGTTBaseAddress(device, memoryBankSize, stolenMemory.getBaseAddress(device));
+        uint64_t gttBase = getGSMBaseAddress(device);
         stream.writeMMIO(mmioDevice[device] + gsmBase + 4, static_cast<uint32_t>(gttBase >> 32));
         stream.writeMMIO(mmioDevice[device] + gsmBase + 0, static_cast<uint32_t>(gttBase & 0xFFF00000));
 
@@ -401,12 +401,6 @@ void GpuXeHpgCore::setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount,
             stream.writeMMIO(mmioDevice[0] + gsmBaseRem3 + 0, static_cast<uint32_t>(gttBaseRem3 & 0xFFF00000));
         }
     }
-}
-
-uint64_t GpuXeHpgCore::getGGTTBaseAddress(uint32_t device, uint64_t memoryBankSize, uint64_t stolenMemoryBaseAddress) const {
-    const auto flatCcsSize = memoryBankSize / 256;
-    const uint64_t flatCcsSizeAligned = alignUp(flatCcsSize, 20);
-    return stolenMemoryBaseAddress + flatCcsSizeAligned + 1 * MB;
 }
 
 PageTable *GpuXeHpgCore::allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const {

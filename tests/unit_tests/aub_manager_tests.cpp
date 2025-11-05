@@ -393,7 +393,7 @@ HWTEST_F(AubManagerTest, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxS
 }
 
 HWTEST_F(AubManagerTest, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxShm4Stream, HwMatcher::coreAboveEqualXeHp) {
-    constexpr size_t BankSize = 0x1000000;
+    constexpr size_t BankSize = 0x4000000;
     uint8_t *sysMem[BankSize / 0x1000] = {0};
     uint8_t *lMem[BankSize / 0x1000] = {0};
     SharedMemoryInfo sharedMemoryInfo = {reinterpret_cast<uint8_t *>(sysMem), BankSize, reinterpret_cast<uint8_t *>(lMem), BankSize};
@@ -544,13 +544,12 @@ HWTEST_F(AubManagerTest, ggttBaseAddressIsCorrect, HwMatcher::coreAboveEqualXeHp
 
     bool localMemorySupport = false;
     MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::aubFile);
+    gpu->stolenMemory = StolenMemory::CreateStolenMemory(false, 1, defaultHBMSizePerDevice, gpu->getStolenMemorySize(defaultHBMSizePerDevice));
     aubManager.initialize();
-
-    auto sm = StolenMemory::CreateStolenMemory(false, 1, defaultHBMSizePerDevice, 4 * MB);
 
     EXPECT_EQ(1u, aubManager.ggtts.size());
     if (!gpu->requireLocalMemoryForPageTables()) {
-        EXPECT_EQ(gpu->getGGTTBaseAddress(0, defaultHBMSizePerDevice, sm->getBaseAddress(0)), aubManager.ggtts[0].get()->gttTableOffset);
+        EXPECT_EQ(gpu->getGSMBaseAddress(0), aubManager.ggtts[0].get()->gttTableOffset);
     }
 }
 
@@ -733,7 +732,7 @@ TEST(AubManager, initializeAlsoSetsGGTTBaseAddresses) {
     auto mockGpu = std::make_unique<MockGpu>();
     bool localMemorySupport = defaultMemoryBank != MEMORY_BANK_SYSTEM;
 
-    EXPECT_CALL(*mockGpu, setGGTTBaseAddresses(_, gpu->deviceCount, defaultHBMSizePerDevice, _));
+    EXPECT_CALL(*mockGpu, setGGTTBaseAddresses(_, gpu->deviceCount, defaultHBMSizePerDevice));
 
     MockAubManager aubManager(std::move(mockGpu), gpu->deviceCount, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::tbx);
     aubManager.initialize();

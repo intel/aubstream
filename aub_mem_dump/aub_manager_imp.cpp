@@ -41,9 +41,17 @@ AubManagerImp::AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOp
                                                                                                   streamMode(options.mode),
                                                                                                   stepping(options.stepping),
                                                                                                   gpuAddressSpace(options.gpuAddressSpace),
-                                                                                                  stolenMem(StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3, options.devicesCount, options.memoryBankSize, options.dataStolenMemorySize ? options.dataStolenMemorySize : this->gpu->getDefaultDataStolenMemorySize())),
                                                                                                   sharedMemoryInfo(options.sharedMemoryInfo),
                                                                                                   enableThrow(options.throwOnError) {
+    if (options.dataStolenMemorySize != 0) {
+        this->gpu->overrideDSMSize(options.dataStolenMemorySize);
+    }
+
+    this->gpu->stolenMemory = StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3,
+                                                               options.devicesCount,
+                                                               options.memoryBankSize,
+                                                               this->gpu->getStolenMemorySize(options.memoryBankSize));
+
     groupContextHelper = std::make_unique<GroupContextHelper>();
     auto contextGroupCount = this->gpu->getContextGroupCount();
 
@@ -64,7 +72,7 @@ AubManagerImp::~AubManagerImp() {
 }
 
 void AubManagerImp::initialize() {
-    if (!stolenMem || !gpu->isValidDataStolenMemorySize(stolenMem->dsmSize)) {
+    if (!gpu->stolenMemory || !gpu->isValidDataStolenMemorySize(gpu->getDSMSize())) {
         return;
     }
 
@@ -86,7 +94,7 @@ void AubManagerImp::initialize() {
         streamTbx->init(stepping, *gpu);
         gpu->initializeGlobalMMIO(*streamTbx, devicesCount, memoryBankSize, stepping);
         gpu->setMemoryBankSize(*streamTbx, devicesCount, memoryBankSize);
-        gpu->setGGTTBaseAddresses(*streamTbx, devicesCount, memoryBankSize, *stolenMem);
+        gpu->setGGTTBaseAddresses(*streamTbx, devicesCount, memoryBankSize);
     } else if (streamMode == aub_stream::mode::tbxShm || streamMode == aub_stream::mode::aubFileAndShm) {
         streamTbxShm->init([this](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
             uint64_t memSize = isLocalMemory ? sharedMemoryInfo.localMemSize : sharedMemoryInfo.sysMemSize;
@@ -95,7 +103,7 @@ void AubManagerImp::initialize() {
         streamTbxShm->enableThrowOnError(enableThrow);
         gpu->initializeGlobalMMIO(*streamTbxShm, devicesCount, memoryBankSize, stepping);
         gpu->setMemoryBankSize(*streamTbxShm, devicesCount, memoryBankSize);
-        gpu->setGGTTBaseAddresses(*streamTbxShm, devicesCount, memoryBankSize, *stolenMem);
+        gpu->setGGTTBaseAddresses(*streamTbxShm, devicesCount, memoryBankSize);
     } else if (streamMode == aub_stream::mode::tbxShm4 || streamMode == aub_stream::mode::aubFileAndShm4) {
         streamTbxShm->init([this](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
             static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->translatePhysicalAddressToSystemMemory(physAddress, size, isLocalMemory, p, availableSize);
@@ -103,7 +111,7 @@ void AubManagerImp::initialize() {
         streamTbxShm->enableThrowOnError(enableThrow);
         gpu->initializeGlobalMMIO(*streamTbxShm, devicesCount, memoryBankSize, stepping);
         gpu->setMemoryBankSize(*streamTbxShm, devicesCount, memoryBankSize);
-        gpu->setGGTTBaseAddresses(*streamTbxShm, devicesCount, memoryBankSize, *stolenMem);
+        gpu->setGGTTBaseAddresses(*streamTbxShm, devicesCount, memoryBankSize);
     } else if (streamMode == aub_stream::mode::tbxShm3) {
         streamTbxShm->init([](uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize) {
             availableSize = size;
@@ -111,28 +119,27 @@ void AubManagerImp::initialize() {
         streamTbxShm->enableThrowOnError(enableThrow);
         gpu->initializeGlobalMMIO(*streamTbxShm, devicesCount, memoryBankSize, stepping);
         gpu->setMemoryBankSize(*streamTbxShm, devicesCount, memoryBankSize);
-        gpu->setGGTTBaseAddresses(*streamTbxShm, devicesCount, memoryBankSize, *stolenMem);
+        gpu->setGGTTBaseAddresses(*streamTbxShm, devicesCount, memoryBankSize);
     }
 
     ppgtts.resize(devicesCount);
     ggtts.resize(devicesCount);
 
     for (uint32_t i = 0; i < devicesCount; i++) {
-        uint64_t stolenBaseAddress = stolenMem->getBaseAddress(i);
         uint32_t memoryBank = MemoryBank::MEMORY_BANK_SYSTEM;
-        uint64_t gttBaseAddress = gpu->getGGTTBaseAddress(i, memoryBankSize, stolenBaseAddress);
+        uint64_t gttBaseAddress = gpu->getGSMBaseAddress(i);
 
         if (localMemorySupported || gpu->requireLocalMemoryForPageTables()) {
             memoryBank = MemoryBank::MEMORY_BANK_0 << i;
         }
         if (streamMode == aub_stream::mode::tbxShm4 || streamMode == aub_stream::mode::aubFileAndShm4) {
-            static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->mapSystemMemoryToPhysicalAddress(stolenBaseAddress, static_cast<size_t>(memoryBankSize - stolenBaseAddress), 0x10000, memoryBank != MemoryBank::MEMORY_BANK_SYSTEM, nullptr);
+            static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->mapSystemMemoryToPhysicalAddress(gpu->stolenMemory->getBaseAddress(i), static_cast<size_t>(gpu->stolenMemory->size), 0x10000, memoryBank != MemoryBank::MEMORY_BANK_SYSTEM, nullptr);
         }
         ppgtts[i] = std::unique_ptr<PageTable>(gpu->allocatePPGTT(physicalAddressAllocator.get(), memoryBank, gpuAddressSpace));
         ggtts[i] = std::unique_ptr<GGTT>(gpu->allocateGGTT(physicalAddressAllocator.get(), memoryBank, gttBaseAddress));
     }
 
-    gpu->initializeDefaultMemoryPools(*getStream(), devicesCount, memoryBankSize, *stolenMem);
+    gpu->initializeDefaultMemoryPools(*getStream(), devicesCount, memoryBankSize);
     if (streamTbx) {
         gpu->injectMMIOs(*streamTbx, devicesCount);
     } else if (streamTbxShm) {

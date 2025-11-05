@@ -159,7 +159,7 @@ bool GpuXe2HpgCore::isValidDataStolenMemorySize(uint64_t dataStolenMemorySize) c
     return sizeToGMS(dataStolenMemorySize) != 0xff;
 }
 
-void GpuXe2HpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const {
+void GpuXe2HpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize) const {
     if (stream.getStreamMode() == aub_stream::mode::tbx || stream.getStreamMode() == aub_stream::mode::aubFileAndTbx ||
         stream.getStreamMode() == aub_stream::mode::tbxShm || stream.getStreamMode() == aub_stream::mode::tbxShm4 ||
         stream.getStreamMode() == aub_stream::mode::aubFileAndShm || stream.getStreamMode() == aub_stream::mode::aubFileAndShm4) {
@@ -168,15 +168,14 @@ void GpuXe2HpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t dev
         for (uint32_t i = 0; i < devicesCount; i++) {
             bool isLocalMemSupported = isMemorySupported(MEMORY_BANK_0 << i, 0x10000);
 
-            uint64_t gsm = getGGTTBaseAddress(i, memoryBankSize, stolenMemory.getBaseAddress(i));
-            uint64_t dsm = gsm + StolenMemory::ggttSize;
+            uint64_t dsm = getDSMBaseAddress(i);
 
             // GSM is programmed by separate function, now it is enough to program DSM that is after Flat CCS and GSM
             stream.writeMMIO(i * mmioDeviceOffset + 0x1080c0, static_cast<uint32_t>(dsm));
             stream.writeMMIO(i * mmioDeviceOffset + 0x1080c4, static_cast<uint32_t>(dsm >> 32));
 
             // Set DSM and GSM sizes
-            stream.writeMMIO(i * mmioDeviceOffset + 0x108040, 0x00000c0 | sizeToGMS(stolenMemory.dsmSize) << 8);
+            stream.writeMMIO(i * mmioDeviceOffset + 0x108040, 0x00000c0 | sizeToGMS(getDSMSize()) << 8);
 
             // WOPCM size
             stream.writeMMIO(i * mmioDeviceOffset + 0xC050, static_cast<uint32_t>(0x1f0000));
@@ -184,7 +183,7 @@ void GpuXe2HpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t dev
             // GuC WOPCM offset
             stream.writeMMIO(i * mmioDeviceOffset + 0xC340, static_cast<uint32_t>(0x600002));
 
-            uint64_t wopcmBase = memoryBankSize - 8 * 1024 * 1024;
+            uint64_t wopcmBase = memoryBankSize - getWOPCMSize();
             stream.writeMMIO(i * mmioDeviceOffset + 0x1082C0, static_cast<uint32_t>(wopcmBase | 0x5 | 0x180));
             stream.writeMMIO(i * mmioDeviceOffset + 0x1082C4, static_cast<uint32_t>(wopcmBase >> 32));
 
@@ -200,7 +199,7 @@ void GpuXe2HpgCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t dev
             stream.writeMMIO(i * mmioDeviceOffset + 0x1083a0, static_cast<uint32_t>((8 << 8) | 1));
 
             // put Flat CCS at the beginning of stolen memory
-            uint64_t flatCcsBaseAddr = stolenMemory.getBaseAddress(i);
+            uint64_t flatCcsBaseAddr = stolenMemory->getBaseAddress(i);
             if (isLocalMemSupported) {
                 uint32_t val = stream.readMMIO(0x9118);
                 uint64_t numL3Banks = countBits(val >> 16);

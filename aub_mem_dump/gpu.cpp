@@ -69,14 +69,9 @@ void Gpu::injectMMIOs(AubStream &stream, uint32_t devicesCount) const {
     }
 }
 
-StolenMemoryInHeap::StolenMemoryInHeap(uint32_t deviceCount, uint64_t memoryBankSize, uint64_t dataStolenMemorySize) : StolenMemory(dataStolenMemorySize) {
-    // Some platforms require to allocate 1/512th portion of mem and others
-    // require to allocate 1/256th, so allocating 1/256th will cover all needs
-    const uint64_t flatCcsSize = memoryBankSize / 256;
-    // Flat CCS buffer size must be 1MB aligned to make sure that there is enough space to make GTT base address to be also aligned to 1MB
-    const uint64_t flatCcsSizeAligned = alignUp(flatCcsSize, 20);
+StolenMemoryInHeap::StolenMemoryInHeap(uint32_t deviceCount, uint64_t size) : StolenMemory(size) {
     for (uint32_t d = 0; d < deviceCount; ++d) {
-        auto p = std::unique_ptr<uint8_t, decltype(&aligned_free)>(reinterpret_cast<uint8_t *>(aligned_alloc(static_cast<size_t>(flatCcsSizeAligned + ggttSize + dataStolenMemorySize), static_cast<size_t>(MB))), &aligned_free);
+        auto p = std::unique_ptr<uint8_t, decltype(&aligned_free)>(reinterpret_cast<uint8_t *>(aligned_alloc(static_cast<size_t>(size), static_cast<size_t>(MB))), &aligned_free);
         localStolenStorage.push_back(std::move(p));
     }
 }
@@ -90,32 +85,19 @@ StolenMemoryInStaticStorage::StolenMemoryInStaticStorage(uint64_t memoryBankSize
 }
 
 uint64_t StolenMemoryInStaticStorage::getBaseAddress(uint32_t device) const {
-    // Some platforms require to allocate 1/512th portion of mem and others
-    // require to allocate 1/256th, so allocating 1/256th will cover all needs
-    const uint64_t flatCcsSize = staticMemoryBankSize / 256;
-    // Flat CCS buffer size must be 1MB aligned to make sure that there is enough space to make GTT base address to be also aligned to 1MB
-    const uint64_t flatCcsSizeAligned = alignUp(flatCcsSize, 20);
-    uint64_t baseAddr = staticMemoryBankSize * (device + 1);
-    baseAddr -= flatCcsSizeAligned;
-    baseAddr -= ggttSize;
-    baseAddr -= dsmSize;
     // Base address must be 1MB aligned to make GTT base address also 1MB aligned
-    return alignDown(baseAddr, 20);
+    return alignDown(staticMemoryBankSize * (device + 1) - size, 20);
 }
 
-std::unique_ptr<StolenMemory> StolenMemory::CreateStolenMemory(bool inHeap, uint32_t deviceCount, uint64_t memoryBankSize, uint64_t dataStolenMemorySize) {
-    const uint64_t flatCcsSize = memoryBankSize / 256;
-    const uint64_t flatCcsSizeAligned = alignUp(flatCcsSize, 20);
-
-    // Make sure that memory is enough
-    if (memoryBankSize < dataStolenMemorySize + ggttSize + flatCcsSizeAligned) {
+std::unique_ptr<StolenMemory> StolenMemory::CreateStolenMemory(bool inHeap, uint32_t deviceCount, uint64_t memoryBankSize, uint64_t size) {
+    if (memoryBankSize < size) {
         return nullptr;
     }
 
     if (inHeap) {
-        return std::make_unique<StolenMemoryInHeap>(deviceCount, memoryBankSize, dataStolenMemorySize);
+        return std::make_unique<StolenMemoryInHeap>(deviceCount, size);
     } else {
-        return std::make_unique<StolenMemoryInStaticStorage>(memoryBankSize, dataStolenMemorySize);
+        return std::make_unique<StolenMemoryInStaticStorage>(memoryBankSize, size);
     }
 }
 

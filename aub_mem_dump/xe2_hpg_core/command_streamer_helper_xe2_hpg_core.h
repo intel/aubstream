@@ -43,7 +43,7 @@ struct GpuXe2HpgCore : public GpuXeCore {
     bool isValidDataStolenMemorySize(uint64_t dataStolenMemorySize) const override;
     uint32_t sizeToGMS(uint64_t dataStolenMemorySize) const;
 
-    void initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, const StolenMemory &stolenMemory) const override;
+    void initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize) const override;
     void initializeFlatCcsBaseAddressMmio(AubStream &stream, uint32_t deviceIndex, uint64_t flatCcsBaseAddress, uint64_t size) const;
     void initializeTileRangeMmio(AubStream &stream, uint32_t deviceIndex, uint64_t lmemBaseAddress, uint64_t lmemSize) const;
 

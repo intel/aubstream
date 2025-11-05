@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -38,7 +38,7 @@ TEST(Gpu, givenOneDeviceWhenSetGGTTBaseAddressThenIsProgrammedForOneTile) {
     TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpgCore);
 
     MockAubStreamBase stream;
-    EXPECT_CALL(stream, writeMMIO(0x108100, 0xff500000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x108100, 0xff000000)).Times(1);
     EXPECT_CALL(stream, writeMMIO(0x108104, 0x00000007)).Times(1);
     EXPECT_CALL(stream, writeMMIO(0x108108, _)).Times(0);
     EXPECT_CALL(stream, writeMMIO(0x10810c, _)).Times(0);
@@ -54,9 +54,8 @@ TEST(Gpu, givenOneDeviceWhenSetGGTTBaseAddressThenIsProgrammedForOneTile) {
 
     auto deviceCount = 1;
     auto memoryBankSize = 32ull * GB;
-    auto dsmSize = 4ull * MB;
-    auto sm = StolenMemory::CreateStolenMemory(false, deviceCount, memoryBankSize, dsmSize);
-    gpu->setGGTTBaseAddresses(stream, deviceCount, memoryBankSize, *sm);
+    gpu->stolenMemory = StolenMemory::CreateStolenMemory(false, deviceCount, memoryBankSize, gpu->getStolenMemorySize(memoryBankSize));
+    gpu->setGGTTBaseAddresses(stream, deviceCount, memoryBankSize);
 }
 
 struct XeHPGCoreMatcher {
