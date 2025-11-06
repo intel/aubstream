@@ -705,6 +705,27 @@ TEST_F(HardwareContextTest, givenLowPriorityFlagWhenSubmittingHardwareContextThe
     context0->submitBatchBuffer(0x100, false);
 }
 
+TEST_F(HardwareContextTest, givenRunAloneFlagWhenInitializingHardwareContextThenContextSaveRestoreHasCorrectBitsSet) {
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    auto context0 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, hardwareContextFlags::runAlone);
+    uint32_t value = csHelper.getInitialContextSaveRestoreCtrlValue();
+
+    value |= 0x800080;
+    context0->initialize();
+
+    auto pLRI = context0->pLRCA;
+    pLRI = &pLRI[context0->csTraits.offsetLRI0 + context0->csTraits.offsetContext + 4];
+
+    uint32_t *lri = reinterpret_cast<uint32_t *>(pLRI);
+    EXPECT_EQ(*lri, csHelper.mmioEngine + 0x2244);
+    lri = lri + 1;
+    EXPECT_EQ(*lri, value);
+}
+
 TEST_F(HardwareContextTest, givenVerboseLogLevelWhenSubmittingContextThenRingHeadTailIsPrinted) {
     auto settings = std::make_unique<Settings>();
     VariableBackup<Settings *> backup(&globalSettings);

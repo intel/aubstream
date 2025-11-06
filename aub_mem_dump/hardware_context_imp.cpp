@@ -61,6 +61,11 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
 
         this->flags = flags & (~contextGroupBit); // unset
     }
+
+    if (flags & hardwareContextFlags::runAlone) {
+        runAlone = true;
+        this->flags = flags & (~hardwareContextFlags::runAlone); // unset
+    }
 }
 
 HardwareContextImp::~HardwareContextImp() {
@@ -123,7 +128,11 @@ void HardwareContextImp::initialize() {
 
     pLRCA = new uint8_t[sizeLRCA];
     auto ringCtrl = static_cast<uint32_t>((ringSize - 0x1000) | 1);
-    csTraits.initialize(pLRCA, &ppgtt, flags);
+    uint32_t additionalBits = flags;
+    if (runAlone) {
+        additionalBits = 0x800080; // RunAlone context
+    }
+    csTraits.initialize(pLRCA, &ppgtt, additionalBits);
     csTraits.setRingHead(pLRCA, 0x0000);
     csTraits.setRingTail(pLRCA, 0x0000);
     csTraits.setRingBase(pLRCA, ggttRing);

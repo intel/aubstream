@@ -35,6 +35,7 @@ struct HardwareContextImp : public HardwareContext {
     static constexpr uint32_t priorityNormal = 1;
     static constexpr uint64_t priorityHigh = 2;
 
+    bool runAlone = false;
     uint32_t contextGroupId = std::numeric_limits<uint32_t>::max();
     uint32_t priority = priorityNormal;
 
