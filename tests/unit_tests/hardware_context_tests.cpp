@@ -272,11 +272,11 @@ TEST_F(HardwareContextTest, givenHardwareContextWhenCallingWriteMMIORedirectsToA
     HardwareContextImp context(1, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
 
-    ::testing::Mock::VerifyAndClearExpectations(&stream);
-
     EXPECT_CALL(stream, writeMMIO(offset, value)).Times(1);
 
     context.writeMMIO(offset, value);
+
+    ::testing::Mock::VerifyAndClearExpectations(&stream);
 }
 
 TEST_F(HardwareContextTest, givenHardwareContextWhenCallingDumpBufferBINRedirectsToAubStream) {

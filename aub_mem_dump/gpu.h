@@ -130,6 +130,8 @@ struct Gpu : public GpuDescriptor {
         return 8;
     }
 
+    virtual void invalidateTLB(AubStream &stream, uint32_t contextId, bool) const {};
+
     std::unique_ptr<StolenMemory> stolenMemory;
 
   protected:

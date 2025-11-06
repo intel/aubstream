@@ -51,7 +51,7 @@ struct AubStream {
     void writeMemoryAndClonePageTables(PageTable *ppgtt, PageTable *ppgttForCloning[], uint32_t ppggtForCloningCount,
                                        uint64_t gfxAddress, const void *memory, size_t size, uint32_t memoryBanks, int hint, size_t pageSize = 4096);
 
-    void writePhysicalMemoryPages(const void *memory, size_t size, const std::vector<PageInfo> entries, int hint);
+    virtual void writePhysicalMemoryPages(const void *memory, size_t size, const std::vector<PageInfo> entries, int hint);
 
     virtual void addComment(const char *message) = 0;
     virtual bool init(int steppingValue, const GpuDescriptor &gpu) = 0;

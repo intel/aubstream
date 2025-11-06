@@ -64,13 +64,14 @@ struct CommandStreamerHelper {
 
     CommandStreamerHelper() = default;
     virtual ~CommandStreamerHelper() = default;
-    CommandStreamerHelper(uint32_t deviceIndex, uint32_t offsetEngine) {
+    CommandStreamerHelper(uint32_t deviceIndex, uint32_t offsetEngine) : deviceIndex(deviceIndex) {
         mmioDevice = deviceIndex * 0x1000000;
         mmioEngine = mmioDevice + offsetEngine;
     }
     std::string name = "XCS";
 
     const Gpu *gpu = nullptr;
+    uint32_t deviceIndex = 0;
     size_t sizeLRCA = 0x2000;
 
     int aubHintLRCA = DataTypeHintValues::TraceNotype;
@@ -112,6 +113,8 @@ struct CommandStreamerHelper {
     uint32_t offsetPDP3 = 0x0 * sizeof(uint32_t);
 
     void initialize(void *pLRCIn, PageTable *ppgtt, uint32_t flags) const;
+    virtual void initializeContextEnvironment(AubStream &stream, HardwareContextImp &context) const {};
+    virtual void cleanupContextEnvironment(AubStream &stream, HardwareContextImp &context) const {};
     bool isMemorySupported(uint32_t memoryBank, uint32_t alignment) const;
     void setRingHead(void *pLRCIn, uint32_t ringHead) const;
     void setRingTail(void *pLRCIn, uint32_t ringTail) const;
@@ -134,7 +137,7 @@ struct CommandStreamerHelper {
     }
 
     virtual void submit(AubStream &stream, uint32_t ggttLRCA, bool is48Bits, uint32_t contextId, uint32_t priority) const;
-    void submit(AubStream &stream, const std::vector<HardwareContextImp *> &hwContexts, bool is48Bits) const;
+    virtual void submit(AubStream &stream, const std::vector<HardwareContextImp *> &hwContexts, bool is48Bits) const;
     virtual uint32_t getPollForCompletionMask() const { return 0x00000100; }
     void pollForCompletion(AubStream &stream) const;
     void initializeEngineMMIO(AubStream &stream) const;

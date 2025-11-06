@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -47,6 +47,7 @@ struct MockAubStreamBase : public AubStream {
     MOCK_METHOD5(mapMemoryToPhysicalSpace, void(uint64_t physAddress, size_t size, size_t alignment, bool isLocalMemory, const void *p));
     MOCK_METHOD3(mapGpuVa, bool(PageTable *ppgtt, AllocationParams allocationParams, uint64_t physicalAddress));
     MOCK_METHOD6(readMemory, void(GGTT *ggtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize));
+    MOCK_METHOD4(writePhysicalMemoryPages, void(const void *memory, size_t size, const std::vector<PageInfo> entries, int hint));
 };
 
 struct MockAubFileStream : public AubFileStream {

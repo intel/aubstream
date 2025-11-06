@@ -8,6 +8,7 @@
 #include "aub_mem_dump/aub_manager_imp.h"
 #include "aub_mem_dump/aub_stream.h"
 #include "aub_mem_dump/command_streamer_helper.h"
+#include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/hardware_context_imp.h"
 #include "aub_mem_dump/settings.h"
 #include <atomic>
@@ -137,6 +138,7 @@ void HardwareContextImp::initialize() {
     csTraits.setRingTail(pLRCA, 0x0000);
     csTraits.setRingBase(pLRCA, ggttRing);
     csTraits.setRingCtrl(pLRCA, ringCtrl);
+    csTraits.initializeContextEnvironment(stream, *this);
 
     ggttLRCA = allocator.alignedAlloc(sizeLRCA, alignment);
 
@@ -177,6 +179,8 @@ void HardwareContextImp::initialize() {
 }
 
 void HardwareContextImp::release() {
+    csTraits.cleanupContextEnvironment(stream, *this);
+
     delete[] pLRCA;
     pLRCA = nullptr;
 
@@ -342,6 +346,9 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
     }
 
     auto lock = csTraits.obtainUniqueLock();
+
+    csTraits.gpu->invalidateTLB(stream, contextId, false);
+
     if (this->contextGroupId != std::numeric_limits<uint32_t>::max()) {
         csTraits.submit(stream, contextGroup->contexts, ppgtt.getNumAddressBits() != 32);
     } else {
