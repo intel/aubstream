@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -17,6 +17,7 @@ enum class CoreFamily : uint32_t {
     XeHpcCore = 6,
     Xe2HpgCore = 7,
     Xe3Core = 8,
+    Xe3pCore = 9,
     MaxCore,
 };
 

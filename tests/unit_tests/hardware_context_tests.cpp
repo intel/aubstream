@@ -757,3 +757,94 @@ TEST_F(HardwareContextTest, givenVerboseLogLevelWhenSubmittingContextThenRingHea
 
     EXPECT_STREQ(expectedString.c_str(), output.c_str());
 }
+
+HWTEST_F(HardwareContextTest, givenContextWhenSubmittingThenUseExeclistPortSubmission, HwMatcher::coreEqualGreaterXe3p) {
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    GroupContextHelper helper;
+
+    // Initialize contextGroups contexts
+    auto contextGroupCount = gpu->getContextGroupCount();
+    for (auto i = 0u; i < arrayCount(helper.contextGroups); i++) {
+        for (auto j = 0u; j < arrayCount(helper.contextGroups[i]); j++) {
+            helper.contextGroups[i][j].resize(1);
+            helper.contextGroups[i][j][0].contexts.resize(contextGroupCount);
+        }
+    }
+
+    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, &helper.contextGroups[0][EngineType::ENGINE_CCS][0], (1 << 15));
+    context0.initialize();
+
+    ::testing::Mock::VerifyAndClearExpectations(&stream);
+
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, _)).Times(2 * contextGroupCount);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1)).Times(1);
+
+    context0.submitBatchBuffer(0x100, false);
+}
+
+HWTEST_F(HardwareContextTest, givenExeclistSubmitPortSubmissionDisabledWhenSubmittingThenSQSubmissionIsUsed, HwMatcher::coreEqualGreaterXe3p) {
+    auto settings = std::make_unique<Settings>();
+    VariableBackup<Settings *> backup(&globalSettings);
+    globalSettings = settings.get();
+    globalSettings->ExeclistSubmitPortSubmission.set(0);
+
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, 0);
+    context0.initialize();
+
+    ::testing::Mock::VerifyAndClearExpectations(&stream);
+
+    for (int i = 0; i < 8; i++) {
+        EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + (i * 8), _)).Times(1);
+        EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + (i * 8), _)).Times(1);
+    }
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1)).Times(1);
+
+    context0.submitBatchBuffer(0x100, false);
+}
+
+HWTEST_F(HardwareContextTest, givenXe3pHighPriorityFlagWhenSubmittingHardwareContextThenContextDescriptorHasPriorityBitSet, HwMatcher::coreEqualGreaterXe3p) {
+    auto settings = std::make_unique<Settings>();
+    VariableBackup<Settings *> backup(&globalSettings);
+    globalSettings = settings.get();
+    globalSettings->ExeclistSubmitPortSubmission.set(1);
+
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    auto context0 = std::make_unique<HardwareContextImp>(0, stream, csHelper, ggtt, ppgtt, hardwareContextFlags::highPriority);
+    context0->initialize();
+
+    MiContextDescriptorReg contextDescriptor = {};
+
+    contextDescriptor.sData.Valid = true;
+    contextDescriptor.sData.ForcePageDirRestore = false;
+    contextDescriptor.sData.ForceRestore = false;
+    contextDescriptor.sData.Legacy = true;
+    contextDescriptor.sData.FaultSupport = 0;
+    contextDescriptor.sData.PrivilegeAccessOrPPGTT = true;
+    contextDescriptor.sData.ADor64bitSupport = ppgtt.getNumAddressBits() != 32;
+
+    contextDescriptor.sData.LogicalRingCtxAddress = context0->ggttLRCA / 4096;
+    contextDescriptor.sData.Reserved = 0;
+    contextDescriptor.sData.ContextID = context0->contextId;
+    contextDescriptor.sData.Reserved2 = 0;
+
+    contextDescriptor.sData.FunctionType = HardwareContextImp::priorityHigh;
+    auto value = contextDescriptor.ulData[0];
+
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AtLeast(0));
+
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, value));
+    context0->submitBatchBuffer(0x100, false);
+}

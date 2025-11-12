@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022-2024 Intel Corporation
+# Copyright (C) 2022-2025 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -9,3 +9,4 @@ list(APPEND ALL_CORE_TYPES "XE_HPG_CORE")
 list(APPEND ALL_CORE_TYPES "XE_HPC_CORE")
 list(APPEND ALL_CORE_TYPES "XE2_HPG_CORE")
 list(APPEND ALL_CORE_TYPES "XE3_CORE")
+list(APPEND ALL_CORE_TYPES "XE3P_CORE")

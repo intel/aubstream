@@ -10,6 +10,8 @@
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
 #include "test.h"
+#include "tests/variable_backup.h"
+#include "aub_mem_dump/command_streamer_helper.h"
 
 using namespace aub_stream;
 using ::testing::_;
@@ -77,4 +79,23 @@ HWTEST_F(GpuForStolenTest, isValidDataStolenMemorySizeForVariousInputCoreAboveXe
     EXPECT_EQ(gpu->isValidDataStolenMemorySize(4 * 1024 * 1024), true);
     EXPECT_EQ(gpu->isValidDataStolenMemorySize(64 * 1024 * 1024), true);
     EXPECT_EQ(gpu->isValidDataStolenMemorySize(gpu->getDSMSize()), true);
+}
+
+using GpuTest = ::testing::Test;
+HWTEST_F(GpuTest, givenDisabledIndirectRingStateWhenCheckingIndirectRingStateEnableThenFalseReturned, HwMatcher::coreEqualGreaterXe3p) {
+    auto settings = std::make_unique<Settings>();
+    VariableBackup<Settings *> backup(&globalSettings);
+    globalSettings = settings.get();
+    globalSettings->IndirectRingState.set(0);
+
+    EXPECT_FALSE(gpu->getCommandStreamerHelper(defaultDevice, defaultEngine).isRingDataEnabled());
+}
+
+HWTEST_F(GpuTest, givenEnabledIndirectRingStateWhenCheckingIndirectRingStateEnableThenTrueReturned, HwMatcher::coreEqualGreaterXe3p) {
+    auto settings = std::make_unique<Settings>();
+    VariableBackup<Settings *> backup(&globalSettings);
+    globalSettings = settings.get();
+    globalSettings->IndirectRingState.set(1);
+
+    EXPECT_TRUE(gpu->getCommandStreamerHelper(defaultDevice, defaultEngine).isRingDataEnabled());
 }

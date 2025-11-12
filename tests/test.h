@@ -153,6 +153,9 @@ struct HwMatcher {
     static bool coreBelowEqualXe3Core(const aub_stream::Gpu *gpu) {
         return gpu->gfxCoreFamily <= aub_stream::CoreFamily::Xe3Core;
     }
+    static bool coreEqualGreaterXe3p(const aub_stream::Gpu *gpu) {
+        return gpu->gfxCoreFamily >= aub_stream::CoreFamily::Xe3pCore;
+    }
 
     template <bool f1(const aub_stream::Gpu *), bool f2(const aub_stream::Gpu *)>
     static bool And(const aub_stream::Gpu *gpu) {
