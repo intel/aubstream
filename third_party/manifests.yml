@@ -18,7 +18,7 @@ components:
   infra:
     branch: master
     dest_dir: infra
-    revision: v7445
+    revision: v7530
     fetch_tags: true
     type: git
 converter: E-1180
