@@ -506,3 +506,27 @@ TEST_F(AubFileStreamTest, givenThrowOnErrorWhenOperationFailsThenExcepionIsThrow
     char temp = 0;
     EXPECT_THROW(stream.fileHandle.write(&temp, 1);, std::runtime_error);
 }
+
+TEST_F(AubFileStreamTest, givenNonEmptyTmpWriteBufferWhenInitIsCalledThenTmpWriteBufferIsFlushed) {
+    struct MyMockAubFileStream : AubFileStream {
+        MOCK_METHOD2(write, void(const char *buffer, std::streamsize size));
+    };
+    MyMockAubFileStream stream;
+    stream.tmpWriteBuffer.push_back(123);
+
+    EXPECT_CALL(stream, write(_, _)).Times(::testing::AtLeast(1));
+    EXPECT_CALL(stream, write(stream.tmpWriteBuffer.data(), stream.tmpWriteBuffer.size())).Times(1);
+
+    stream.init(SteppingValues::A, *gpu);
+
+    EXPECT_EQ(stream.tmpWriteBuffer.size(), 0);
+}
+
+TEST_F(AubFileStreamTest, givenClosedStreamWhenWriteIsCalledThenDataIsWrittenToTmpWriteBuffer) {
+    WhiteBox<AubFileStream> stream;
+    char buffer[] = {123, 124, 125};
+    stream.write(buffer, sizeof(buffer));
+
+    EXPECT_EQ(stream.tmpWriteBuffer.size(), sizeof(buffer));
+    EXPECT_EQ(memcmp(stream.tmpWriteBuffer.data(), buffer, sizeof(buffer)), 0);
+}

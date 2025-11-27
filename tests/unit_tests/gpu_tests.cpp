@@ -41,6 +41,14 @@ TEST(Gpu, initializeGlobalMMIOIsWithinDeviceMmioRange) {
     gpu->initializeGlobalMMIO(stream, 1, 1, 0u);
 }
 
+TEST(Gpu, giveAubFileModeWhenInitializingDefaultMemoryPoolsThenNoMMIOIsRead) {
+    MockAubFileStream stream;
+
+    EXPECT_CALL(stream, readMMIO(_)).Times(0);
+
+    gpu->initializeDefaultMemoryPools(stream, 1, GB);
+}
+
 TEST(Gpu, gen12lpGivenOneIntegratedDeviceSetMemoryBankSizeOnlyDefinesOneBank) {
     TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::Gen12lp && gpu->productFamily != ProductFamily::Dg1);
 

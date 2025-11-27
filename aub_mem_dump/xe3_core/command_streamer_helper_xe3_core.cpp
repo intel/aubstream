@@ -145,8 +145,7 @@ bool GpuXe3Core::isValidDataStolenMemorySize(uint64_t dataStolenMemorySize) cons
 }
 
 void GpuXe3Core::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize) const {
-    if ((stream.getStreamMode() == aub_stream::mode::tbx || stream.getStreamMode() == aub_stream::mode::aubFileAndTbx || stream.getStreamMode() == aub_stream::mode::tbxShm ||
-         stream.getStreamMode() == aub_stream::mode::tbxShm4 || stream.getStreamMode() == aub_stream::mode::aubFileAndShm || stream.getStreamMode() == aub_stream::mode::aubFileAndShm4)) {
+    if (stream.getStreamMode() != aub_stream::mode::tbxShm3 && stream.getStreamMode() != aub_stream::mode::null) {
         auto flatCcsSize = memoryBankSize / 512;
         for (uint32_t i = 0; i < devicesCount; i++) {
             bool isLocalMemSupported = isMemorySupported(MEMORY_BANK_0 << i, 0x10000);
@@ -181,19 +180,21 @@ void GpuXe3Core::initializeDefaultMemoryPools(AubStream &stream, uint32_t device
             // SG_ADDR_RANGE_TILE0
             stream.writeMMIO(i * mmioDeviceOffset + 0x1083a0, static_cast<uint32_t>((8 << 8) | 1));
 
-            // put Flat CCS at the beginning of stolen memory
-            uint64_t flatCcsBaseAddr = stolenMemory->getBaseAddress(i);
-            if (isLocalMemSupported) {
-                uint32_t val = stream.readMMIO(0x9118);
-                uint64_t numL3Banks = countBits(val >> 16);
-                if (numL3Banks == 0) {
-                    std::cerr << "The number of L3 banks cannot be zero" << std::endl;
-                    return;
+            if (stream.getStreamMode() != aub_stream::mode::aubFile) {
+                // put Flat CCS at the beginning of stolen memory
+                uint64_t flatCcsBaseAddr = stolenMemory->getBaseAddress(i);
+                if (isLocalMemSupported) {
+                    uint32_t val = stream.readMMIO(0x9118);
+                    uint64_t numL3Banks = countBits(val >> 16);
+                    if (numL3Banks == 0) {
+                        std::cerr << "The number of L3 banks cannot be zero" << std::endl;
+                        return;
+                    }
+                    flatCcsSize /= numL3Banks;
+                    flatCcsBaseAddr /= numL3Banks;
                 }
-                flatCcsSize /= numL3Banks;
-                flatCcsBaseAddr /= numL3Banks;
+                initializeFlatCcsBaseAddressMmio(stream, i, flatCcsBaseAddr, flatCcsSize);
             }
-            initializeFlatCcsBaseAddressMmio(stream, i, flatCcsBaseAddr, flatCcsSize);
         }
     } else if (stream.getStreamMode() == aub_stream::mode::tbxShm3) {
         for (uint32_t i = 0; i < devicesCount; i++) {

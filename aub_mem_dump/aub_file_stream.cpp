@@ -168,6 +168,12 @@ bool AubFileStream::init(int stepping, const GpuDescriptor &gpu) {
     getHeaderStr(aubStreamCaller, header.commandLine);
 
     write(reinterpret_cast<char *>(&header), sizeof(header));
+
+    if (tmpWriteBuffer.size() > 0) {
+        write(tmpWriteBuffer.data(), static_cast<std::streamsize>(tmpWriteBuffer.size()));
+        tmpWriteBuffer.clear();
+    }
+
     fileHandle.flush();
     return true;
 }
@@ -531,6 +537,7 @@ const std::string &AubFileStream::getFileName() {
 
 void AubFileStream::write(const char *buffer, std::streamsize size) {
     if (!fileHandle.isOpen()) {
+        tmpWriteBuffer.insert(tmpWriteBuffer.end(), buffer, buffer + size);
         return;
     }
 

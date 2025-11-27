@@ -60,6 +60,7 @@ struct MockAubFileStream : public AubFileStream {
     MOCK_METHOD3(dumpSurface, void(PageTableType gttType, const SurfaceInfo &surfaceInfo, uint32_t handleDumpContext));
 
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
+    MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
     MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
     MOCK_METHOD4(expectMemoryTable, void(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, uint32_t compareOperation));

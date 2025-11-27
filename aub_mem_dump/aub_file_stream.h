@@ -106,7 +106,7 @@ struct AubFileStream : public AubStream {
     void close();
     bool isOpen();
     const std::string &getFileName();
-    void write(const char *buffer, std::streamsize size);
+    virtual void write(const char *buffer, std::streamsize size);
 
     void enableThrowOnError(bool enabled) {
         fileHandle.throwOnError = enabled;
@@ -116,6 +116,7 @@ struct AubFileStream : public AubStream {
     std::string fileName;
     friend AubTbxStream;
     friend AubShmStream;
+    std::vector<char> tmpWriteBuffer; // buffer to hold data until file is opened
 
   protected:
     void writeGttPages(GGTT *ggtt, const std::vector<PageEntryInfo> &writeInfoTable) override;
