@@ -780,6 +780,8 @@ HWTEST_F(HardwareContextTest, givenContextWhenSubmittingThenUseExeclistPortSubmi
 
     ::testing::Mock::VerifyAndClearExpectations(&stream);
 
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AnyNumber());
+
     EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, _)).Times(2 * contextGroupCount);
     EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1)).Times(1);
 
@@ -801,6 +803,8 @@ HWTEST_F(HardwareContextTest, givenExeclistSubmitPortSubmissionDisabledWhenSubmi
     context0.initialize();
 
     ::testing::Mock::VerifyAndClearExpectations(&stream);
+
+    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AnyNumber());
 
     for (int i = 0; i < 8; i++) {
         EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + (i * 8), _)).Times(1);
