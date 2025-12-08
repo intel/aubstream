@@ -340,6 +340,56 @@ HardwareContext *AubManagerImp::createHardwareContext2(const CreateHardwareConte
     return context;
 }
 
+HardwareContext *AubManagerImp::createHardwareContext3(const HardwareContextParamsHeader *paramsHeader) {
+    HardwareContext *context = nullptr;
+    if (paramsHeader == nullptr || paramsHeader->version != 1 || paramsHeader->size > sizeof(CreateHardwareContext3Params)) {
+        return nullptr;
+    }
+
+    auto params = reinterpret_cast<const CreateHardwareContext3Params *>(paramsHeader);
+
+    uint32_t device = params->device;
+    uint32_t engine = params->engine;
+    uint32_t flags = params->flags;
+
+    if (streamMode == aub_stream::mode::null) {
+        context = new NullHardwareContext();
+    } else {
+        auto &csTraits = gpu->getCommandStreamerHelper(device, static_cast<EngineType>(engine));
+        AubStream *stream = getStream();
+
+        ContextGroup *group = nullptr;
+
+        if (flags & hardwareContextFlags::contextGroup) {
+            auto groupId = 0u;
+
+            if (params->primaryContextId == hardwareContextId::invalidContextId) {
+                groupId = groupContextHelper->groupIds[device][csTraits.engineType];
+                groupContextHelper->primaryContextIdToGroupId[device][csTraits.engineType][params->contextId] = groupId;
+
+                if (groupId >= groupContextHelper->contextGroups[device][csTraits.engineType].size()) {
+                    auto contextGroupCount = this->gpu->getContextGroupCount();
+                    groupContextHelper->contextGroups[device][csTraits.engineType].resize(groupId + 1);
+                    group = &groupContextHelper->contextGroups[device][csTraits.engineType][groupId];
+                    group->contexts.resize(contextGroupCount);
+                }
+                groupContextHelper->groupIds[device][csTraits.engineType]++;
+            } else {
+                groupId = groupContextHelper->primaryContextIdToGroupId[device][csTraits.engineType][params->primaryContextId];
+            }
+
+            group = &groupContextHelper->contextGroups[device][csTraits.engineType][groupId];
+        }
+
+        context = new HardwareContextImp(device, *stream, csTraits, *ggtts[device], *ppgtts[device], group, flags, params->priority);
+    }
+
+    std::lock_guard<std::mutex> lock(hwContextsMutex);
+    hwContexts.push_back(context);
+
+    return context;
+}
+
 bool AubManagerImp::releaseHardwareContext(HardwareContext *context) {
     bool contextFound = false;
     {

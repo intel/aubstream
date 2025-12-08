@@ -570,6 +570,67 @@ TEST_F(HardwareContextTest, givenNoContextGroupFlagWhenHardwareContextCreatedThe
     aubManager.releaseHardwareContext(context0);
 }
 
+TEST_F(HardwareContextTest, givenPriorityWhenCreateHardwareContext3CalledThenPriorityIsSet) {
+    auto gpu = createGpuFunc();
+    MockAubManager aubManager(std::move(gpu), 1, defaultHBMSizePerDevice, 0u, true, aub_stream::mode::aubFile);
+    aubManager.initialize();
+
+    CreateHardwareContext3Params params = {};
+    params.header.size = sizeof(CreateHardwareContext3Params);
+    params.device = defaultDevice;
+    params.engine = defaultEngine;
+    params.flags = 0;
+
+    {
+        auto context = aubManager.createHardwareContext3(&params.header);
+        context->initialize();
+        EXPECT_EQ(HardwareContextImp::priorityLow, static_cast<HardwareContextImp *>(context)->priority);
+
+        aubManager.releaseHardwareContext(context);
+    }
+
+    {
+        params.priority = HardwareContextImp::priorityHigh;
+        auto context0 = aubManager.createHardwareContext3(&params.header);
+        context0->initialize();
+        EXPECT_EQ(HardwareContextImp::priorityHigh, static_cast<HardwareContextImp *>(context0)->priority);
+
+        aubManager.releaseHardwareContext(context0);
+    }
+
+    {
+        params.priority = HardwareContextImp::priorityNormal;
+        auto context1 = aubManager.createHardwareContext3(&params.header);
+        context1->initialize();
+        EXPECT_EQ(HardwareContextImp::priorityNormal, static_cast<HardwareContextImp *>(context1)->priority);
+
+        aubManager.releaseHardwareContext(context1);
+    }
+}
+
+TEST_F(HardwareContextTest, givenIncorrectVersionOrSizeWhenCreateHardwareContext3CalledThenNullptrReturned) {
+    auto gpu = createGpuFunc();
+    MockAubManager aubManager(std::move(gpu), 1, defaultHBMSizePerDevice, 0u, true, aub_stream::mode::aubFile);
+    aubManager.initialize();
+
+    CreateHardwareContext3Params params = {};
+
+    params.header.version = 5;
+    params.header.size = sizeof(CreateHardwareContext3Params);
+    params.device = defaultDevice;
+    params.engine = defaultEngine;
+    params.flags = 0;
+
+    auto context = aubManager.createHardwareContext3(&params.header);
+    EXPECT_EQ(nullptr, context);
+
+    params.header.version = 1;
+    params.header.size = sizeof(CreateHardwareContext3Params) + 4;
+
+    context = aubManager.createHardwareContext3(&params.header);
+    EXPECT_EQ(nullptr, context);
+}
+
 HWTEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContextThenContextDescriptorHasCorrectBitsSet, HwMatcher::coreEqualGen12Core) {
     PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);

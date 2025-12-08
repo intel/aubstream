@@ -21,7 +21,7 @@ namespace aub_stream {
 
 uint32_t HardwareContextImp::globalContextId = 0;
 
-HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggttIN, PageTable &ppgttIN, ContextGroup *contextGroupIn, uint32_t flags)
+HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggttIN, PageTable &ppgttIN, ContextGroup *contextGroupIn, uint32_t flags, uint32_t priorityIn)
     : stream(aubStream),
       csTraits(traits),
       deviceIndex(deviceIndex),
@@ -41,6 +41,7 @@ HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStrea
       contextGroup(contextGroupIn) {
 
     constexpr uint32_t contextGroupBit = hardwareContextFlags::contextGroup;
+    this->priority = priorityIn;
 
     PRINT_LOG_INFO("New context created, ContextID = %" PRIu32 ", engine = %s, type = %" PRIu32 "\n", contextId, csTraits.name.c_str(), csTraits.engineType);
 
