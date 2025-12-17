@@ -1,19 +1,20 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2025 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
  */
 
 #pragma once
-#include <cassert>
-#include <cstdint>
-#include <map>
-#include <vector>
 #include "physical_address_allocator.h"
 #include "page_table_entry_bits.h"
 #include "aubstream/allocation_params.h"
 
+#include <cassert>
+#include <cstdint>
+#include <map>
+#include <vector>
+#include <mutex>
 namespace aub_stream {
 
 struct Gpu;
@@ -361,8 +362,13 @@ struct GGTT : public PageTable {
         return entryOffset;
     }
 
+    std::unique_lock<std::mutex> obtainUniqueLock() {
+        return std::unique_lock<std::mutex>(mutex);
+    }
+
     SimpleAllocator<uint32_t> gfxAddressAllocator;
     uint64_t gttTableOffset; // An offset into either System Memory or Local Memory base
+    std::mutex mutex;
 };
 
 } // namespace aub_stream

@@ -92,6 +92,8 @@ void HardwareContextImp::initialize() {
     const size_t sizeHWSP = 4096;
     ggttGlobalHWSP = allocator.alignedAlloc(sizeHWSP, alignment);
 
+    auto ggttLock = ggtt.obtainUniqueLock();
+
     stream.writeMemory(
         &ggtt,
         ggttGlobalHWSP,
@@ -266,6 +268,7 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
 
     const uint32_t sizeCommandsInBytes = static_cast<uint32_t>(ringCommands.size() * sizeof(uint32_t));
 
+    auto ggttLock = ggtt.obtainUniqueLock();
     if ((ringTail + sizeCommandsInBytes) >= ringSize) {
         size_t sizeToNoop = ringSize - ringTail;
         std::vector<uint32_t> noops;
