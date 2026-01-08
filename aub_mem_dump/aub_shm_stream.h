@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-2024 Intel Corporation
+ * Copyright (C) 2023-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -131,6 +131,13 @@ struct AubShmStream : public AubStream {
         if (!isTbxStreamBlockedForMemWrites) {
             tbxShmStream.writeDiscontiguousPages(writeInfoTable, addressSpace, hint);
         }
+    }
+
+    void memoryPoll(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode) override {
+        if (!isAubFileStreamPaused) {
+            aubFileStream.memoryPoll(entries, value, compareMode);
+        }
+        tbxShmStream.memoryPoll(entries, value, compareMode);
     }
 
     AubFileStream &aubFileStream;

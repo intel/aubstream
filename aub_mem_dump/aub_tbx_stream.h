@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -13,6 +13,8 @@
 namespace aub_stream {
 
 struct AubTbxStream : public AubStream {
+    using AubStream::memoryPoll;
+
     AubTbxStream(AubFileStream &aubFileStream, TbxStream &tbxStream) : aubFileStream(aubFileStream), tbxStream(tbxStream) {
     }
 
@@ -124,6 +126,13 @@ struct AubTbxStream : public AubStream {
             aubFileStream.writeDiscontiguousPages(writeInfoTable, addressSpace, hint);
         }
         tbxStream.writeDiscontiguousPages(writeInfoTable, addressSpace, hint);
+    }
+
+    void memoryPoll(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode) override {
+        if (!isAubFileStreamPaused) {
+            aubFileStream.memoryPoll(entries, value, compareMode);
+        }
+        tbxStream.memoryPoll(entries, value, compareMode);
     }
 
     AubFileStream &aubFileStream;

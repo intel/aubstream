@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -157,6 +157,7 @@ struct CommandStreamerHelper {
     std::unique_lock<std::mutex> obtainUniqueLock() const {
         return std::unique_lock<std::mutex>(mutex);
     }
+    virtual bool memoryBasedPollForCompletion() const { return false; }
 
   protected:
     virtual void submitContext(AubStream &stream, std::vector<MiContextDescriptorReg> &contextDescriptor) const = 0;

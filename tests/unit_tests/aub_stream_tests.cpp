@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -7,6 +7,7 @@
 
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table.h"
+#include "aub_mem_dump/aub_tbx_stream.h"
 #include "aubstream/allocation_params.h"
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
@@ -298,7 +299,6 @@ TEST_F(AubStreamTest, givenLocalMemoryWhenCloningMemoryThenPageWalkEntriesAreWri
     EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel3)).Times(1);
     EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel4)).Times(1);
 
-    EXPECT_CALL(stream, writeDiscontiguousPages(bytes, sizeof(bytes), _, DataTypeHintValues::TraceNotype)).Times(0);
     EXPECT_CALL(stream, writeDiscontiguousPages(_, _, _, DataTypeHintValues::TraceNotype)).Times(0);
 
     std::vector<PageInfo> entries;
@@ -321,7 +321,6 @@ TEST_F(AubStreamTest, givenSystemMemoryWhenCloningMemoryThenPageWalkEntriesAreWr
     EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TracePpgttPdEntry, DataTypeHintValues::TraceNotype)).Times(1);
     EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TracePpgttEntry, DataTypeHintValues::TraceNotype)).Times(1);
 
-    EXPECT_CALL(stream, writeDiscontiguousPages(bytes, sizeof(bytes), _, DataTypeHintValues::TraceNotype)).Times(0);
     EXPECT_CALL(stream, writeDiscontiguousPages(_, _, _, DataTypeHintValues::TraceNotype)).Times(0);
 
     std::vector<PageInfo> entries;
@@ -529,4 +528,223 @@ TEST_F(AubFileStreamTest, givenClosedStreamWhenWriteIsCalledThenDataIsWrittenToT
 
     EXPECT_EQ(stream.tmpWriteBuffer.size(), sizeof(buffer));
     EXPECT_EQ(memcmp(stream.tmpWriteBuffer.data(), buffer, sizeof(buffer)), 0);
+}
+
+using ComparisonValues = CmdServicesMemTraceMemoryPoll::ComparisonValues;
+
+TEST_F(AubStreamTest, givenComparisonModesWhenCompareMemoryIsCalledThenCorrectResultIsReturned) {
+    // Equal
+    EXPECT_TRUE(stream.compareMemory(10, 10, ComparisonValues::Equal));
+    EXPECT_FALSE(stream.compareMemory(10, 20, ComparisonValues::Equal));
+
+    // NotEqual
+    EXPECT_TRUE(stream.compareMemory(10, 20, ComparisonValues::NotEqual));
+    EXPECT_FALSE(stream.compareMemory(10, 10, ComparisonValues::NotEqual));
+
+    // Greater
+    EXPECT_TRUE(stream.compareMemory(20, 10, ComparisonValues::Greater));
+    EXPECT_FALSE(stream.compareMemory(10, 20, ComparisonValues::Greater));
+    EXPECT_FALSE(stream.compareMemory(10, 10, ComparisonValues::Greater));
+
+    // GreaterEqual
+    EXPECT_TRUE(stream.compareMemory(20, 10, ComparisonValues::GreaterEqual));
+    EXPECT_TRUE(stream.compareMemory(10, 10, ComparisonValues::GreaterEqual));
+    EXPECT_FALSE(stream.compareMemory(10, 20, ComparisonValues::GreaterEqual));
+
+    // Less
+    EXPECT_TRUE(stream.compareMemory(10, 20, ComparisonValues::Less));
+    EXPECT_FALSE(stream.compareMemory(20, 10, ComparisonValues::Less));
+    EXPECT_FALSE(stream.compareMemory(10, 10, ComparisonValues::Less));
+
+    // LessEqual
+    EXPECT_TRUE(stream.compareMemory(10, 20, ComparisonValues::LessEqual));
+    EXPECT_TRUE(stream.compareMemory(10, 10, ComparisonValues::LessEqual));
+    EXPECT_FALSE(stream.compareMemory(20, 10, ComparisonValues::LessEqual));
+}
+
+TEST_F(AubStreamTest, givenGgttWhenMemoryPollIsCalledThenProtectedMemoryPollIsCalledWithCorrectParams) {
+    uint64_t gfxAddress = 0x1000;
+    uint32_t expectedValue = 0x12345678;
+    uint32_t compareMode = ComparisonValues::Equal;
+
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+
+    stream.writeMemory(&ggtt, gfxAddress, &expectedValue, sizeof(expectedValue), defaultMemoryBank, DataTypeHintValues::TraceNotype, 4096);
+
+    EXPECT_CALL(stream, memoryPoll(::testing::SizeIs(1), expectedValue, compareMode)).Times(1);
+
+    stream.AubStream::gttMemoryPoll(&ggtt, gfxAddress, expectedValue, compareMode);
+}
+
+TEST_F(AubStreamTest, givenDifferentCompareModesWhenMemoryPollIsCalledThenCompareModeIsPassedCorrectly) {
+    uint64_t gfxAddress = 0x1000;
+    uint32_t expectedValue = 0x12345678;
+
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+
+    stream.writeMemory(&ggtt, gfxAddress, &expectedValue, sizeof(expectedValue), defaultMemoryBank, DataTypeHintValues::TraceNotype, 4096);
+
+    const std::vector<uint32_t> compareModes = {
+        ComparisonValues::Equal,
+        ComparisonValues::NotEqual,
+        ComparisonValues::Less,
+        ComparisonValues::LessEqual,
+        ComparisonValues::Greater,
+        ComparisonValues::GreaterEqual};
+
+    for (auto compareMode : compareModes) {
+        EXPECT_CALL(stream, memoryPoll(_, expectedValue, compareMode)).Times(1);
+        stream.AubStream::gttMemoryPoll(&ggtt, gfxAddress, expectedValue, compareMode);
+    }
+}
+
+struct AubTbxStreamTest : public MockAubStreamFixture, public ::testing::Test {
+    void SetUp() override {
+        MockAubStreamFixture::SetUp();
+    }
+
+    void TearDown() override {
+        MockAubStreamFixture::TearDown();
+    }
+
+    MockAubFileStream aubFileStream;
+    MockTbxStream tbxStream;
+};
+
+TEST_F(AubTbxStreamTest, givenAubTbxStreamWhenMemoryPollWithGgttIsCalledThenBothStreamsAreCalled) {
+    AubTbxStream aubTbxStream(aubFileStream, tbxStream);
+
+    uint64_t gfxAddress = 0x1000;
+    uint32_t expectedValue = 0x12345678;
+    uint32_t compareMode = ComparisonValues::Equal;
+
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+
+    aubTbxStream.writeMemory(&ggtt, gfxAddress, &expectedValue, sizeof(expectedValue), defaultMemoryBank, DataTypeHintValues::TraceNotype, 4096);
+
+    EXPECT_CALL(aubFileStream, memoryPoll(::testing::SizeIs(1), expectedValue, compareMode)).Times(1);
+    EXPECT_CALL(tbxStream, memoryPoll(::testing::SizeIs(1), expectedValue, compareMode)).Times(1);
+
+    aubTbxStream.gttMemoryPoll(&ggtt, gfxAddress, expectedValue, compareMode);
+}
+
+TEST_F(AubTbxStreamTest, givenAubTbxStreamWithPausedAubFileStreamWhenMemoryPollWithGgttIsCalledThenOnlyTbxStreamIsCalled) {
+    AubTbxStream aubTbxStream(aubFileStream, tbxStream);
+    aubTbxStream.pauseAubFileStream(true);
+
+    uint64_t gfxAddress = 0x1000;
+    uint32_t expectedValue = 0x12345678;
+    uint32_t compareMode = ComparisonValues::NotEqual;
+
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+
+    aubTbxStream.writeMemory(&ggtt, gfxAddress, &expectedValue, sizeof(expectedValue), defaultMemoryBank, DataTypeHintValues::TraceNotype, 4096);
+
+    EXPECT_CALL(aubFileStream, memoryPoll(_, _, _)).Times(0);
+    EXPECT_CALL(tbxStream, memoryPoll(::testing::SizeIs(1), expectedValue, compareMode)).Times(1);
+
+    aubTbxStream.gttMemoryPoll(&ggtt, gfxAddress, expectedValue, compareMode);
+}
+
+using AubFileStreamMemoryPollTest = AubStreamTest;
+
+TEST_F(AubFileStreamMemoryPollTest, givenAubFileStreamWhenMemoryPollIsCalledThenCorrectPacketIsWritten) {
+    struct MockWriteAubFileStream : public AubFileStream {
+        using AubFileStream::memoryPoll;
+
+        std::vector<char> writtenData;
+
+        void write(const char *buffer, std::streamsize size) override {
+            writtenData.insert(writtenData.end(), buffer, buffer + size);
+        }
+    };
+
+    MockWriteAubFileStream stream;
+
+    uint64_t physicalAddress = 0x123456789ABCull;
+    uint32_t expectedValue = 0xDEADBEEF;
+    uint32_t compareMode = ComparisonValues::GreaterEqual;
+    bool isLocalMemory = true;
+
+    std::vector<PageInfo> entries = {{physicalAddress, sizeof(expectedValue), isLocalMemory, MEMORY_BANK_0}};
+
+    stream.memoryPoll(entries, expectedValue, compareMode);
+
+    ASSERT_GE(stream.writtenData.size(), sizeof(CmdServicesMemTraceMemoryPoll));
+
+    auto *cmd = reinterpret_cast<CmdServicesMemTraceMemoryPoll *>(stream.writtenData.data());
+
+    EXPECT_TRUE(cmd->matchesHeader());
+    EXPECT_EQ(cmd->address, static_cast<uint32_t>(physicalAddress & 0xFFFFFFFF));
+    EXPECT_EQ(cmd->addressHigh, static_cast<uint32_t>(physicalAddress >> 32));
+    EXPECT_EQ(cmd->comparison, compareMode);
+    EXPECT_EQ(cmd->dataSize, CmdServicesMemTraceMemoryPoll::DataSizeValues::Dword);
+    EXPECT_EQ(cmd->tiling, CmdServicesMemTraceMemoryPoll::TilingValues::NoTiling);
+    EXPECT_EQ(cmd->timeoutAction, CmdServicesMemTraceMemoryPoll::TimeoutActionValues::Abort);
+    EXPECT_EQ(cmd->addressSpace, CmdServicesMemTraceMemoryWrite::AddressSpaceValues::TraceLocal);
+    EXPECT_EQ(cmd->data[0], expectedValue);
+}
+
+TEST_F(AubFileStreamMemoryPollTest, givenSystemMemoryWhenMemoryPollIsCalledThenAddressSpaceIsNonLocal) {
+    struct MockWriteAubFileStream : public AubFileStream {
+        using AubFileStream::memoryPoll;
+
+        std::vector<char> writtenData;
+
+        void write(const char *buffer, std::streamsize size) override {
+            writtenData.insert(writtenData.end(), buffer, buffer + size);
+        }
+    };
+
+    MockWriteAubFileStream stream;
+
+    uint64_t physicalAddress = 0x1000;
+    uint32_t expectedValue = 0x12345678;
+    uint32_t compareMode = ComparisonValues::Equal;
+    bool isLocalMemory = false;
+
+    std::vector<PageInfo> entries = {{physicalAddress, sizeof(expectedValue), isLocalMemory, MEMORY_BANK_SYSTEM}};
+
+    stream.memoryPoll(entries, expectedValue, compareMode);
+
+    auto *cmd = reinterpret_cast<CmdServicesMemTraceMemoryPoll *>(stream.writtenData.data());
+
+    EXPECT_EQ(cmd->addressSpace, CmdServicesMemTraceMemoryWrite::AddressSpaceValues::TraceNonlocal);
+    EXPECT_EQ(cmd->comparison, ComparisonValues::Equal);
+}
+
+TEST_F(AubFileStreamMemoryPollTest, givenDifferentCompareModesWhenMemoryPollIsCalledThenComparisonFieldIsSetCorrectly) {
+    struct MockWriteAubFileStream : public AubFileStream {
+        using AubFileStream::memoryPoll;
+
+        std::vector<char> writtenData;
+
+        void write(const char *buffer, std::streamsize size) override {
+            writtenData.insert(writtenData.end(), buffer, buffer + size);
+        }
+    };
+
+    const std::vector<uint32_t> compareModes = {
+        ComparisonValues::Equal,
+        ComparisonValues::NotEqual,
+        ComparisonValues::Less,
+        ComparisonValues::LessEqual,
+        ComparisonValues::Greater,
+        ComparisonValues::GreaterEqual};
+
+    for (auto compareMode : compareModes) {
+        MockWriteAubFileStream stream;
+
+        std::vector<PageInfo> entries = {{0x1000, sizeof(uint32_t), false, MEMORY_BANK_SYSTEM}};
+
+        stream.memoryPoll(entries, 0x12345678, compareMode);
+
+        auto *cmd = reinterpret_cast<CmdServicesMemTraceMemoryPoll *>(stream.writtenData.data());
+
+        EXPECT_EQ(cmd->comparison, compareMode) << "Failed for compareMode: " << compareMode;
+    }
 }

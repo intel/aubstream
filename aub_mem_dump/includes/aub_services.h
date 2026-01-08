@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -463,24 +463,26 @@ struct CmdServicesMemTraceMemoryPoll {
     union {
         AubCmdHdr Header;
         struct {
-            uint32_t dwordCount : 16;
-            uint32_t instructionSubOpcode : 7;
-            uint32_t instructionOpcode : 6;
-            uint32_t instructionType : 3;
+            uint32_t dwordCount : BITFIELD_RANGE(0, 15);
+            uint32_t instructionSubOpcode : BITFIELD_RANGE(16, 22);
+            uint32_t instructionOpcode : BITFIELD_RANGE(23, 28);
+            uint32_t instructionType : BITFIELD_RANGE(29, 31);
         };
     };
     uint32_t address;
     uint32_t addressHigh;
     struct {
-        uint32_t pollNotEqual : 1;
-        uint32_t : 1;
-        uint32_t tiling : 2;
-        uint32_t dataSize : 2;
-        uint32_t : 2;
-        uint32_t timeoutAction : 1;
-        uint32_t : 11;
-        uint32_t dataTypeHint : 8;
-        uint32_t addressSpace : 4;
+        uint32_t pollNotEqual : BITFIELD_RANGE(0, 0);
+        uint32_t : BITFIELD_RANGE(1, 1);
+        uint32_t tiling : BITFIELD_RANGE(2, 3);
+        uint32_t dataSize : BITFIELD_RANGE(4, 5);
+        uint32_t : BITFIELD_RANGE(6, 7);
+        uint32_t timeoutAction : BITFIELD_RANGE(8, 8);
+        uint32_t : BITFIELD_RANGE(9, 9);
+        uint32_t comparison : BITFIELD_RANGE(10, 12);
+        uint32_t : BITFIELD_RANGE(13, 19);
+        uint32_t dataTypeHint : BITFIELD_RANGE(20, 27);
+        uint32_t addressSpace : BITFIELD_RANGE(28, 31);
     };
     uint32_t pollMaskLow;
     uint32_t pollMaskHigh;
@@ -593,6 +595,17 @@ struct CmdServicesMemTraceMemoryPoll {
             TracePpgttGfx = 5,
             TracePpgttPdEntry = 9,
             TracePhysicalPdpEntry = 8
+        };
+    };
+    struct ComparisonValues {
+        enum {
+            Legacy = 0, // fallback to legacy pollNotEqual field
+            Equal = 1,
+            NotEqual = 2,
+            Less = 3,
+            LessEqual = 4,
+            Greater = 5,
+            GreaterEqual = 6,
         };
     };
 };

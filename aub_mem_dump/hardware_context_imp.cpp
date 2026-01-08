@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -204,7 +204,11 @@ void HardwareContextImp::release() {
 }
 
 void HardwareContextImp::pollForCompletion() {
-    csTraits.pollForCompletion(stream);
+    if (csTraits.memoryBasedPollForCompletion()) {
+        stream.gttMemoryPoll(&ggtt, ggttContextFence, contextFenceValue, CmdServicesMemTraceMemoryPoll::ComparisonValues::GreaterEqual);
+    } else {
+        csTraits.pollForCompletion(stream);
+    }
 }
 
 void HardwareContextImp::pollForFenceCompletion() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -35,6 +35,8 @@ struct AubStream {
 
     void expectMemory(GGTT *ggtt, uint64_t gfxAddress, const void *memory, size_t size, uint32_t compareOperation);
     void expectMemory(PageTable *ppgtt, uint64_t gfxAddress, const void *memory, size_t size, uint32_t compareOperation);
+
+    virtual void gttMemoryPoll(GGTT *ggtt, uint64_t gfxAddress, uint32_t value, uint32_t compareMode);
 
     void readMemory(PageTable *ppgtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize);
     void readMemory(GGTT *gtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize);
@@ -84,6 +86,9 @@ struct AubStream {
     virtual void writeContiguousPages(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint) = 0;
     virtual void writeDiscontiguousPages(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, int hint) = 0;
     virtual void writeDiscontiguousPages(const std::vector<PageEntryInfo> &writeInfoTable, int addressSpace, int hint) = 0;
+    virtual void memoryPoll(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode) = 0;
+
+    bool compareMemory(uint32_t readValue, uint32_t expectedValue, uint32_t compareOperation);
     bool dumpBinSupported = false;
     bool dumpSurfaceSupported = false;
 };

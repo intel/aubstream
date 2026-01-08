@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -57,6 +57,21 @@ void TbxStream::readDiscontiguousPages(void *memory, size_t size, const std::vec
         socket->readMemory(entry.physicalAddress, memory, entry.size, entry.isLocalMemory);
         memory = entry.size + (uint8_t *)memory;
     }
+}
+
+void TbxStream::memoryPoll(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode) {
+    assert(entries.size() == 1);
+    bool matches = false;
+
+    do {
+        uint32_t readValue = 0;
+        auto status = socket->readMemory(entries[0].physicalAddress, &readValue, sizeof(readValue), entries[0].isLocalMemory);
+        if (!status) {
+            break;
+        }
+
+        matches = compareMemory(readValue, value, compareMode);
+    } while (!matches);
 }
 
 void TbxStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction) {

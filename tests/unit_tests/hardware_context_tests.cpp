@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -912,4 +912,50 @@ HWTEST_F(HardwareContextTest, givenXe3pHighPriorityFlagWhenSubmittingHardwareCon
 
     EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, value));
     context0->submitBatchBuffer(0x100, false);
+}
+
+struct MockCommandStreamerHelperWithMemoryPoll : public CommandStreamerHelperCcs {
+    MockCommandStreamerHelperWithMemoryPoll(uint32_t deviceId, uint32_t engineId) : CommandStreamerHelperCcs(deviceId, engineId) {}
+
+    bool memoryBasedPollForCompletion() const override { return true; }
+
+    const MMIOList getEngineMMIO() const override { return {}; }
+
+  protected:
+    void submitContext(AubStream &stream, std::vector<MiContextDescriptorReg> &contextDescriptor) const override {}
+};
+
+using ComparisonValues = CmdServicesMemTraceMemoryPoll::ComparisonValues;
+
+TEST_F(HardwareContextTest, givenMemoryBasedPollForCompletionWhenPollForCompletionIsCalledThenMemoryPollIsUsed) {
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+
+    MockCommandStreamerHelperWithMemoryPoll csHelper(defaultDevice, 0);
+    csHelper.gpu = gpu.get();
+    HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
+
+    EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(0);
+    EXPECT_CALL(stream, gttMemoryPoll(_, _, _, ComparisonValues::GreaterEqual)).Times(1);
+
+    context.pollForCompletion();
+}
+
+TEST_F(HardwareContextTest, givenRegisterBasedPollForCompletionWhenPollForCompletionIsCalledThenRegisterPollIsUsed) {
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+    HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
+
+    if (csHelper.memoryBasedPollForCompletion()) {
+        EXPECT_CALL(stream, memoryPoll(_, _, _)).Times(1);
+        EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(0);
+    } else {
+        EXPECT_CALL(stream, memoryPoll(_, _, _)).Times(0);
+        EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(1);
+    }
+
+    context.pollForCompletion();
 }

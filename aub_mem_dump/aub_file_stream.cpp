@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -509,6 +509,27 @@ void AubFileStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_
     header.pollMaskLow = mask;
     header.data[0] = desiredValue;
     header.dwordCount = (sizeof(header) / sizeof(uint32_t)) - 1;
+
+    write((char *)&header, sizeof(header));
+    fileHandle.flush();
+}
+
+void AubFileStream::memoryPoll(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode) {
+    // no support for legacy mode
+    assert(compareMode >= CmdServicesMemTraceMemoryPoll::ComparisonValues::Equal && compareMode <= CmdServicesMemTraceMemoryPoll::ComparisonValues::GreaterEqual);
+    assert(entries.size() == 1);
+
+    CmdServicesMemTraceMemoryPoll header = {};
+    header.setHeader();
+    header.address = static_cast<uint32_t>(entries[0].physicalAddress & 0xFFFFFFFF);
+    header.addressHigh = static_cast<uint32_t>(entries[0].physicalAddress >> 32);
+    header.tiling = CmdServicesMemTraceMemoryPoll::TilingValues::NoTiling;
+    header.dataSize = CmdServicesMemTraceMemoryPoll::DataSizeValues::Dword;
+    header.comparison = compareMode;
+    header.timeoutAction = CmdServicesMemTraceMemoryPoll::TimeoutActionValues::Abort;
+    header.dataTypeHint = CmdServicesMemTraceMemoryPoll::DataTypeHintValues::TraceNotype;
+    header.addressSpace = entries[0].isLocalMemory ? AddressSpaceValues::TraceLocal : AddressSpaceValues::TraceNonlocal;
+    header.data[0] = value;
 
     write((char *)&header, sizeof(header));
     fileHandle.flush();

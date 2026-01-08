@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -15,6 +15,12 @@
 #include "aubstream/hint_values.h"
 
 namespace aub_stream {
+
+void AubStream::gttMemoryPoll(GGTT *ggtt, uint64_t gfxAddress, uint32_t value, uint32_t compareMode) {
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ggtt, gfxAddress, sizeof(value), PhysicalAddressAllocator::mainBank, ggtt->getPageSize(), PageTableWalker::WalkMode::Expect, nullptr);
+    memoryPoll(pageWalker.entries, value, compareMode);
+}
 
 void AubStream::expectMemory(GGTT *ggtt, uint64_t gfxAddress, const void *memory, size_t size, uint32_t compareOperation) {
     PageTableWalker pageWalker;
@@ -265,6 +271,36 @@ void AubStream::writePpgttLevel1(const std::vector<PageEntryInfo> &pageWalkEntry
         auto addressSpace = pageTablesInLocalMemory ? AddressSpaceValues::TraceLocal : AddressSpaceValues::TraceNonlocal;
         writeDiscontiguousPages(pageWalkEntry, addressSpace, DataTypeHintValues::TracePpgttLevel1);
     }
+}
+
+bool AubStream::compareMemory(uint32_t readValue, uint32_t expectedValue, uint32_t compareOperation) {
+    bool matches = false;
+
+    switch (compareOperation) {
+    case CmdServicesMemTraceMemoryPoll::ComparisonValues::Equal:
+        matches = (readValue == expectedValue);
+        break;
+    case CmdServicesMemTraceMemoryPoll::ComparisonValues::NotEqual:
+        matches = (readValue != expectedValue);
+        break;
+    case CmdServicesMemTraceMemoryPoll::ComparisonValues::Greater:
+        matches = (readValue > expectedValue);
+        break;
+    case CmdServicesMemTraceMemoryPoll::ComparisonValues::GreaterEqual:
+        matches = (readValue >= expectedValue);
+        break;
+    case CmdServicesMemTraceMemoryPoll::ComparisonValues::Less:
+        matches = (readValue < expectedValue);
+        break;
+    case CmdServicesMemTraceMemoryPoll::ComparisonValues::LessEqual:
+        matches = (readValue <= expectedValue);
+        break;
+    default:
+        assert(false && "Unsupported compare mode");
+        break;
+    }
+
+    return matches;
 }
 
 } // namespace aub_stream

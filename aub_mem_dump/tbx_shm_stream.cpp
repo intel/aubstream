@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -90,6 +90,22 @@ void TbxShmStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t
 
         matches = ((value & mask) == desiredValue);
     } while (matches == pollNotEqual);
+}
+
+void TbxShmStream::memoryPoll(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode) {
+    assert(entries.size() == 1);
+    bool matches = false;
+
+    do {
+        uint32_t readValue = 0;
+        void *p;
+        size_t availableSize;
+        translatePhysicalAddressToSystemMemory(entries[0].physicalAddress, entries[0].size, entries[0].isLocalMemory, p, availableSize);
+        // read shared mem
+        memcpy_s(&readValue, sizeof(readValue), p, sizeof(readValue));
+
+        matches = compareMemory(readValue, value, compareMode);
+    } while (!matches);
 }
 
 void TbxShmStream::writeMMIO(uint32_t offset, uint32_t value) {

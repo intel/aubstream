@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -14,6 +14,11 @@
 #pragma pack(4)
 #else
 #pragma pack(push, 4)
+#endif
+
+// Calculates the number of bits between the startbit and the endbit (0 based)
+#ifndef BITFIELD_RANGE
+#define BITFIELD_RANGE(startbit, endbit) ((endbit) - (startbit) + 1)
 #endif
 
 inline void setMisalignedUint64(void *address, const uint64_t value) {

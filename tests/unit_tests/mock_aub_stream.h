@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -25,10 +25,13 @@ struct WhiteBox<AubFileStream> : public AubFileStream {
 
 struct MockAubStreamBase : public AubStream {
   public:
+    using AubStream::compareMemory;
     MOCK_METHOD1(addComment, void(const char *message));
     MOCK_METHOD4(expectMemoryTable, void(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, uint32_t compareOperation));
     MOCK_METHOD2(init, bool(int steppingValue, const GpuDescriptor &gpu));
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
+    MOCK_METHOD3(memoryPoll, void(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode));
+    MOCK_METHOD4(gttMemoryPoll, void(GGTT *ggtt, uint64_t gfxAddress, uint32_t value, uint32_t compareMode));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
     MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
     MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
@@ -60,6 +63,7 @@ struct MockAubFileStream : public AubFileStream {
     MOCK_METHOD3(dumpSurface, void(PageTableType gttType, const SurfaceInfo &surfaceInfo, uint32_t handleDumpContext));
 
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
+    MOCK_METHOD3(memoryPoll, void(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode));
     MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
     MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
@@ -85,6 +89,7 @@ struct MockTbxStream : public TbxStream {
     MOCK_METHOD3(dumpSurface, void(PageTableType gttType, const SurfaceInfo &surfaceInfo, uint32_t handleDumpContext));
 
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
+    MOCK_METHOD3(memoryPoll, void(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
     MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
     MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
@@ -124,6 +129,7 @@ struct MockTbxShmStream : public TbxShmStream {
     MOCK_METHOD3(dumpSurface, void(aub_stream::AubStream::PageTableType gttType, const aub_stream::SurfaceInfo &surfaceInfo, uint32_t handleDumpContext));
 
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
+    MOCK_METHOD3(memoryPoll, void(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode));
     MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
     MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
     MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
