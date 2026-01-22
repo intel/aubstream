@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -16,6 +16,14 @@
 #include <vector>
 #include <mutex>
 namespace aub_stream {
+
+namespace PageTableLevel {
+constexpr int Pte = 0;
+constexpr int Pde = 1;
+constexpr int Pdp = 2;
+constexpr int Pml4 = 3;
+constexpr int Pml5 = 4;
+} // namespace PageTableLevel
 
 struct Gpu;
 
@@ -121,6 +129,11 @@ struct PageTable {
         return true;
     }
 
+    // Returns page size for leaf nodes (PTE, Page2MB), 0 for non-leaf nodes
+    virtual size_t getPageSize() const {
+        return 0;
+    }
+
   protected:
     const Gpu &gpu;
     PhysicalAddressAllocator *allocator;
@@ -159,7 +172,7 @@ struct PTEBase : public PageTable {
         : PageTable(gpu, physicalAddress, memoryBank) {
     }
 
-    virtual size_t getPageSize() const = 0;
+    size_t getPageSize() const override = 0;
 };
 
 using PTE = PTEBase<PageTableMemory>;
@@ -230,6 +243,34 @@ struct PTE4KB : public PTE {
     }
 };
 
+struct Page2MB : public PageTable {
+    static constexpr size_t pageSize2MB = 2 * 1024 * 1024;
+
+    Page2MB(const Gpu &gpu, PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank)
+        : PageTable(gpu, physicalAddressAllocator, pageSize2MB, 0u, memoryBank) {
+    }
+
+    Page2MB(const Gpu &gpu, uint64_t physicalAddress, uint32_t memoryBank)
+        : PageTable(gpu, physicalAddress, memoryBank) {
+        assert((physicalAddress & (pageSize2MB - 1)) == 0 && "Page2MB physical address must be 2MB aligned");
+    }
+
+    Page2MB(const Gpu &gpu, uint64_t physicalAddress, uint32_t memoryBank, const AllocationParams::AdditionalParams &additionalAllocParams)
+        : PageTable(gpu, physicalAddress, memoryBank, additionalAllocParams) {
+        assert((physicalAddress & (pageSize2MB - 1)) == 0 && "Page2MB physical address must be 2MB aligned");
+    }
+
+    Page2MB(const Gpu &gpu, PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, const AllocationParams::AdditionalParams &additionalAllocParams)
+        : PageTable(gpu, physicalAddressAllocator, pageSize2MB, 0u, memoryBank, additionalAllocParams) {
+    }
+
+    uint64_t getEntryValue() const override;
+
+    size_t getPageSize() const override {
+        return pageSize2MB;
+    }
+};
+
 template <typename ChildType4KB, typename ChildType64KB>
 struct PDEBase : public PageTable {
     uint64_t getEntryValue() const override {
@@ -241,12 +282,34 @@ struct PDEBase : public PageTable {
     }
 
     PageTable *allocateChild(const Gpu &gpu, size_t pageSize, uint32_t pageTableMemoryBank) override {
+        if (pageSize == Page2MB::pageSize2MB) {
+            // Page2MB is a leaf node - can have different memory bank than parent PDE
+            return new Page2MB(gpu, allocator, pageTableMemoryBank);
+        }
         assert(pageTableMemoryBank == memoryBank);
         if (pageSize == 65536u) {
             return new ChildType64KB(gpu, allocator, pageTableMemoryBank);
         } else {
             return new ChildType4KB(gpu, allocator, pageTableMemoryBank);
         }
+    }
+
+    PageTable *allocateChild(const Gpu &gpu, size_t pageSize, uint32_t pageTableMemoryBank, const AllocationParams::AdditionalParams &additionalAllocParams) override {
+        if (pageSize == Page2MB::pageSize2MB) {
+            // Page2MB is a leaf node - can have different memory bank than parent PDE
+            return new Page2MB(gpu, allocator, pageTableMemoryBank, additionalAllocParams);
+        }
+        assert(pageTableMemoryBank == memoryBank);
+        return allocateChild(gpu, pageSize, pageTableMemoryBank);
+    }
+
+    PageTable *allocateChild(const Gpu &gpu, size_t pageSize, uint32_t pageTableMemoryBank, const AllocationParams::AdditionalParams &additionalAllocParams, uint64_t physicalAddress) override {
+        if (pageSize == Page2MB::pageSize2MB) {
+            // Page2MB is a leaf node - can have different memory bank than parent PDE
+            return new Page2MB(gpu, physicalAddress, pageTableMemoryBank, additionalAllocParams);
+        }
+        assert(pageTableMemoryBank == memoryBank);
+        return allocateChild(gpu, pageSize, pageTableMemoryBank);
     }
 
     PDEBase(const Gpu &gpu, PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank)
@@ -352,7 +415,7 @@ struct GGTT : public PageTable {
         return new PageTableMemory(gpu, allocator, pageSize, 0u, pageTableMemoryBank);
     }
 
-    size_t getPageSize() const {
+    size_t getPageSize() const override {
         return 4096u;
     }
 

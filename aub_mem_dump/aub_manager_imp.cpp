@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -413,7 +413,11 @@ void AubManagerImp::adjustPageSize(uint32_t memoryBanks, size_t &pageSize) {
     auto &csTraits = gpu->getCommandStreamerHelper(0, static_cast<EngineType>(ENGINE_CCS));
 
     if (!csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize))) {
-        pageSize = pageSize == 65536u ? 4096u : 65536u;
+        if (pageSize == Page2MB::pageSize2MB) {
+            pageSize = 65536u;
+        } else {
+            pageSize = pageSize == 65536u ? 4096u : 65536u;
+        }
     }
     // make sure this combination is still valid
     assert(csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize)));

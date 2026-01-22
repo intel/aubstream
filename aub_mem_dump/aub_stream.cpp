@@ -11,6 +11,7 @@
 #include "aub_mem_dump/aub_stream.h"
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/memory_bank_helper.h"
+#include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/page_table_entry_bits.h"
 #include "aubstream/hint_values.h"
 
@@ -123,19 +124,23 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
     assert(size != 0);
     constexpr size_t page64kSize = 65536u;
 
-    std::vector<PageEntryInfo> pageWalkEntries[2];
+    std::vector<PageEntryInfo> pageWalkEntries[3];
 
     // Reserve minimal # of entries
-    pageWalkEntries[0].reserve(2 + (uint64_t(size) / page64kSize));
-    pageWalkEntries[1].reserve(1);
+    pageWalkEntries[PageTableLevel::Pte].reserve(2 + (uint64_t(size) / page64kSize));
+    pageWalkEntries[PageTableLevel::Pde].reserve(1);
+    pageWalkEntries[PageTableLevel::Pdp].reserve(1);
 
     while (size > 0) {
         PageTable *parent = nullptr;
         PageTable *child = ppgtt;
         int level = ppgtt->getNumLevels() - 1;
 
+        PageTable *pdp = nullptr;
         PDE *pde = nullptr;
         PTE *pte = nullptr;
+
+        bool is2MBPage = false;
 
         while (level >= 0) {
             if (!child) {
@@ -144,15 +149,24 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
             parent = child;
             auto index = parent->getIndex(gfxAddress);
 
-            // PDE is only valid if level = 1
-            pde = level == 1 ? static_cast<PDE *>(parent) : pde;
-            // PTE is only valid if level = 0
-            pte = level ? nullptr : static_cast<PTE *>(parent);
+            // PDP is only valid if level == PageTableLevel::Pdp
+            pdp = level == PageTableLevel::Pdp ? parent : pdp;
+            // PDE is only valid if level == PageTableLevel::Pde
+            pde = level == PageTableLevel::Pde ? static_cast<PDE *>(parent) : pde;
+            // PTE is only valid if level == PageTableLevel::Pte
+            pte = (level != PageTableLevel::Pte) ? nullptr : static_cast<PTE *>(parent);
 
             // Get each of the page structures
             child = parent->getChild(index);
+            if (level == PageTableLevel::Pde && child) {
+                // 2MB page found at PDE level
+                if (child->getPageSize() == Page2MB::pageSize2MB) {
+                    is2MBPage = true;
+                    break;
+                }
+            }
 
-            if (child && level == 0) {
+            if (child && level == PageTableLevel::Pte) {
                 assert(pte != nullptr);
 
                 // remove page from PTE
@@ -161,27 +175,58 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
                     pte->getPhysicalAddress() + index * sizeof(uint64_t),
                     0,
                 };
-                pageWalkEntries[0].push_back(info);
+                pageWalkEntries[PageTableLevel::Pte].push_back(info);
             }
             --level;
         }
 
-        assert(pte);
-        auto pageSizeThisIteration = pte->getPageSize(); // NOLINT(clang-analyzer-core.CallAndMessage)
-        assert(pageSizeThisIteration == 4096 || pageSizeThisIteration == 65536);
+        size_t pageSizeThisIteration;
 
-        // Delete physical page
-        delete child;
+        if (is2MBPage) {
+            assert(pde != nullptr);
+            pageSizeThisIteration = Page2MB::pageSize2MB;
 
-        if (pde && pte->isEmpty()) {
-            // remove PTE
-            pde->setChild(pde->getIndex(gfxAddress), nullptr);
-            PageEntryInfo info1 = {
-                pde->getPhysicalAddress() + pde->getIndex(gfxAddress) * sizeof(uint64_t),
+            // Remove 2MB page from PDE
+            auto index = pde->getIndex(gfxAddress);
+            pde->setChild(index, nullptr);
+            PageEntryInfo info = {
+                pde->getPhysicalAddress() + index * sizeof(uint64_t),
                 0,
             };
-            pageWalkEntries[1].push_back(info1);
-            delete pte;
+            pageWalkEntries[PageTableLevel::Pde].push_back(info);
+
+            // Delete 2MB page
+            delete child;
+
+            // Clean up empty PDE
+            if (pdp && pde->isEmpty()) {
+                auto pdpIndex = pdp->getIndex(gfxAddress);
+                pdp->setChild(pdpIndex, nullptr);
+                PageEntryInfo info1 = {
+                    pdp->getPhysicalAddress() + pdpIndex * sizeof(uint64_t),
+                    0,
+                };
+                pageWalkEntries[PageTableLevel::Pdp].push_back(info1);
+                delete pde;
+            }
+        } else {
+            assert(pte);
+            pageSizeThisIteration = pte->getPageSize(); // NOLINT(clang-analyzer-core.CallAndMessage)
+            assert(pageSizeThisIteration == 4096 || pageSizeThisIteration == 65536);
+
+            // Delete physical page
+            delete child;
+
+            if (pde && pte->isEmpty()) {
+                // remove PTE
+                pde->setChild(pde->getIndex(gfxAddress), nullptr);
+                PageEntryInfo info1 = {
+                    pde->getPhysicalAddress() + pde->getIndex(gfxAddress) * sizeof(uint64_t),
+                    0,
+                };
+                pageWalkEntries[PageTableLevel::Pde].push_back(info1);
+                delete pte;
+            }
         }
 
         auto pageOffset = gfxAddress & (pageSizeThisIteration - 1);
@@ -192,8 +237,13 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
         size -= sizeThisIteration;
     }
 
-    writePpgttLevel1(pageWalkEntries[0], ppgtt->isLocalMemory(), ppgtt->getNumAddressBits());
-    writePpgttLevel2(pageWalkEntries[1], ppgtt->isLocalMemory(), ppgtt->getNumAddressBits());
+    writePpgttLevel1(pageWalkEntries[PageTableLevel::Pte], ppgtt->isLocalMemory(), ppgtt->getNumAddressBits());
+    writePpgttLevel2(pageWalkEntries[PageTableLevel::Pde], ppgtt->isLocalMemory(), ppgtt->getNumAddressBits());
+    // Write PDP level entries if any PDEs were removed
+    if (!pageWalkEntries[PageTableLevel::Pdp].empty()) {
+        auto addressSpace = ppgtt->isLocalMemory() ? AddressSpaceValues::TraceLocal : AddressSpaceValues::TraceNonlocal;
+        writeDiscontiguousPages(pageWalkEntries[PageTableLevel::Pdp], addressSpace, DataTypeHintValues::TracePpgttLevel3);
+    }
 }
 
 void AubStream::writePages(const PageTableWalker &pageWalker, const void *memory, size_t size, int hint, bool pageTablesInLocalMemory,
@@ -233,19 +283,19 @@ void AubStream::writePageWalkEntries(const PageTableWalker &pageWalker, bool pag
     bool useLegacyAddressSpaces = !usePml5 && !pageTablesInLocalMemory;
 
     if (useLegacyAddressSpaces) {
-        writeDiscontiguousPages(pageWalker.pageWalkEntries[3], AddressSpaceValues::TracePml4Entry, DataTypeHintValues::TraceNotype);
-        writeDiscontiguousPages(pageWalker.pageWalkEntries[2], AddressSpaceValues::TracePhysicalPdpEntry, DataTypeHintValues::TraceNotype);
-        writeDiscontiguousPages(pageWalker.pageWalkEntries[1], AddressSpaceValues::TracePpgttPdEntry, DataTypeHintValues::TraceNotype);
-        writeDiscontiguousPages(pageWalker.pageWalkEntries[0], AddressSpaceValues::TracePpgttEntry, DataTypeHintValues::TraceNotype);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[PageTableLevel::Pml4], AddressSpaceValues::TracePml4Entry, DataTypeHintValues::TraceNotype);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[PageTableLevel::Pdp], AddressSpaceValues::TracePhysicalPdpEntry, DataTypeHintValues::TraceNotype);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[PageTableLevel::Pde], AddressSpaceValues::TracePpgttPdEntry, DataTypeHintValues::TraceNotype);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[PageTableLevel::Pte], AddressSpaceValues::TracePpgttEntry, DataTypeHintValues::TraceNotype);
     } else {
         auto addressSpace = pageTablesInLocalMemory ? AddressSpaceValues::TraceLocal : AddressSpaceValues::TraceNonlocal;
         if (usePml5) {
-            writeDiscontiguousPages(pageWalker.pageWalkEntries[4], addressSpace, DataTypeHintValues::TracePpgttLevel5);
+            writeDiscontiguousPages(pageWalker.pageWalkEntries[PageTableLevel::Pml5], addressSpace, DataTypeHintValues::TracePpgttLevel5);
         }
-        writeDiscontiguousPages(pageWalker.pageWalkEntries[3], addressSpace, DataTypeHintValues::TracePpgttLevel4);
-        writeDiscontiguousPages(pageWalker.pageWalkEntries[2], addressSpace, DataTypeHintValues::TracePpgttLevel3);
-        writeDiscontiguousPages(pageWalker.pageWalkEntries[1], addressSpace, DataTypeHintValues::TracePpgttLevel2);
-        writeDiscontiguousPages(pageWalker.pageWalkEntries[0], addressSpace, DataTypeHintValues::TracePpgttLevel1);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[PageTableLevel::Pml4], addressSpace, DataTypeHintValues::TracePpgttLevel4);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[PageTableLevel::Pdp], addressSpace, DataTypeHintValues::TracePpgttLevel3);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[PageTableLevel::Pde], addressSpace, DataTypeHintValues::TracePpgttLevel2);
+        writeDiscontiguousPages(pageWalker.pageWalkEntries[PageTableLevel::Pte], addressSpace, DataTypeHintValues::TracePpgttLevel1);
     }
 }
 

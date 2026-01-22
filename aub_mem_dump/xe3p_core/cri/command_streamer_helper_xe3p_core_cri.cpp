@@ -1,11 +1,12 @@
 /*
- * Copyright (C) 2025 Intel Corporation
+ * Copyright (C) 2025-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
  */
 
 #include "aub_mem_dump/xe3p_core/command_streamer_helper_xe3p_core.h"
+#include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/page_table_pml5.h"
 #include "aubstream/product_family.h"
 
@@ -63,6 +64,22 @@ struct GpuCri : public GpuXe3pCore {
                                                                 ENGINE_BCS1, ENGINE_BCS2, ENGINE_BCS3, ENGINE_BCS4, ENGINE_BCS5,
                                                                 ENGINE_BCS6, ENGINE_BCS7, ENGINE_BCS8}};
         return std::vector<EngineType>(engines.begin(), engines.end());
+    }
+
+    bool isMemorySupported(uint32_t memoryBanks, uint32_t alignment) const override {
+        assert(MEMORY_BANK_SYSTEM == 0);
+        auto supportedBanks = MEMORY_BANK_SYSTEM | MEMORY_BANK_0 | MEMORY_BANK_1 | MEMORY_BANK_2 | MEMORY_BANK_3;
+        auto unsupportedBanks = MEMORY_BANKS_ALL ^ supportedBanks;
+
+        if (unsupportedBanks & memoryBanks) {
+            return false;
+        }
+
+        if (memoryBanks & supportedBanks) {
+            return alignment == 65536 || alignment == Page2MB::pageSize2MB;
+        }
+
+        return alignment == 4096 || alignment == 65536;
     }
 };
 

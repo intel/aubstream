@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -7,6 +7,7 @@
 
 #include "aub_mem_dump/page_table_walker.h"
 #include "aub_mem_dump/memory_bank_helper.h"
+#include "aub_mem_dump/page_table.h"
 #include <cassert>
 #include <iostream>
 
@@ -91,12 +92,15 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     size_t sizePageAligned = (size + pageSize - 1) & ~(pageSize - 1);
     MemoryBankHelper bankHelper(memoryBanks, gfxAddress & ~(pageSize - 1), sizePageAligned);
 
+    // 2MB pages terminate at PDE level, smaller pages at PTE level
+    int leafLevel = (pageSize == Page2MB::pageSize2MB) ? PageTableLevel::Pde : PageTableLevel::Pte;
+
     // Reserve # of entries plus two for leading/trailing pages
-    pageWalkEntries[4].reserve(2 + (uint64_t(size) >> 48));
-    pageWalkEntries[3].reserve(2 + (uint64_t(size) >> 39));
-    pageWalkEntries[2].reserve(2 + (uint64_t(size) >> 30));
-    pageWalkEntries[1].reserve(2 + (uint64_t(size) >> 21));
-    pageWalkEntries[0].reserve(2 + (uint64_t(size) / pageSize));
+    pageWalkEntries[PageTableLevel::Pml5].reserve(2 + (uint64_t(size) >> 48));
+    pageWalkEntries[PageTableLevel::Pml4].reserve(2 + (uint64_t(size) >> 39));
+    pageWalkEntries[PageTableLevel::Pdp].reserve(2 + (uint64_t(size) >> 30));
+    pageWalkEntries[PageTableLevel::Pde].reserve(2 + (uint64_t(size) >> 21));
+    pageWalkEntries[PageTableLevel::Pte].reserve(2 + (uint64_t(size) / pageSize));
     pages64KB.reserve(2 + (uint64_t(size) / pageSize));
     entries.reserve(2 + (uint64_t(size) / pageSize));
 
@@ -111,26 +115,37 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             clonePageInfo = &(*pageInfos)[clonePageInfoIndex++];
         }
         PTE *pte = nullptr;
-        while (level >= 0) {
+        while (level >= leafLevel) {
             parent = child;
             auto index = parent->getIndex(gfxAddress);
 
-            // PTE is only valid if level = 0
-            pte = level ? nullptr : static_cast<PTE *>(parent);
+            pte = (level == PageTableLevel::Pte) ? static_cast<PTE *>(parent) : nullptr;
 
-            // Assert if pageSize conflicts with prior PTE
+            // Existing PTE determines actual page size
             if (pte && pte->getPageSize() != pageSize) {
                 pageSize = pte->getPageSize();
             }
 
             // Get or allocate each of the page structures
             child = parent->getChild(index);
+
+            // Handle pre-existing 2MB pages
+            if (child && level == PageTableLevel::Pde && child->getPageSize() == Page2MB::pageSize2MB) {
+                pageSize = Page2MB::pageSize2MB;
+                leafLevel = PageTableLevel::Pde;
+                break;
+            }
+
             if (!child) {
                 assert(mode != WalkMode::Expect);
-                if (level == 0 && clonePageInfo) {
+                if (level == leafLevel && clonePageInfo) {
                     const auto physicalAddressAligned = clonePageInfo->physicalAddress & ~(static_cast<uint64_t>(pageSize - 1));
-                    child = new PageTableMemory(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo->memoryBank, allocationParams.additionalParams);
-                } else if (level != 0) {
+                    if (pageSize == Page2MB::pageSize2MB) {
+                        child = new Page2MB(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo->memoryBank, allocationParams.additionalParams);
+                    } else {
+                        child = new PageTableMemory(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo->memoryBank, allocationParams.additionalParams);
+                    }
+                } else if (level != leafLevel) {
                     // For interior nodes, child use parent's memory bank
                     child = parent->allocateChild(ppgtt->getGpu(), pageSize, parent->getMemoryBank());
                 } else {
@@ -146,22 +161,28 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                 pageWalkEntries[level].push_back(info);
 
                 // Need to keep track of 64KB system pages
-                if (level == 0 && mode == WalkMode::Reserve && !isLocalMemory && pageSize == 65536) {
+                if (level == PageTableLevel::Pte && mode == WalkMode::Reserve && !isLocalMemory && pageSize == 65536) {
                     pages64KB.push_back(child->getPhysicalAddress());
                 }
             }
             --level;
         }
 
-        assert(pte);
-        auto pageSizeThisIteration = pte->getPageSize(); // NOLINT(clang-analyzer-core.CallAndMessage)
-        assert(pageSizeThisIteration == 4096 || pageSizeThisIteration == 65536);
+        // pte is null for 2MB pages
+        size_t pageSizeThisIteration;
+        if (pageSize == Page2MB::pageSize2MB) {
+            pageSizeThisIteration = Page2MB::pageSize2MB;
+        } else {
+            assert(pte);
+            pageSizeThisIteration = pte->getPageSize(); // NOLINT(clang-analyzer-core.CallAndMessage)
+        }
+        assert(pageSizeThisIteration == 4096 || pageSizeThisIteration == 65536 || pageSizeThisIteration == Page2MB::pageSize2MB);
 
         auto pageOffset = gfxAddress & (pageSizeThisIteration - 1);
         auto sizeThisIteration = static_cast<size_t>(pageSizeThisIteration - pageOffset);
         sizeThisIteration = std::min(size, sizeThisIteration);
 
-        // Record our PTE information
+        // Record page information
         PageInfo writeInfo = {
             child->getPhysicalAddress() + pageOffset,
             sizeThisIteration,
@@ -185,18 +206,24 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     auto gfxAddress = allocationParams.gfxAddress;
 
     assert(pageSize > 0);
+    if ((physicalAddress & (pageSize - 1)) != 0) {
+        std::cerr << "Warning: physicalAddress must be page-size aligned" << std::endl;
+    }
 
     const PageInfo *clonePageInfo = nullptr;
     uint32_t clonePageInfoIndex = 0;
 
     bool isLocalMemory = pageMemoryBank != PhysicalAddressAllocator::mainBank;
 
+    // 2MB pages terminate at PDE level, smaller pages at PTE level
+    int leafLevel = (pageSize == Page2MB::pageSize2MB) ? PageTableLevel::Pde : PageTableLevel::Pte;
+
     // Reserve # of entries plus two for leading/trailing pages
-    pageWalkEntries[4].reserve(2 + (uint64_t(size) >> 48));
-    pageWalkEntries[3].reserve(2 + (uint64_t(size) >> 39));
-    pageWalkEntries[2].reserve(2 + (uint64_t(size) >> 30));
-    pageWalkEntries[1].reserve(2 + (uint64_t(size) >> 21));
-    pageWalkEntries[0].reserve(2 + (uint64_t(size) / pageSize));
+    pageWalkEntries[PageTableLevel::Pml5].reserve(2 + (uint64_t(size) >> 48));
+    pageWalkEntries[PageTableLevel::Pml4].reserve(2 + (uint64_t(size) >> 39));
+    pageWalkEntries[PageTableLevel::Pdp].reserve(2 + (uint64_t(size) >> 30));
+    pageWalkEntries[PageTableLevel::Pde].reserve(2 + (uint64_t(size) >> 21));
+    pageWalkEntries[PageTableLevel::Pte].reserve(2 + (uint64_t(size) / pageSize));
     pages64KB.reserve(2 + (uint64_t(size) / pageSize));
     entries.reserve(2 + (uint64_t(size) / pageSize));
 
@@ -209,14 +236,14 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             clonePageInfo = &(*pageInfos)[clonePageInfoIndex++];
         }
         PTE *pte = nullptr;
-        while (level >= 0) {
+        while (level >= leafLevel) {
             parent = child;
             auto index = parent->getIndex(gfxAddress);
 
-            // PTE is only valid if level = 0
-            pte = level ? nullptr : static_cast<PTE *>(parent);
+            // PTE only exists at level 0
+            pte = (level == PageTableLevel::Pte) ? static_cast<PTE *>(parent) : nullptr;
 
-            // Assert if pageSize conflicts with prior PTE
+            // Existing PTE determines actual page size
             if (pte && pte->getPageSize() != pageSize) {
                 pageSize = pte->getPageSize();
             }
@@ -224,13 +251,23 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             // Get or allocate each of the page structures
             child = parent->getChild(index);
 
+            // Handle pre-existing 2MB pages
+            if (child && level == PageTableLevel::Pde && child->getPageSize() == Page2MB::pageSize2MB) {
+                pageSize = Page2MB::pageSize2MB;
+                leafLevel = PageTableLevel::Pde;
+                break;
+            }
+
             if (!child) {
                 assert(mode != WalkMode::Expect);
-                if (level == 0 && clonePageInfo) {
-                    assert(pte);
-                    const auto physicalAddressAligned = clonePageInfo->physicalAddress & ~(static_cast<uint64_t>(pte->getPageSize() - 1));
-                    child = new PageTableMemory(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo->memoryBank, allocationParams.additionalParams);
-                } else if (level != 0) {
+                if (level == leafLevel && clonePageInfo) {
+                    const auto physicalAddressAligned = clonePageInfo->physicalAddress & ~(static_cast<uint64_t>(pageSize - 1));
+                    if (pageSize == Page2MB::pageSize2MB) {
+                        child = new Page2MB(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo->memoryBank, allocationParams.additionalParams);
+                    } else {
+                        child = new PageTableMemory(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo->memoryBank, allocationParams.additionalParams);
+                    }
+                } else if (level != leafLevel) {
                     // For interior nodes, child use parent's memory bank
                     child = parent->allocateChild(ppgtt->getGpu(), pageSize, parent->getMemoryBank());
                 } else {
@@ -242,7 +279,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             }
 
             // When using PreReserved memory via explicit Map we want to override the PTEs for remapping cases
-            if (level == 0) {
+            if (level == leafLevel) {
                 if (child->getPhysicalAddress() != physicalAddress) {
                     // We need to remap here
                     child->setPhysicalAddress(physicalAddress);
@@ -258,21 +295,28 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             pageWalkEntries[level].push_back(info);
 
             // Need to keep track of 64KB system pages
-            if (level == 0 && mode == WalkMode::Reserve && !isLocalMemory && pageSize == 65536) {
+            if (level == PageTableLevel::Pte && mode == WalkMode::Reserve && !isLocalMemory && pageSize == 65536) {
                 pages64KB.push_back(child->getPhysicalAddress());
             }
 
             --level;
         }
-        assert(pte);
-        auto pageSizeThisIteration = pte->getPageSize(); // NOLINT(clang-analyzer-core.CallAndMessage)
-        assert(pageSizeThisIteration == 4096 || pageSizeThisIteration == 65536);
+
+        // pte is null for 2MB pages
+        size_t pageSizeThisIteration;
+        if (pageSize == Page2MB::pageSize2MB) {
+            pageSizeThisIteration = Page2MB::pageSize2MB;
+        } else {
+            assert(pte);
+            pageSizeThisIteration = pte->getPageSize(); // NOLINT(clang-analyzer-core.CallAndMessage)
+        }
+        assert(pageSizeThisIteration == 4096 || pageSizeThisIteration == 65536 || pageSizeThisIteration == Page2MB::pageSize2MB);
 
         auto pageOffset = gfxAddress & (pageSizeThisIteration - 1);
         auto sizeThisIteration = static_cast<size_t>(pageSizeThisIteration - pageOffset);
         sizeThisIteration = std::min(size, sizeThisIteration);
 
-        // Record our PTE information
+        // Record page information
         PageInfo writeInfo = {
             child->getPhysicalAddress() + pageOffset,
             sizeThisIteration,

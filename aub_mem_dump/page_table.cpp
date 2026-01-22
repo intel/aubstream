@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -26,6 +26,14 @@ PageTable::PageTable(const Gpu &gpu, PhysicalAddressAllocator *physicalAddressAl
 
 uint64_t PageTable::getEntryValue() const {
     auto bits = toBitValue(PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
+    bits |= isLocalMemory() ? toBitValue(PpgttEntryBits::localMemoryBit) : 0;
+    bits |= gpu.getPPGTTExtraEntryBits(additionalAllocParams);
+    return getPhysicalAddress() | bits;
+}
+
+uint64_t Page2MB::getEntryValue() const {
+    assert((getPhysicalAddress() & (Page2MB::pageSize2MB - 1)) == 0 && "Page2MB physical address must be 2MB aligned");
+    auto bits = toBitValue(PpgttEntryBits::largePageSizeBit, PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
     bits |= isLocalMemory() ? toBitValue(PpgttEntryBits::localMemoryBit) : 0;
     bits |= gpu.getPPGTTExtraEntryBits(additionalAllocParams);
     return getPhysicalAddress() | bits;

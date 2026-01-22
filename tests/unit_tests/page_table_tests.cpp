@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -13,6 +13,7 @@
 #include "test_defaults.h"
 #include "tests/unit_tests/mock_physical_address_allocator.h"
 #include "aubstream/hint_values.h"
+#include "test.h"
 
 #include "gtest/gtest.h"
 
@@ -587,4 +588,313 @@ TEST(PageTable, whenPageTableIsDeletedThenFreePhysicalMemory) {
     }
     EXPECT_EQ(pMockAllocator->usedAllocationsMap.size(), 0);
     EXPECT_EQ(pMockAllocator->freeAllocationsMap.size(), 1);
+}
+
+TEST(PageTable, getPageSizeReturnsZeroForNonLeafNodes) {
+    PhysicalAddressAllocatorSimple allocator;
+
+    // Non-leaf nodes - PML4, PDP, PDE
+    PML4 pml4(*gpu, &allocator, MEMORY_BANK_0);
+    EXPECT_EQ(0u, pml4.getPageSize());
+
+    PDP pdp(*gpu, &allocator, MEMORY_BANK_0);
+    EXPECT_EQ(0u, pdp.getPageSize());
+
+    PDE pde(*gpu, &allocator, MEMORY_BANK_0);
+    EXPECT_EQ(0u, pde.getPageSize());
+}
+
+using Page2MBTest = PageTableParamTest;
+
+TEST(Page2MB, pageSizeShouldBe2MB) {
+    PhysicalAddressAllocatorSimple allocator;
+    Page2MB page(*gpu, &allocator, MEMORY_BANK_0);
+    EXPECT_EQ(Page2MB::pageSize2MB, page.getPageSize());
+    EXPECT_EQ(2u * 1024u * 1024u, page.getPageSize());
+}
+
+TEST(Page2MB, physicalAddressShouldBeAlignedTo2MB) {
+    PhysicalAddressAllocatorSimple allocator;
+    Page2MB page(*gpu, &allocator, MEMORY_BANK_0);
+    EXPECT_NE(0u, page.getPhysicalAddress());
+    EXPECT_EQ(0u, page.getPhysicalAddress() % Page2MB::pageSize2MB);
+}
+
+TEST(Page2MB, ctorWithPhysicalAddress) {
+    uint64_t physicalAddress = 0x200000; // 2MB aligned
+    Page2MB page(*gpu, physicalAddress, MEMORY_BANK_0);
+    EXPECT_EQ(physicalAddress, page.getPhysicalAddress());
+    EXPECT_EQ(MEMORY_BANK_0, page.getMemoryBank());
+}
+
+TEST(Page2MB, getEntryValueLocalMemory) {
+    PhysicalAddressAllocatorSimple allocator;
+    Page2MB page(*gpu, &allocator, MEMORY_BANK_0);
+
+    auto expectedBits = toBitValue(PpgttEntryBits::largePageSizeBit, PpgttEntryBits::writableBit, PpgttEntryBits::presentBit, PpgttEntryBits::localMemoryBit);
+    expectedBits |= gpu->getPPGTTExtraEntryBits({});
+    auto expectedEntryValue = page.getPhysicalAddress() | expectedBits;
+    EXPECT_EQ(expectedEntryValue, page.getEntryValue());
+}
+
+TEST(Page2MB, getEntryValueSystemMemory) {
+    PhysicalAddressAllocatorSimple allocator;
+    Page2MB page(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    auto expectedBits = toBitValue(PpgttEntryBits::largePageSizeBit, PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
+    expectedBits |= gpu->getPPGTTExtraEntryBits({});
+    auto expectedEntryValue = page.getPhysicalAddress() | expectedBits;
+    EXPECT_EQ(expectedEntryValue, page.getEntryValue());
+}
+
+TEST(Page2MB, isLocalMemory) {
+    PhysicalAddressAllocatorSimple allocator;
+    Page2MB pageLocal(*gpu, &allocator, MEMORY_BANK_0);
+    Page2MB pageSystem(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    EXPECT_TRUE(pageLocal.isLocalMemory());
+    EXPECT_FALSE(pageSystem.isLocalMemory());
+}
+
+TEST_P(Page2MBTest, ctorWithAllocator) {
+    PhysicalAddressAllocatorSimple allocator;
+    Page2MB page(*gpu, &allocator, memoryBank);
+    EXPECT_NE(0u, page.getPhysicalAddress());
+    EXPECT_EQ(memoryBank, page.getMemoryBank());
+    EXPECT_EQ(Page2MB::pageSize2MB, page.getPageSize());
+}
+
+INSTANTIATE_TEST_SUITE_P(Page2MB,
+                         Page2MBTest,
+                         ::testing::ValuesIn(allMemoryBanks));
+
+TEST(PDE, allocateChildReturns2MBPageWhenPageSize2MB) {
+    PhysicalAddressAllocatorSimple allocator;
+    PDE pde(*gpu, &allocator, MEMORY_BANK_0);
+    std::unique_ptr<PageTable> child(pde.allocateChild(*gpu, Page2MB::pageSize2MB, pde.getMemoryBank()));
+    ASSERT_NE(nullptr, child);
+    EXPECT_EQ(Page2MB::pageSize2MB, child->getPageSize());
+}
+
+TEST(PDE, allocateChildReturns4KBPTEWhenPageSize4KB) {
+    PhysicalAddressAllocatorSimple allocator;
+    PDE pde(*gpu, &allocator, MEMORY_BANK_0);
+    std::unique_ptr<PageTable> child(pde.allocateChild(*gpu, 4096, pde.getMemoryBank()));
+    ASSERT_NE(nullptr, child);
+    EXPECT_EQ(4096u, child->getPageSize());
+}
+
+TEST(PDE, allocateChildReturns64KBPTEWhenPageSize64KB) {
+    PhysicalAddressAllocatorSimple allocator;
+    PDE pde(*gpu, &allocator, MEMORY_BANK_0);
+    std::unique_ptr<PageTable> child(pde.allocateChild(*gpu, 65536, pde.getMemoryBank()));
+    ASSERT_NE(nullptr, child);
+    EXPECT_EQ(65536u, child->getPageSize());
+}
+
+TEST_F(PageTableTest, GivenPPGTTWhenWriteMemoryWith2MBPagesThenCorrectHierarchyIsCreated) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
+
+    uint32_t data = 0xabcdabcd;
+    uint64_t gfxAddress = 0x200000; // 2MB aligned
+
+    stream.writeMemory(&ppgtt, {gfxAddress, &data, sizeof(data), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, Page2MB::pageSize2MB});
+
+    // Verify hierarchy: PML4 -> PDP -> PDE -> Page2MB (no PTE)
+    auto pdp = ppgtt.getChild(ppgtt.getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pdp);
+    EXPECT_TRUE(pdp->isLocalMemory());
+
+    auto pde = pdp->getChild(pdp->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pde);
+    EXPECT_TRUE(pde->isLocalMemory());
+
+    auto page = pde->getChild(pde->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, page);
+    EXPECT_EQ(Page2MB::pageSize2MB, page->getPageSize());
+    EXPECT_TRUE(page->isLocalMemory());
+}
+
+TEST_F(PageTableTest, GivenPPGTTWith2MBPageWhenFreeMemoryThenPageIsRemoved) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
+
+    uint32_t data = 0xabcdabcd;
+    uint64_t gfxAddress1 = 0x200000; // First 2MB page
+    uint64_t gfxAddress2 = 0x400000; // Second 2MB page (in same PDE)
+
+    // Write two 2MB pages so PDE is not empty after freeing one
+    stream.writeMemory(&ppgtt, {gfxAddress1, &data, sizeof(data), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, Page2MB::pageSize2MB});
+    stream.writeMemory(&ppgtt, {gfxAddress2, &data, sizeof(data), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, Page2MB::pageSize2MB});
+
+    // Verify pages exist
+    auto pdp = ppgtt.getChild(ppgtt.getIndex(gfxAddress1));
+    ASSERT_NE(nullptr, pdp);
+    auto pde = pdp->getChild(pdp->getIndex(gfxAddress1));
+    ASSERT_NE(nullptr, pde);
+    auto page1 = pde->getChild(pde->getIndex(gfxAddress1));
+    auto page2 = pde->getChild(pde->getIndex(gfxAddress2));
+    ASSERT_NE(nullptr, page1);
+    ASSERT_NE(nullptr, page2);
+
+    // Free the first page
+    stream.freeMemory(&ppgtt, gfxAddress1, Page2MB::pageSize2MB);
+
+    // Verify first page is removed but second remains
+    page1 = pde->getChild(pde->getIndex(gfxAddress1));
+    page2 = pde->getChild(pde->getIndex(gfxAddress2));
+    EXPECT_EQ(nullptr, page1);
+    EXPECT_NE(nullptr, page2);
+}
+
+TEST_F(PageTableTest, GivenPPGTTWith2MBPageWhenFreeMemoryThenEmptyPDEIsAlsoRemoved) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
+
+    uint32_t data = 0xabcdabcd;
+    uint64_t gfxAddress = 0x200000;
+
+    stream.writeMemory(&ppgtt, {gfxAddress, &data, sizeof(data), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, Page2MB::pageSize2MB});
+
+    auto pdp = ppgtt.getChild(ppgtt.getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pdp);
+
+    stream.freeMemory(&ppgtt, gfxAddress, Page2MB::pageSize2MB);
+
+    // After freeing the only 2MB page, the PDE should also be removed
+    auto pde = pdp->getChild(pdp->getIndex(gfxAddress));
+    EXPECT_EQ(nullptr, pde);
+}
+
+TEST_F(PageTableTest, GivenPPGTTWithMultiple2MBPagesWhenFreeOneThenOthersRemain) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
+
+    uint32_t data = 0xabcdabcd;
+    uint64_t gfxAddress1 = 0x200000; // First 2MB page
+    uint64_t gfxAddress2 = 0x400000; // Second 2MB page (same PDE)
+
+    stream.writeMemory(&ppgtt, {gfxAddress1, &data, sizeof(data), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, Page2MB::pageSize2MB});
+    stream.writeMemory(&ppgtt, {gfxAddress2, &data, sizeof(data), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, Page2MB::pageSize2MB});
+
+    auto pdp = ppgtt.getChild(ppgtt.getIndex(gfxAddress1));
+    ASSERT_NE(nullptr, pdp);
+    auto pde = pdp->getChild(pdp->getIndex(gfxAddress1));
+    ASSERT_NE(nullptr, pde);
+
+    // Confirm both pages exist
+    auto page1 = pde->getChild(pde->getIndex(gfxAddress1));
+    auto page2 = pde->getChild(pde->getIndex(gfxAddress2));
+    ASSERT_NE(nullptr, page1);
+    ASSERT_NE(nullptr, page2);
+
+    // Free first page
+    stream.freeMemory(&ppgtt, gfxAddress1, Page2MB::pageSize2MB);
+
+    // First page should be removed, second should remain
+    page1 = pde->getChild(pde->getIndex(gfxAddress1));
+    page2 = pde->getChild(pde->getIndex(gfxAddress2));
+    EXPECT_EQ(nullptr, page1);
+    EXPECT_NE(nullptr, page2);
+
+    // PDE should still exist
+    pde = pdp->getChild(pdp->getIndex(gfxAddress1));
+    EXPECT_NE(nullptr, pde);
+}
+
+TEST_F(PageTableTest, Write2MBFollowedBy4KBAtSameAddressShouldNotChangePageSize) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
+
+    uint32_t data = 0xabcdabcd;
+    uint64_t gfxAddress = 0x200000;
+
+    // First write - with 2MB page
+    stream.writeMemory(&ppgtt, {gfxAddress, &data, sizeof(data), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, Page2MB::pageSize2MB});
+
+    // Second write - with 4KB page at same address
+    stream.writeMemory(&ppgtt, {gfxAddress, &data, sizeof(data), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, 4096});
+
+    auto pdp = ppgtt.getChild(ppgtt.getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pdp);
+    auto pde = pdp->getChild(pdp->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pde);
+    auto page = pde->getChild(pde->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, page);
+
+    // Page should still be 2MB
+    EXPECT_EQ(Page2MB::pageSize2MB, page->getPageSize());
+}
+
+TEST_F(PageTableTest, GivenPPGTTWhenWriteMemoryWith2MBPagesThenCorrectHintsAreUsed) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
+
+    // 2MB pages use all 4 levels: PML4 -> PDP -> PDE -> Page2MB (no PTE)
+    EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel4)).Times(1);
+    EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel3)).Times(1);
+    EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel2)).Times(1);
+    EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel1)).Times(1);
+
+    uint32_t data = 0xabcdabcd;
+    stream.writeMemory(&ppgtt, {0x200000, &data, sizeof(data), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, Page2MB::pageSize2MB});
+}
+
+TEST(PDE, allocateChildReturns2MBPageWhenPageSize2MBWithAdditionalParams) {
+    PhysicalAddressAllocatorSimple allocator;
+    PDE pde(*gpu, &allocator, MEMORY_BANK_0);
+
+    AllocationParams::AdditionalParams additionalParams = {};
+    additionalParams.compressionEnabled = true;
+
+    std::unique_ptr<PageTable> child(pde.allocateChild(*gpu, Page2MB::pageSize2MB, MEMORY_BANK_0, additionalParams));
+    ASSERT_NE(nullptr, child);
+    EXPECT_EQ(Page2MB::pageSize2MB, child->getPageSize());
+    EXPECT_TRUE(child->peekAllocationParams().compressionEnabled);
+}
+
+TEST(PDE, allocateChildReturns2MBPageWhenPageSize2MBWithAdditionalParamsAndPhysicalAddress) {
+    PhysicalAddressAllocatorSimple allocator;
+    PDE pde(*gpu, &allocator, MEMORY_BANK_0);
+
+    AllocationParams::AdditionalParams additionalParams = {};
+    additionalParams.compressionEnabled = true;
+    uint64_t physicalAddress = 0x400000; // 2MB aligned
+
+    std::unique_ptr<PageTable> child(pde.allocateChild(*gpu, Page2MB::pageSize2MB, MEMORY_BANK_0, additionalParams, physicalAddress));
+    ASSERT_NE(nullptr, child);
+    EXPECT_EQ(Page2MB::pageSize2MB, child->getPageSize());
+    EXPECT_EQ(physicalAddress, child->getPhysicalAddress());
+    EXPECT_TRUE(child->peekAllocationParams().compressionEnabled);
+}
+
+TEST_F(PageTableTest, GivenPPGTTWith2MBPageWhenFreeMemoryAndPDEBecomesEmptyThenPDPLevelEntryIsWritten) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
+
+    uint32_t data = 0xabcdabcd;
+    uint64_t gfxAddress = 0x200000;
+
+    stream.writeMemory(&ppgtt, {gfxAddress, &data, sizeof(data), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, Page2MB::pageSize2MB});
+
+    EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel1)).Times(1);
+    EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel2)).Times(1);
+    EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceLocal, DataTypeHintValues::TracePpgttLevel3)).Times(1);
+
+    stream.freeMemory(&ppgtt, gfxAddress, Page2MB::pageSize2MB);
 }

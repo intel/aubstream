@@ -10,6 +10,7 @@
 #include "aub_mem_dump/command_streamer_helper.h"
 #include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/hardware_context_imp.h"
+#include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/settings.h"
 #include <atomic>
 #include <vector>
@@ -237,7 +238,11 @@ void HardwareContextImp::pollForFenceCompletion() {
 
 void HardwareContextImp::writeAndSubmitBatchBuffer(uint64_t gfxAddress, const void *batchBuffer, size_t size, uint32_t memoryBanks, size_t pageSize) {
     if (!csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize))) {
-        pageSize = pageSize == 65536 ? 4096 : 65536;
+        if (pageSize == Page2MB::pageSize2MB) {
+            pageSize = 65536;
+        } else {
+            pageSize = pageSize == 65536 ? 4096 : 65536;
+        }
     }
     assert(csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize)));
 
@@ -369,7 +374,11 @@ void HardwareContextImp::writeMemory2(AllocationParams allocationParams) {
     auto memoryBanks = allocationParams.memoryBanks;
 
     if (!csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize))) {
-        pageSize = pageSize == 65536 ? 4096 : 65536;
+        if (pageSize == Page2MB::pageSize2MB) {
+            pageSize = 65536;
+        } else {
+            pageSize = pageSize == 65536 ? 4096 : 65536;
+        }
     }
     assert(csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize)));
 

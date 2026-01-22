@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2025 Intel Corporation
+# Copyright (C) 2025-2026 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -9,5 +9,6 @@ if(AUBSTREAM_TESTS_CRI)
                  PRIVATE
                  ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
                  ${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests_cri.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/page_table_tests_cri.cpp
   )
 endif()

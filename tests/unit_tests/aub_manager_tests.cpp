@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -652,7 +652,7 @@ HWTEST_F(AubManagerTest, whenAubManagerWritesMemoryThenPageTablesParamsCloned, M
         for (int32_t level = static_cast<int32_t>(ppgtt->getNumLevels() - 1); level >= 0; level--) {
             entry = entry->getChild(0);
 
-            if (level == 0) {
+            if (level == PageTableLevel::Pte) {
                 EXPECT_TRUE(entry->peekAllocationParams().compressionEnabled);
                 EXPECT_FALSE(entry->peekAllocationParams().uncached);
             } else {

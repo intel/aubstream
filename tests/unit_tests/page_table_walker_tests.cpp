@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -10,6 +10,7 @@
 #include "aub_mem_dump/page_table_walker.h"
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
+#include "test.h"
 #include "gtest/gtest.h"
 
 using namespace aub_stream;
@@ -43,10 +44,10 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForLocalMem
     pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, 65536, MEMORY_BANK_0, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr);
 
     EXPECT_EQ(0u, pageWalker.pages64KB.size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[0].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[1].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[2].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[3].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pml4].size());
 
     EXPECT_EQ(2u, pageWalker.entries.size());
 }
@@ -61,10 +62,10 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForSystem64
     pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr);
 
     EXPECT_EQ(2u, pageWalker.pages64KB.size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[0].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[1].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[2].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[3].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pml4].size());
 
     EXPECT_EQ(2u, pageWalker.entries.size());
 }
@@ -83,10 +84,10 @@ TEST_F(PageTableWalkerTest, givenCloneModeAndPPGTTWhenWalkingMemoryForSystem64KB
     pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, PageTableWalker::WalkMode::Clone, &pageInfosForCloning);
 
     EXPECT_EQ(0u, pageWalker.pages64KB.size());
-    EXPECT_EQ(0u, pageWalker.pageWalkEntries[0].size());
-    EXPECT_EQ(0u, pageWalker.pageWalkEntries[1].size());
-    EXPECT_EQ(0u, pageWalker.pageWalkEntries[2].size());
-    EXPECT_EQ(0u, pageWalker.pageWalkEntries[3].size());
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pml4].size());
 
     EXPECT_EQ(2u, pageWalker.entries.size());
 }
@@ -100,10 +101,10 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndGGTTWhenWalkingMemoryForLocalMemo
     pageWalker.walkMemory(ggtt.get(), gfxAddress, sizeof(data), MEMORY_BANK_0, 4096, PageTableWalker ::WalkMode::Reserve, nullptr);
 
     EXPECT_EQ(0u, pageWalker.pages64KB.size());
-    EXPECT_EQ(1u, pageWalker.pageWalkEntries[0].size());
-    EXPECT_EQ(0u, pageWalker.pageWalkEntries[1].size());
-    EXPECT_EQ(0u, pageWalker.pageWalkEntries[2].size());
-    EXPECT_EQ(0u, pageWalker.pageWalkEntries[3].size());
+    EXPECT_EQ(1u, pageWalker.pageWalkEntries[0].size()); // GGTT
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pml4].size());
 
     EXPECT_EQ(1u, pageWalker.entries.size());
 }
@@ -120,10 +121,10 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForLocalMem
     pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, 65536, MEMORY_BANK_0, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr, physicalAddress);
 
     EXPECT_EQ(0u, pageWalker.pages64KB.size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[0].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[1].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[2].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[3].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pml4].size());
 
     EXPECT_EQ(2u, pageWalker.entries.size());
 
@@ -141,10 +142,10 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForSystem64
     pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr, physicalAddress);
 
     EXPECT_EQ(2u, pageWalker.pages64KB.size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[0].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[1].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[2].size());
-    EXPECT_EQ(2u, pageWalker.pageWalkEntries[3].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pml4].size());
 
     EXPECT_EQ(2u, pageWalker.entries.size());
 
@@ -166,10 +167,10 @@ TEST_F(PageTableWalkerTest, givenCloneModeAndPPGTTWhenWalkingMemoryForSystem64KB
     pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, PageTableWalker::WalkMode::Clone, &pageInfosForCloning);
 
     EXPECT_EQ(0u, pageWalker.pages64KB.size());
-    EXPECT_EQ(0u, pageWalker.pageWalkEntries[0].size());
-    EXPECT_EQ(0u, pageWalker.pageWalkEntries[1].size());
-    EXPECT_EQ(0u, pageWalker.pageWalkEntries[2].size());
-    EXPECT_EQ(0u, pageWalker.pageWalkEntries[3].size());
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pml4].size());
 
     EXPECT_EQ(2u, pageWalker.entries.size());
 
@@ -189,10 +190,10 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForLocalMem
     pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr, physicalAddress);
 
     EXPECT_EQ(0u, pageWalker.pages64KB.size());
-    EXPECT_EQ(3u, pageWalker.pageWalkEntries[0].size());
-    EXPECT_EQ(3u, pageWalker.pageWalkEntries[1].size());
-    EXPECT_EQ(3u, pageWalker.pageWalkEntries[2].size());
-    EXPECT_EQ(3u, pageWalker.pageWalkEntries[3].size());
+    EXPECT_EQ(3u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(3u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(3u, pageWalker.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(3u, pageWalker.pageWalkEntries[PageTableLevel::Pml4].size());
 
     EXPECT_EQ(3u, pageWalker.entries.size());
 
@@ -204,10 +205,10 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForLocalMem
     pageWalker2.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr, physicalAddress);
 
     EXPECT_EQ(0u, pageWalker2.pages64KB.size());
-    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[0].size());
-    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[1].size());
-    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[2].size());
-    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[3].size());
+    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[PageTableLevel::Pml4].size());
 
     EXPECT_EQ(3u, pageWalker2.entries.size());
 }
@@ -250,10 +251,10 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryWithNewPhys
     pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr, physicalAddress);
 
     EXPECT_EQ(0u, pageWalker.pages64KB.size());
-    EXPECT_EQ(3u, pageWalker.pageWalkEntries[0].size());
-    EXPECT_EQ(3u, pageWalker.pageWalkEntries[1].size());
-    EXPECT_EQ(3u, pageWalker.pageWalkEntries[2].size());
-    EXPECT_EQ(3u, pageWalker.pageWalkEntries[3].size());
+    EXPECT_EQ(3u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(3u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(3u, pageWalker.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(3u, pageWalker.pageWalkEntries[PageTableLevel::Pml4].size());
 
     EXPECT_EQ(3u, pageWalker.entries.size());
 
@@ -282,10 +283,10 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryWithNewPhys
     pageWalker2.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_1, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr, physicalAddress2);
 
     EXPECT_EQ(0u, pageWalker2.pages64KB.size());
-    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[0].size());
-    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[1].size());
-    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[2].size());
-    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[3].size());
+    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(3u, pageWalker2.pageWalkEntries[PageTableLevel::Pml4].size());
 
     EXPECT_EQ(physicalAddress2 + (gfxAddress & (65536u - 1)), pageWalker2.entries[0].physicalAddress);
 
@@ -294,4 +295,128 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryWithNewPhys
     EXPECT_TRUE(newPage->isLocalMemory());
     EXPECT_EQ(physicalAddress2, newPage->getPhysicalAddress());
     EXPECT_EQ(MEMORY_BANK_1, newPage->getMemoryBank());
+}
+
+TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryFor2MBPageThenPageTableWalkerHasCorrectEntriesAtLevel1) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    const uint64_t gfxAddress = 0x200000; // 2MB aligned address
+    const size_t size = Page2MB::pageSize2MB;
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    // For 2MB pages, leafLevel = PageTableLevel::Pde, so pageWalkEntries[PageTableLevel::Pte] should be empty
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(1u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
+    EXPECT_EQ(1u, pageWalker.pageWalkEntries[PageTableLevel::Pdp].size());
+    EXPECT_EQ(1u, pageWalker.pageWalkEntries[PageTableLevel::Pml4].size());
+
+    EXPECT_EQ(1u, pageWalker.entries.size());
+    EXPECT_EQ(size, pageWalker.entries[0].size);
+}
+
+TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryFor2MBPageThenNoPTEIsCreated) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    const uint64_t gfxAddress = 0x200000;
+    const size_t size = Page2MB::pageSize2MB;
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    // Verify hierarchy: PML4 -> PDP -> PDE -> Page2MB (no PTE)
+    auto pdp = ppgtt->getChild(ppgtt->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pdp);
+
+    auto pde = pdp->getChild(pdp->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pde);
+
+    auto page = pde->getChild(pde->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, page);
+
+    // The child of PDE should be a Page2MB
+    EXPECT_EQ(Page2MB::pageSize2MB, page->getPageSize());
+}
+
+TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryFor2MBPageThenPhysicalAddressIsAlignedTo2MB) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    const uint64_t gfxAddress = 0x200000;
+    const size_t size = Page2MB::pageSize2MB;
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    ASSERT_EQ(1u, pageWalker.entries.size());
+    EXPECT_EQ(0u, pageWalker.entries[0].physicalAddress % Page2MB::pageSize2MB);
+}
+
+TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForMultiple2MBPagesThenCorrectNumberOfEntriesCreated) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    const uint64_t gfxAddress = 0x200000;
+    const size_t numEntries = 3;
+    const size_t size = numEntries * Page2MB::pageSize2MB;
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    EXPECT_EQ(numEntries, pageWalker.entries.size());
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    // PDE level should have 3 entries
+    EXPECT_EQ(numEntries, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
+}
+
+TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryFor2MBPageCrossingPDPBoundaryThenMultiplePDPsUsed) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    // Cross 1GB boundary (PDP boundary) with two 2MB pages
+    const uint64_t gfxAddress = (1ull << 30) - Page2MB::pageSize2MB;
+    const size_t size = 2 * Page2MB::pageSize2MB; // Crosses into second PDP entry
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    EXPECT_EQ(2u, pageWalker.entries.size());
+    EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pdp].size());
+}
+
+TEST_F(PageTableWalkerTest, givenCloneModeAndPPGTTWhenWalkingMemoryFor2MBPageThenPageIsClonedWithSamePhysicalAddress) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    const uint64_t gfxAddress = 0x200000;
+    const size_t size = Page2MB::pageSize2MB;
+
+    PageTableWalker pageWalkerReserve;
+    pageWalkerReserve.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    std::vector<PageInfo> pageInfosForCloning = pageWalkerReserve.entries;
+
+    auto ppgtt2 = std::make_unique<PML4>(*gpu, allocator.get(), defaultMemoryBank);
+
+    PageTableWalker pageWalkerClone;
+    pageWalkerClone.walkMemory(ppgtt2.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Clone, &pageInfosForCloning);
+
+    EXPECT_EQ(0u, pageWalkerClone.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(1u, pageWalkerClone.pageWalkEntries[PageTableLevel::Pde].size());
+    ASSERT_EQ(1u, pageWalkerClone.entries.size());
+    EXPECT_EQ(pageInfosForCloning[0].physicalAddress, pageWalkerClone.entries[0].physicalAddress);
+}
+
+TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryFor2MBPageWithPreReservedPhysicalAddressThenCorrectAddressIsUsed) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    const uint64_t gfxAddress = 0x200000;
+    const size_t size = Page2MB::pageSize2MB;
+    const uint64_t physicalAddress = ppgtt->getPhysicalAddressAllocator()->reservePhysicalMemory(MEMORY_BANK_0, Page2MB::pageSize2MB, Page2MB::pageSize2MB);
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr, physicalAddress);
+
+    ASSERT_EQ(1u, pageWalker.entries.size());
+    EXPECT_EQ(physicalAddress, pageWalker.entries[0].physicalAddress);
+
+    EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(1u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
 }
