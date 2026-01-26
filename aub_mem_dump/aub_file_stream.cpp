@@ -529,6 +529,9 @@ void AubFileStream::memoryPoll(const std::vector<PageInfo> &entries, uint32_t va
     header.timeoutAction = CmdServicesMemTraceMemoryPoll::TimeoutActionValues::Abort;
     header.dataTypeHint = CmdServicesMemTraceMemoryPoll::DataTypeHintValues::TraceNotype;
     header.addressSpace = entries[0].isLocalMemory ? AddressSpaceValues::TraceLocal : AddressSpaceValues::TraceNonlocal;
+    header.dwordCount = (sizeof(header) / sizeof(uint32_t)) - 1;
+    header.pollMaskLow = 0xFFFFFFFF;
+    header.pollMaskHigh = 0xFFFFFFFF;
     header.data[0] = value;
 
     write((char *)&header, sizeof(header));

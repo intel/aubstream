@@ -686,6 +686,9 @@ TEST_F(AubFileStreamMemoryPollTest, givenAubFileStreamWhenMemoryPollIsCalledThen
     EXPECT_EQ(cmd->tiling, CmdServicesMemTraceMemoryPoll::TilingValues::NoTiling);
     EXPECT_EQ(cmd->timeoutAction, CmdServicesMemTraceMemoryPoll::TimeoutActionValues::Abort);
     EXPECT_EQ(cmd->addressSpace, CmdServicesMemTraceMemoryWrite::AddressSpaceValues::TraceLocal);
+    EXPECT_EQ(cmd->pollMaskLow, 0xFFFFFFFFu);
+    EXPECT_EQ(cmd->pollMaskHigh, 0xFFFFFFFFu);
+    EXPECT_EQ(cmd->dwordCount, (sizeof(CmdServicesMemTraceMemoryPoll) / sizeof(uint32_t)) - 1u);
     EXPECT_EQ(cmd->data[0], expectedValue);
 }
 
