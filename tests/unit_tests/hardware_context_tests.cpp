@@ -103,10 +103,12 @@ HWTEST_F(HardwareContextTest, ringBufferWrap, ringDataDisabled) {
 }
 
 TEST_F(HardwareContextTest, pollForCompletionShouldForwardToRegisterPoll) {
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+    TEST_REQUIRES(!csHelper.memoryBasedPollForCompletion());
+
     PhysicalAddressAllocatorSimple allocator;
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
-    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
 
     EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(AtLeast(1));
@@ -950,10 +952,10 @@ TEST_F(HardwareContextTest, givenRegisterBasedPollForCompletionWhenPollForComple
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
 
     if (csHelper.memoryBasedPollForCompletion()) {
-        EXPECT_CALL(stream, memoryPoll(_, _, _)).Times(1);
-        EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(0);
+        EXPECT_CALL(stream, gttMemoryPoll(_, _, _, _)).Times(1);
+        EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(1);
     } else {
-        EXPECT_CALL(stream, memoryPoll(_, _, _)).Times(0);
+        EXPECT_CALL(stream, gttMemoryPoll(_, _, _, _)).Times(0);
         EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(AtLeast(1));
     }
 
