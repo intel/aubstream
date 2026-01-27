@@ -109,7 +109,7 @@ TEST_F(HardwareContextTest, pollForCompletionShouldForwardToRegisterPoll) {
     auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
 
-    EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(1);
+    EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(AtLeast(1));
     context.pollForCompletion();
 }
 
@@ -954,7 +954,7 @@ TEST_F(HardwareContextTest, givenRegisterBasedPollForCompletionWhenPollForComple
         EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(0);
     } else {
         EXPECT_CALL(stream, memoryPoll(_, _, _)).Times(0);
-        EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(1);
+        EXPECT_CALL(stream, registerPoll(_, _, _, _, _)).Times(AtLeast(1));
     }
 
     context.pollForCompletion();

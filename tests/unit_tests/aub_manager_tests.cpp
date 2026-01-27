@@ -824,6 +824,7 @@ TEST(AubManager, givenAubManagerCreatedWithAubFileAndTbxModeWhenHardwareContextI
     struct MockAubTbxStream : public AubTbxStream {
         using AubTbxStream::AubTbxStream;
         MOCK_METHOD2(declareContextForDumping, void(uint32_t handleDumpContext, PageTable *pageTable));
+        MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     };
 
     auto aubFilestream = aubManager.streamAub.get();
