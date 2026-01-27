@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -87,7 +87,6 @@ class AubManagerImp : public AubManager {
   protected:
     virtual void createStream();
     AubStream *getStream() const;
-    void adjustPageSize(uint32_t memoryBanks, size_t &pageSize);
     void throwErrorIfEnabled(const std::string &) const;
 
     std::unique_ptr<Gpu> gpu;

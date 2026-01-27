@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -10,6 +10,7 @@
 #include "command_streamer_helper.h"
 #include "gpu.h"
 #include "hardware_context_imp.h"
+#include "page_table.h"
 
 namespace aub_stream {
 
@@ -23,6 +24,18 @@ inline T ptrOffset(T ptrBefore, size_t offset) {
 bool CommandStreamerHelper::isMemorySupported(uint32_t memoryBank, uint32_t alignment) const {
     assert(gpu);
     return gpu->isMemorySupported(memoryBank, alignment);
+}
+
+size_t CommandStreamerHelper::getSupportedPageSize(uint32_t memoryBank, size_t pageSize) const {
+    if (!isMemorySupported(memoryBank, static_cast<uint32_t>(pageSize))) {
+        if (pageSize == Page2MB::pageSize2MB) {
+            pageSize = 65536;
+        } else {
+            pageSize = pageSize == 65536 ? 4096 : 65536;
+        }
+        assert(isMemorySupported(memoryBank, static_cast<uint32_t>(pageSize)));
+    }
+    return pageSize;
 }
 
 void CommandStreamerHelper::setRingTail(void *pLRCIn, uint32_t ringTail) const {

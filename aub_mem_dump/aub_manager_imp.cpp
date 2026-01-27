@@ -409,20 +409,6 @@ bool AubManagerImp::releaseHardwareContext(HardwareContext *context) {
     return false;
 }
 
-void AubManagerImp::adjustPageSize(uint32_t memoryBanks, size_t &pageSize) {
-    auto &csTraits = gpu->getCommandStreamerHelper(0, static_cast<EngineType>(ENGINE_CCS));
-
-    if (!csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize))) {
-        if (pageSize == Page2MB::pageSize2MB) {
-            pageSize = 65536u;
-        } else {
-            pageSize = pageSize == 65536u ? 4096u : 65536u;
-        }
-    }
-    // make sure this combination is still valid
-    assert(csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize)));
-}
-
 void AubManagerImp::writeMemory(uint64_t gfxAddress, const void *memory, size_t size, uint32_t memoryBanks,
                                 int hint, size_t pageSize) {
     // fallback to new interface
@@ -433,7 +419,9 @@ void AubManagerImp::writeMemory2(AllocationParams allocationParams) {
     if (streamMode == aub_stream::mode::null) {
         return;
     }
-    adjustPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
+    auto &csTraits = gpu->getCommandStreamerHelper(0, static_cast<EngineType>(ENGINE_CCS));
+    allocationParams.pageSize = csTraits.getSupportedPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
+
     AubStream *stream = getStream();
 
     auto pageTableEntries = stream->writeMemory(ppgtts[0].get(), allocationParams);
@@ -449,7 +437,8 @@ void AubManagerImp::writePageTableEntries(uint64_t gfxAddress, size_t size, uint
         return;
     }
 
-    adjustPageSize(memoryBanks, pageSize);
+    auto &csTraits = gpu->getCommandStreamerHelper(0, static_cast<EngineType>(ENGINE_CCS));
+    pageSize = csTraits.getSupportedPageSize(memoryBanks, pageSize);
     AubStream *stream = getStream();
 
     auto pageTableEntries = stream->writeMemory(ppgtts[0].get(), AllocationParams(gfxAddress, nullptr, size, memoryBanks, hint, pageSize));
@@ -486,7 +475,8 @@ bool AubManagerImp::reservePhysicalMemory(AllocationParams allocationParams, Phy
     if (streamMode == aub_stream::mode::null) {
         return true;
     }
-    adjustPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
+    auto &csTraits = gpu->getCommandStreamerHelper(0, static_cast<EngineType>(ENGINE_CCS));
+    allocationParams.pageSize = csTraits.getSupportedPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
     auto size = allocationParams.size;
     auto memoryBanks = allocationParams.memoryBanks;
 
@@ -518,7 +508,8 @@ bool AubManagerImp::reserveOnlyPhysicalSpace(AllocationParams allocationParams, 
     if (streamMode == aub_stream::mode::null) {
         return true;
     }
-    adjustPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
+    auto &csTraits = gpu->getCommandStreamerHelper(0, static_cast<EngineType>(ENGINE_CCS));
+    allocationParams.pageSize = csTraits.getSupportedPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
     auto size = allocationParams.size;
     auto memoryBanks = allocationParams.memoryBanks;
 

@@ -116,6 +116,7 @@ struct CommandStreamerHelper {
     virtual void initializeContextEnvironment(AubStream &stream, HardwareContextImp &context) const {};
     virtual void cleanupContextEnvironment(AubStream &stream, HardwareContextImp &context) const {};
     bool isMemorySupported(uint32_t memoryBank, uint32_t alignment) const;
+    size_t getSupportedPageSize(uint32_t memoryBank, size_t pageSize) const;
     void setRingHead(void *pLRCIn, uint32_t ringHead) const;
     void setRingTail(void *pLRCIn, uint32_t ringTail) const;
     void setRingBase(void *pLRCIn, uint32_t ringBase) const;

@@ -8,10 +8,29 @@
 #include "aub_mem_dump/page_table_walker.h"
 #include "aub_mem_dump/memory_bank_helper.h"
 #include "aub_mem_dump/page_table.h"
+#include "aub_mem_dump/settings.h"
 #include <cassert>
-#include <iostream>
 
 namespace aub_stream {
+
+namespace {
+
+inline size_t apply2MBFallback(size_t pageSize, uint64_t gfxAddress) {
+    if (pageSize == Page2MB::pageSize2MB && (gfxAddress & (Page2MB::pageSize2MB - 1)) != 0) {
+        PRINT_LOG_ERROR("Warning: 2MB page requested but gfxAddress 0x%llx is not 2MB-aligned. Falling back to 64KB pages.\n",
+                        static_cast<unsigned long long>(gfxAddress));
+        return 65536;
+    }
+    return pageSize;
+}
+
+inline bool detect2MBConflict(PageTable *child, int level, size_t pageSize) {
+    return child && level == PageTableLevel::Pde &&
+           pageSize == Page2MB::pageSize2MB &&
+           child->getPageSize() != Page2MB::pageSize2MB;
+}
+
+} // namespace
 
 void PageTableWalker::walkMemory(GGTT *ggtt, uint64_t gfxAddress, size_t size, uint32_t memoryBanks, size_t pageSize, WalkMode mode, const std::vector<PageInfo> *pageInfos) {
     auto &ggttEntries = pageWalkEntries[0];
@@ -85,6 +104,8 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
     assert(pageSize > 0);
 
+    pageSize = apply2MBFallback(pageSize, gfxAddress);
+
     const PageInfo *clonePageInfo = nullptr;
     uint32_t clonePageInfoIndex = 0;
 
@@ -134,6 +155,11 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                 pageSize = Page2MB::pageSize2MB;
                 leafLevel = PageTableLevel::Pde;
                 break;
+            }
+
+            if (detect2MBConflict(child, level, pageSize)) {
+                pageSize = 65536;
+                leafLevel = PageTableLevel::Pte;
             }
 
             if (!child) {
@@ -206,9 +232,8 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     auto gfxAddress = allocationParams.gfxAddress;
 
     assert(pageSize > 0);
-    if ((physicalAddress & (pageSize - 1)) != 0) {
-        std::cerr << "Warning: physicalAddress must be page-size aligned" << std::endl;
-    }
+
+    pageSize = apply2MBFallback(pageSize, gfxAddress);
 
     const PageInfo *clonePageInfo = nullptr;
     uint32_t clonePageInfoIndex = 0;
@@ -256,6 +281,11 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                 pageSize = Page2MB::pageSize2MB;
                 leafLevel = PageTableLevel::Pde;
                 break;
+            }
+
+            if (detect2MBConflict(child, level, pageSize)) {
+                pageSize = 65536;
+                leafLevel = PageTableLevel::Pte;
             }
 
             if (!child) {

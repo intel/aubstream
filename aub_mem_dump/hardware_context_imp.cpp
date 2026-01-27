@@ -237,14 +237,7 @@ void HardwareContextImp::pollForFenceCompletion() {
 }
 
 void HardwareContextImp::writeAndSubmitBatchBuffer(uint64_t gfxAddress, const void *batchBuffer, size_t size, uint32_t memoryBanks, size_t pageSize) {
-    if (!csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize))) {
-        if (pageSize == Page2MB::pageSize2MB) {
-            pageSize = 65536;
-        } else {
-            pageSize = pageSize == 65536 ? 4096 : 65536;
-        }
-    }
-    assert(csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize)));
+    pageSize = csTraits.getSupportedPageSize(memoryBanks, pageSize);
 
     writeMemory(
         gfxAddress,
@@ -370,18 +363,7 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
 }
 
 void HardwareContextImp::writeMemory2(AllocationParams allocationParams) {
-    auto &pageSize = allocationParams.pageSize;
-    auto memoryBanks = allocationParams.memoryBanks;
-
-    if (!csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize))) {
-        if (pageSize == Page2MB::pageSize2MB) {
-            pageSize = 65536;
-        } else {
-            pageSize = pageSize == 65536 ? 4096 : 65536;
-        }
-    }
-    assert(csTraits.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize)));
-
+    allocationParams.pageSize = csTraits.getSupportedPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
     stream.writeMemory(&ppgtt, allocationParams);
 }
 
@@ -405,6 +387,8 @@ void HardwareContextImp::expectMemory(uint64_t gfxAddress, const void *memory, s
 }
 
 void HardwareContextImp::readMemory(uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize) {
+    pageSize = csTraits.getSupportedPageSize(memoryBanks, pageSize);
+
     stream.readMemory(
         &ppgtt,
         gfxAddress,

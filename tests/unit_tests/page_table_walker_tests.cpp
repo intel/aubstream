@@ -420,3 +420,90 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryFor2MBPageW
     EXPECT_EQ(0u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
     EXPECT_EQ(1u, pageWalker.pageWalkEntries[PageTableLevel::Pde].size());
 }
+
+TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryFor2MBPageWithUnalignedAddressThenFallsBackTo64KBPages) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    const uint64_t gfxAddress = 0x210000;
+    const size_t size = Page2MB::pageSize2MB;
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, size, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    EXPECT_NE(0u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
+
+    auto pdp = ppgtt->getChild(ppgtt->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pdp);
+    auto pde = pdp->getChild(pdp->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pde);
+    auto pte = pde->getChild(pde->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pte);
+    EXPECT_NE(Page2MB::pageSize2MB, pte->getPageSize());
+}
+
+TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryFor2MBAndThen64KBAtDifferentRegionsThenNoConflict) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    const uint64_t gfxAddress2MB = 0x200000;
+    const size_t size2MB = Page2MB::pageSize2MB;
+
+    PageTableWalker pageWalker1;
+    pageWalker1.walkMemory(ppgtt.get(), {gfxAddress2MB, nullptr, size2MB, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    const uint64_t gfxAddress64KB = 0x410000;
+    const size_t size64KB = 65536;
+
+    PageTableWalker pageWalker2;
+    pageWalker2.walkMemory(ppgtt.get(), {gfxAddress64KB, nullptr, size64KB, MEMORY_BANK_0, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    EXPECT_EQ(1u, pageWalker1.entries.size());
+    EXPECT_EQ(1u, pageWalker2.entries.size());
+    EXPECT_EQ(size2MB, pageWalker1.entries[0].size);
+    EXPECT_EQ(size64KB, pageWalker2.entries[0].size);
+}
+
+TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryFor2MBPageWithUnalignedAddressThenSubsequent64KBInSameRegionDoesNotConflict) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    const uint64_t gfxAddress1 = 0x8000ffbe0000ull;
+    const size_t size1 = Page2MB::pageSize2MB;
+
+    PageTableWalker pageWalker1;
+    pageWalker1.walkMemory(ppgtt.get(), {gfxAddress1, nullptr, size1, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    const uint64_t gfxAddress2 = 0x8000ffbd0000ull;
+    const size_t size2 = 65536;
+
+    PageTableWalker pageWalker2;
+    pageWalker2.walkMemory(ppgtt.get(), {gfxAddress2, nullptr, size2, MEMORY_BANK_0, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    EXPECT_NE(0u, pageWalker1.entries.size());
+    EXPECT_EQ(1u, pageWalker2.entries.size());
+}
+
+TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhen64KBFirstThen2MBAlignedInSameRegionThenSecondFallsBackTo64KB) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+
+    const uint64_t gfxAddress64KB = 0x210000;
+    const size_t size64KB = 65536;
+
+    PageTableWalker pageWalker1;
+    pageWalker1.walkMemory(ppgtt.get(), {gfxAddress64KB, nullptr, size64KB, MEMORY_BANK_0, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    const uint64_t gfxAddress2MB = 0x200000;
+    const size_t size2MB = Page2MB::pageSize2MB;
+
+    PageTableWalker pageWalker2;
+    pageWalker2.walkMemory(ppgtt.get(), {gfxAddress2MB, nullptr, size2MB, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    EXPECT_NE(0u, pageWalker2.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_NE(0u, pageWalker2.entries.size());
+
+    auto pdp = ppgtt->getChild(ppgtt->getIndex(gfxAddress2MB));
+    ASSERT_NE(nullptr, pdp);
+    auto pde = pdp->getChild(pdp->getIndex(gfxAddress2MB));
+    ASSERT_NE(nullptr, pde);
+    auto pte = pde->getChild(pde->getIndex(gfxAddress2MB));
+    ASSERT_NE(nullptr, pte);
+    EXPECT_NE(Page2MB::pageSize2MB, pte->getPageSize());
+}
