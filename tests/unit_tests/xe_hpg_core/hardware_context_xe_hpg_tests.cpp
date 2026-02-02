@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-2024 Intel Corporation
+ * Copyright (C) 2023-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -38,8 +38,8 @@ TEST_F(HardwareContextTest, givenExeclistSubmitPortSubmissionEnabledWhenSubmitti
 
     ::testing::Mock::VerifyAndClearExpectations(&stream);
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, _)).Times(16);
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, _, 0xffffffff)).Times(16);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1, 0xffffffff)).Times(1);
 
     context0.submitBatchBuffer(0x100, false);
 }

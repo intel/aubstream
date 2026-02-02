@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -23,7 +23,7 @@ std::ostream &log = logNull;
 std::string tbxServerIp = "127.0.0.1";
 uint16_t tbxServerPort = 4321;
 bool tbxFrontdoorMode = false;
-MMIOList MMIOListInjected;
+MaskedMMIOList MMIOListInjected;
 uint32_t aubStreamCaller = std::numeric_limits<uint32_t>::max();
 
 extern "C" {
@@ -32,7 +32,15 @@ void injectMMIOListLegacy(MMIOList mmioList) {
 }
 
 void injectMMIOList(MMIOList mmioList) {
-    MMIOListInjected = mmioList;
+    MMIOListInjected.clear();
+    for (const auto &mmio : mmioList) {
+        MMIOListInjected.push_back(MaskedMMIOWrite(mmio));
+    }
+    MMIOListInjected.shrink_to_fit();
+}
+
+void injectMaskedMMIOList(MaskedMMIOList maskedMmioList) {
+    MMIOListInjected = maskedMmioList;
     MMIOListInjected.shrink_to_fit();
 }
 

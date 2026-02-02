@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -51,9 +51,17 @@ TEST(OptionsTest, whenTbxServerModeIsSetToNewValueThenCorrectValueIsSet) {
 }
 
 TEST(OptionsTest, whenInjectMMIOListIsCalledThenMMIOsAreInjected) {
-    GlobalVariableRestorer<MMIOList> tbxServerIpRestorer(&MMIOListInjected);
+    GlobalVariableRestorer<MaskedMMIOList> tbxServerIpRestorer(&MMIOListInjected);
     MMIOList list = {MMIOPair(0xE48C, 0x20002), MMIOPair(0x1234, 0x40002)};
     injectMMIOList(list);
+
+    EXPECT_EQ(2u, list.size());
+}
+
+TEST(OptionsTest, whenInjectMaskedMMIOListIsCalledThenMMIOsAreInjected) {
+    GlobalVariableRestorer<MaskedMMIOList> tbxServerIpRestorer(&MMIOListInjected);
+    MaskedMMIOList list = {MaskedMMIOWrite(0xE48C, 0x20002, 0xffffffff), MaskedMMIOWrite(0x1234, 0x40002, 0xffffffff)};
+    injectMaskedMMIOList(list);
 
     EXPECT_EQ(2u, list.size());
 }

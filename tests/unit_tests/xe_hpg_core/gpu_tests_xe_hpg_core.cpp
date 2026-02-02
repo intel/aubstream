@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -24,10 +24,10 @@ TEST(Gpu, givenOneDeviceWhenSetMemoryBankSizeThenOnlyDefinedOneBank) {
     TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpgCore);
 
     MockAubStreamBase stream;
-    EXPECT_CALL(stream, writeMMIO(0x4900, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x4904, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x4908, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x490c, _)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x4900, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x4904, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x4908, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x490c, _, 0xffffffff)).Times(0);
 
     auto deviceCount = 1;
     auto memoryBankSize = 2 * GB;
@@ -38,19 +38,19 @@ TEST(Gpu, givenOneDeviceWhenSetGGTTBaseAddressThenIsProgrammedForOneTile) {
     TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::XeHpgCore);
 
     MockAubStreamBase stream;
-    EXPECT_CALL(stream, writeMMIO(0x108100, 0xff000000)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x108104, 0x00000007)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x108108, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x10810c, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x108110, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x108114, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x108118, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x1108100, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x1108104, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x2108100, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x2108104, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x3108100, _)).Times(0);
-    EXPECT_CALL(stream, writeMMIO(0x3108104, _)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x108100, 0xff000000, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x108104, 0x00000007, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x108108, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x10810c, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x108110, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x108114, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x108118, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x1108100, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x1108104, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x2108100, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x2108104, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x3108100, _, 0xffffffff)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(0x3108104, _, 0xffffffff)).Times(0);
 
     auto deviceCount = 1;
     auto memoryBankSize = 32ull * GB;
@@ -71,7 +71,7 @@ HWTEST_F(XeHpgCoreCsTest, GivenCcsEngineWhenInitializingEngineThenMiModeNestedBB
     PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).WillRepeatedly(Return());
-    EXPECT_CALL(stream, writeMMIO(ccs.mmioEngine + 0x0209c, 0x10000000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(_, _, 0xffffffff)).WillRepeatedly(Return());
+    EXPECT_CALL(stream, writeMMIO(ccs.mmioEngine + 0x0209c, 0x10000000, 0xffffffff)).Times(1);
     ccs.initializeEngineMMIO(stream);
 }

@@ -108,9 +108,16 @@ void TbxShmStream::memoryPoll(const std::vector<PageInfo> &entries, uint32_t val
     } while (!matches);
 }
 
-void TbxShmStream::writeMMIO(uint32_t offset, uint32_t value) {
+void TbxShmStream::writeMMIO(uint32_t offset, uint32_t value, uint32_t mask) {
     log << "MMIO write: " << std::hex << std::showbase << offset
         << "   =: " << std::hex << std::showbase << value;
+
+    if (mask != 0xFFFFFFFF) {
+        uint32_t currentValue = 0;
+        socket->readMMIO(offset, &currentValue);
+        value = (currentValue & ~mask) | (value & mask);
+        log << " (masked from " << std::hex << std::showbase << currentValue << ")";
+    }
 
     socket->writeMMIO(offset, value);
 }

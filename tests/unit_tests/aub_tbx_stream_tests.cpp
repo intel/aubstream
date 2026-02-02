@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -65,8 +65,8 @@ TEST(AubTbxStream, RedirectMethodsToAubFileAndTbxStreams) {
     EXPECT_CALL(*fileStream, registerPoll(_, _, _, _, _)).Times(1);
     EXPECT_CALL(*tbxStream, registerPoll(_, _, _, _, _)).Times(1);
 
-    EXPECT_CALL(*fileStream, writeMMIO(_, _)).Times(1);
-    EXPECT_CALL(*tbxStream, writeMMIO(_, _)).Times(1);
+    EXPECT_CALL(*fileStream, writeMMIO(_, _, 0xffffffff)).Times(1);
+    EXPECT_CALL(*tbxStream, writeMMIO(_, _, 0xffffffff)).Times(1);
 
     EXPECT_CALL(*tbxStream, readMMIO(_)).Times(1);
 
@@ -139,8 +139,8 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenAubFileStreamIsPaused) {
     EXPECT_CALL(*fileStream, registerPoll(_, _, _, _, _)).Times(0);
     EXPECT_CALL(*tbxStream, registerPoll(_, _, _, _, _)).Times(1);
 
-    EXPECT_CALL(*fileStream, writeMMIO(_, _)).Times(0);
-    EXPECT_CALL(*tbxStream, writeMMIO(_, _)).Times(1);
+    EXPECT_CALL(*fileStream, writeMMIO(_, _, _)).Times(0);
+    EXPECT_CALL(*tbxStream, writeMMIO(_, _, 0xffffffff)).Times(1);
 
     EXPECT_CALL(*tbxStream, readMMIO(_)).Times(1);
 
@@ -221,8 +221,8 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenTbxStreamIsPaused) {
     EXPECT_CALL(*fileStream, registerPoll(_, _, _, _, _)).Times(1);
     EXPECT_CALL(*tbxShmStream, registerPoll(_, _, _, _, _)).Times(1);
 
-    EXPECT_CALL(*fileStream, writeMMIO(_, _)).Times(1);
-    EXPECT_CALL(*tbxShmStream, writeMMIO(_, _)).Times(1);
+    EXPECT_CALL(*fileStream, writeMMIO(_, _, 0xffffffff)).Times(1);
+    EXPECT_CALL(*tbxShmStream, writeMMIO(_, _, 0xffffffff)).Times(1);
 
     EXPECT_CALL(*tbxShmStream, readMMIO(_)).Times(1);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -34,8 +34,8 @@ TEST(Pvc, givenInitializeGlobalMMIOWhenPvcSteppingA0ThenWritesMmioLtcdregWithSet
     uint32_t LTCDREG = 0x0000b120;
     uint32_t valueWithSleepModeDisabled = 0x54000002;
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(LTCDREG, valueWithSleepModeDisabled)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(LTCDREG, valueWithSleepModeDisabled, 0xffffffff)).Times(1);
 
     uint32_t stepping = SteppingValues::A;
     gpu->initializeGlobalMMIO(stream, 1, 1, stepping);
@@ -47,8 +47,8 @@ TEST(Pvc, givenInitializeGlobalMMIOWhenPvcSteppingNotA0ThenWritesMmioLtcdregWith
     uint32_t LTCDREG = 0x0000b120;
     uint32_t valueWithSleepModeDisabled = 0x14000002;
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(LTCDREG, valueWithSleepModeDisabled)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(LTCDREG, valueWithSleepModeDisabled, 0xffffffff)).Times(1);
 
     uint32_t stepping = SteppingValues::B;
     gpu->initializeGlobalMMIO(stream, 1, 1, stepping);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -31,7 +31,7 @@ HWTEST_F(XeHpcCoreCsTest, GivenCcsEngineWhenInitializingEngineThenMiModeNestedBB
     PhysicalAddressAllocatorSimple allocator;
     PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).WillRepeatedly(Return());
-    EXPECT_CALL(stream, writeMMIO(ccs.mmioEngine + 0x0209c, 0x10000000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).WillRepeatedly(Return());
+    EXPECT_CALL(stream, writeMMIO(ccs.mmioEngine + 0x0209c, 0x10000000, 0xffffffff)).Times(1);
     ccs.initializeEngineMMIO(stream);
 }

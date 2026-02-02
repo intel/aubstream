@@ -481,7 +481,7 @@ void AubFileStream::writeDiscontiguousPages(const std::vector<PageEntryInfo> &wr
     }
 }
 
-void AubFileStream::writeMMIO(uint32_t offset, uint32_t value) {
+void AubFileStream::writeMMIO(uint32_t offset, uint32_t value, uint32_t mask) {
     CmdServicesMemTraceRegisterWrite header = {};
     header.setHeader();
     header.dwordCount = (sizeof(header) / sizeof(uint32_t)) - 1;
@@ -489,7 +489,7 @@ void AubFileStream::writeMMIO(uint32_t offset, uint32_t value) {
     header.messageSourceId = CmdServicesMemTraceRegisterWrite::MessageSourceIdValues::Ia;
     header.registerSize = CmdServicesMemTraceRegisterWrite::RegisterSizeValues::Dword;
     header.registerSpace = CmdServicesMemTraceRegisterWrite::RegisterSpaceValues::Mmio;
-    header.writeMaskLow = 0xffffffff;
+    header.writeMaskLow = mask;
     header.writeMaskHigh = 0x00000000;
     header.data[0] = value;
 

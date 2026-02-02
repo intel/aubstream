@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Intel Corporation
+ * Copyright (C) 2024-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -32,10 +32,10 @@ TEST_F(HardwareContextTest, givenContextWhenSubmittingThenSQSubmissionIsUsed) {
     ::testing::Mock::VerifyAndClearExpectations(&stream);
 
     for (int i = 0; i < 8; i++) {
-        EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + (i * 8), _)).Times(1);
-        EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + (i * 8), _)).Times(1);
+        EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + (i * 8), _, 0xffffffff)).Times(1);
+        EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + (i * 8), _, 0xffffffff)).Times(1);
     }
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1, 0xffffffff)).Times(1);
 
     context0.submitBatchBuffer(0x100, false);
 }

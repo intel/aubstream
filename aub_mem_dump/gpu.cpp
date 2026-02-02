@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -60,11 +60,10 @@ void Gpu::injectMMIOs(AubStream &stream, uint32_t devicesCount) const {
     uint32_t mmioDevice = 0;
 
     for (uint32_t device = 0; device < devicesCount; device++) {
-        // Add injected MMIO
-        for (const auto &mmioPair : MMIOListInjected) {
-            stream.writeMMIO(mmioDevice + mmioPair.first, mmioPair.second);
+        // Add injected Masked MMIO
+        for (const auto &maskedMmio : MMIOListInjected) {
+            stream.writeMMIO(mmioDevice + maskedMmio.offset, maskedMmio.value, maskedMmio.mask);
         }
-
         mmioDevice += mmioDeviceOffset;
     }
 }

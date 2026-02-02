@@ -24,7 +24,7 @@ struct TbxStream : public AubStream {
     bool init(int steppingValue, const GpuDescriptor &gpu) override;
     void registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t value, bool pollNotEqual, uint32_t timeoutAction) override;
     void reserveContiguousPages(const std::vector<uint64_t> &entries) override;
-    void writeMMIO(uint32_t offset, uint32_t value) override;
+    void writeMMIO(uint32_t offset, uint32_t value, uint32_t mask = 0xffffffff) override;
     uint32_t readMMIO(uint32_t offset) override;
     void writePCICFG(uint32_t offset, uint32_t value) override;
     uint32_t readPCICFG(uint32_t offset) override;

@@ -32,7 +32,7 @@ struct MockAubStreamBase : public AubStream {
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD3(memoryPoll, void(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode));
     MOCK_METHOD4(gttMemoryPoll, void(GGTT *ggtt, uint64_t gfxAddress, uint32_t value, uint32_t compareMode));
-    MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
+    MOCK_METHOD3(writeMMIO, void(uint32_t offset, uint32_t value, uint32_t mask));
     MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
     MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
     MOCK_METHOD1(readPCICFG, uint32_t(uint32_t offset));
@@ -65,7 +65,7 @@ struct MockAubFileStream : public AubFileStream {
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD3(memoryPoll, void(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode));
     MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
-    MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
+    MOCK_METHOD3(writeMMIO, void(uint32_t offset, uint32_t value, uint32_t mask));
     MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
     MOCK_METHOD4(expectMemoryTable, void(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, uint32_t compareOperation));
     MOCK_METHOD1(reserveContiguousPages, void(const std::vector<uint64_t> &entries));
@@ -90,7 +90,7 @@ struct MockTbxStream : public TbxStream {
 
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD3(memoryPoll, void(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode));
-    MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
+    MOCK_METHOD3(writeMMIO, void(uint32_t offset, uint32_t value, uint32_t mask));
     MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
     MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
     MOCK_METHOD1(readPCICFG, uint32_t(uint32_t offset));
@@ -130,7 +130,7 @@ struct MockTbxShmStream : public TbxShmStream {
 
     MOCK_METHOD5(registerPoll, void(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction));
     MOCK_METHOD3(memoryPoll, void(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode));
-    MOCK_METHOD2(writeMMIO, void(uint32_t offset, uint32_t value));
+    MOCK_METHOD3(writeMMIO, void(uint32_t offset, uint32_t value, uint32_t mask));
     MOCK_METHOD1(readMMIO, uint32_t(uint32_t offset));
     MOCK_METHOD2(writePCICFG, void(uint32_t offset, uint32_t value));
     MOCK_METHOD1(readPCICFG, uint32_t(uint32_t offset));
@@ -163,11 +163,12 @@ struct VerifyMmioAubStream : public MockAubStream {
     VerifyMmioAubStream(uint32_t min, uint32_t max) : mmioMin(min), mmioMax(max) {
     }
 
-    void writeMMIO(uint32_t offset, uint32_t value) {
+    void writeMMIO(uint32_t offset, uint32_t value, uint32_t mask) {
         assert(offset >= mmioMin);
         assert(offset <= mmioMax);
         EXPECT_GE(offset, mmioMin);
         EXPECT_LE(offset, mmioMax);
+        EXPECT_GE(mask, 0u);
     }
 
     uint32_t mmioMin;

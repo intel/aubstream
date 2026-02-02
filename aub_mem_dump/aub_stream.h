@@ -58,7 +58,7 @@ struct AubStream {
     virtual void addComment(const char *message) = 0;
     virtual bool init(int steppingValue, const GpuDescriptor &gpu) = 0;
     virtual void registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction) = 0;
-    virtual void writeMMIO(uint32_t offset, uint32_t value) = 0;
+    virtual void writeMMIO(uint32_t offset, uint32_t value, uint32_t mask = 0xffffffff) = 0;
     virtual void writePCICFG(uint32_t offset, uint32_t value) = 0;
     virtual uint32_t readPCICFG(uint32_t offset) = 0;
     virtual uint32_t readMMIO(uint32_t offset) = 0;

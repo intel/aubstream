@@ -299,11 +299,11 @@ TEST(AubManagerImp, whenSetCCSModeWith1CCSCountIsCalledThenProperMMIOIsWritten) 
     auto &stream = *aubManager.getMockAubFileStream();
     aubManager.initialize();
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0000)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0000)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0000)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0000, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0000, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0000, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0000, 0xffffffff)).Times(1);
 
     aubManager.setCCSMode(1);
 }
@@ -315,11 +315,11 @@ TEST(AubManagerImp, whenSetCCSModeWith2CCSCountIsCalledThenProperMMIOIsWritten) 
     auto &stream = *aubManager.getMockAubFileStream();
     aubManager.initialize();
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0208)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0208)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0208)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0208)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0208, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0208, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0208, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0208, 0xffffffff)).Times(1);
 
     aubManager.setCCSMode(2);
 }
@@ -331,11 +331,11 @@ TEST(AubManagerImp, whenSetCCSModeWith4CCSCountIsCalledThenProperMMIOIsWritten) 
     auto &stream = *aubManager.getMockAubFileStream();
     aubManager.initialize();
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0688)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0688)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0688)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0688)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0688, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0688, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0688, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0688, 0xffffffff)).Times(1);
 
     aubManager.setCCSMode(4);
 }
@@ -347,11 +347,11 @@ TEST(AubManagerImp, whenSetCCSModeWithLargeCCSCountIsCalledThenDefaultMMIOIsWrit
     auto &stream = *aubManager.getMockAubFileStream();
     aubManager.initialize();
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0688)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0688)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0688)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0688)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0x14804, 0xFFF0688, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset, 0xFFF0688, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 2, 0xFFF0688, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x14804 + mmioDeviceOffset * 3, 0xFFF0688, 0xffffffff)).Times(1);
 
     aubManager.setCCSMode(8);
 }
@@ -693,6 +693,9 @@ TEST(AubManager, initializeInjectsMMIOsLast) {
     MMIOListInjected.push_back(MMIOPair(0xABCD, 0x20002));
     MMIOListInjected.push_back(MMIOPair(0xDEAD, 0x20002));
     MMIOListInjected.push_back(MMIOPair(0x20d8, 0x1111));
+    MMIOListInjected.push_back(aub_stream::MaskedMMIOWrite(0xBAD1, 0x21, 0xf0));
+    MMIOListInjected.push_back(aub_stream::MaskedMMIOWrite(0xBAD2, 0x22, 0xff));
+    MMIOListInjected.push_back(aub_stream::MaskedMMIOWrite(0xBAD3, 0x23, 0xffffffff));
 
     MockAubManager aubManager(createGpuFunc(), gpu->deviceCount, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     aubManager.createMockAubFileStream = true;
@@ -701,13 +704,18 @@ TEST(AubManager, initializeInjectsMMIOsLast) {
 
     uint32_t regAddr = 0;
     uint32_t regVal = 0;
+    uint32_t regMask = 0;
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(0xABCD, 0x20002)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0xDEAD, 0x20002)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x20d8, _)).Times(AtLeast(1)).WillRepeatedly(::testing::Invoke([&](uint32_t registerOffset, uint32_t value) { 
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0xABCD, 0x20002, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0xDEAD, 0x20002, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x20d8, _, 0xffffffff)).Times(AtLeast(1)).WillRepeatedly(::testing::Invoke([&](uint32_t registerOffset, uint32_t value, uint32_t mask) { 
             regAddr = registerOffset; 
-            regVal = value; }));
+            regVal = value;
+            regMask = mask; }));
+    EXPECT_CALL(stream, writeMMIO(0xBAD1, 0x21, 0xf0)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0xBAD2, 0x22, 0xff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0xBAD3, 0x23, 0xffffffff)).Times(1);
 
     aubManager.initialize();
     aubManager.open("test.aub");
@@ -932,7 +940,7 @@ TEST(AubManager, givenAubManagerDoMMIOAndPCICFGOperations) {
 
     EXPECT_CALL(*stream, readMMIO(0x1234)).Times(1);
     aubManager.readMMIO(0x1234);
-    EXPECT_CALL(*stream, writeMMIO(0x4321, 0xabcd)).Times(1);
+    EXPECT_CALL(*stream, writeMMIO(0x4321, 0xabcd, 0xffffffff)).Times(1);
     aubManager.writeMMIO(0x4321, 0xabcd);
     EXPECT_CALL(*stream, readPCICFG(0x1234)).Times(1);
     aubManager.readPCICFG(0x1234);

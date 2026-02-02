@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -38,8 +38,8 @@ TEST(Gpu, givenMtlWhenInitializeDefaultMemoryPoolsThenFileStreamNotInitializeFla
 
     MockAubFileStream stream;
     gpu->stolenMemory = StolenMemory::CreateStolenMemory(false, 1, 1, 1 * MB);
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0x00004910, _, 0xffffffff)).Times(0);
 
     gpu->initializeDefaultMemoryPools(stream, 1, 1);
 }
@@ -48,13 +48,13 @@ TEST(Gpu, givenMtlWhenInitializingGlobalMmiosThenProgramPatIndex) {
     TEST_REQUIRES(gpu->productFamily == ProductFamily::Mtl);
 
     MockAubFileStream stream;
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(AtLeast(0));
 
-    EXPECT_CALL(stream, writeMMIO(0x00004800, 0x0)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x00004804, 0x4)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x00004808, 0xC)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x0000480C, 0x2)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x00004810, 0x3)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x00004800, 0x0, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x00004804, 0x4, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x00004808, 0xC, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x0000480C, 0x2, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x00004810, 0x3, 0xffffffff)).Times(1);
 
     gpu->initializeGlobalMMIO(stream, 1, 1, 0);
 }
@@ -64,8 +64,8 @@ TEST(Gpu, givenMtlAndTbxStreamWhenInitializeDefaultMemoryPoolsThenNotInitializeF
 
     MockTbxStream stream;
     gpu->stolenMemory = StolenMemory::CreateStolenMemory(false, 1, 1, 1 * MB);
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(0x00004910, _)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(0x00004910, _, 0xffffffff)).Times(0);
 
     gpu->initializeDefaultMemoryPools(stream, 1, 1);
 }
@@ -77,7 +77,7 @@ TEST(Gpu, givenMtlWhenInitializeDefaultMemoryPoolsThenNotInitializeFlatCcsBaseAd
     constexpr uint64_t perDeviceHbmSize = 8llu * GB;
 
     MockTbxStream stream;
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(AtLeast(0));
 
     for (uint32_t i = 0; i > numDevices; i++) {
         uint64_t flatCcsBaseAddress = perDeviceHbmSize * (i + 1);            // device local memory ending
@@ -86,7 +86,7 @@ TEST(Gpu, givenMtlWhenInitializeDefaultMemoryPoolsThenNotInitializeFlatCcsBaseAd
         uint32_t mmioValue = static_cast<uint32_t>(flatCcsBaseAddress >> 8); // [8:31] base ptr
         mmioValue |= 1;                                                      // [0] enable bit
 
-        EXPECT_CALL(stream, writeMMIO((i * mmioDeviceOffset) + 0x00004910, mmioValue)).Times(0);
+        EXPECT_CALL(stream, writeMMIO((i * mmioDeviceOffset) + 0x00004910, mmioValue, 0xffffffff)).Times(0);
     }
 
     gpu->stolenMemory = StolenMemory::CreateStolenMemory(false, 1, 1, 1 * MB);

@@ -123,7 +123,7 @@ TEST_F(HardwareContextTest, submitShouldPerformAtLeastOneMMIOWrite) {
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(1));
+    EXPECT_CALL(stream, writeMMIO(_, _, 0xffffffff)).Times(AtLeast(1));
     SimpleAllocator<uint64_t> gfxAddressAllocator(0x1000);
     uintptr_t ppgttBatchBuffer = gfxAddressAllocator.alignedAlloc(0x1000, uint32_t(defaultPageSize));
     uint32_t data = 0x05000000;
@@ -138,7 +138,7 @@ TEST_F(HardwareContextTest, submitShouldPerformFenceOperations) {
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(1));
+    EXPECT_CALL(stream, writeMMIO(_, _, 0xffffffff)).Times(AtLeast(1));
     SimpleAllocator<uint64_t> gfxAddressAllocator(0x1000);
     uintptr_t ppgttBatchBuffer = gfxAddressAllocator.alignedAlloc(0x2000, uint32_t(defaultPageSize));
     EXPECT_EQ(context.getExpectedFence(), 0);
@@ -171,7 +171,7 @@ HWTEST_F(HardwareContextTest, submitBatchBufferShouldPerformAtLeastOneMMIOWriteA
 
     ::testing::Mock::VerifyAndClearExpectations(&stream);
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(1));
+    EXPECT_CALL(stream, writeMMIO(_, _, 0xffffffff)).Times(AtLeast(1));
     // two GGTT updates
     auto numGGTTUpdates = 2;
     EXPECT_CALL(stream, writeGttPages(_, _)).Times(numGGTTUpdates);
@@ -274,7 +274,7 @@ TEST_F(HardwareContextTest, givenHardwareContextWhenCallingWriteMMIORedirectsToA
     HardwareContextImp context(1, stream, csHelper, ggtt, ppgtt, 0);
     context.initialize();
 
-    EXPECT_CALL(stream, writeMMIO(offset, value)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(offset, value, 0xffffffff)).Times(1);
 
     context.writeMMIO(offset, value);
 
@@ -397,30 +397,30 @@ TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExec
     context2.initialize();
     ::testing::Mock::VerifyAndClearExpectations(&stream);
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(AtLeast(1));
+    EXPECT_CALL(stream, writeMMIO(_, _, 0xffffffff)).Times(AtLeast(1));
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, _)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, _, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514, _, 0xffffffff)).Times(1);
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 8, _)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 8, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 8, _, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 8, _, 0xffffffff)).Times(1);
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 16, _)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 16, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 16, _, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 16, _, 0xffffffff)).Times(1);
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, _, 0xffffffff)).Times(1);
     context0.submitBatchBuffer(0x100, false);
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, _)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, _, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514, _, 0xffffffff)).Times(1);
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 8, _)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 8, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 8, _, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 8, _, 0xffffffff)).Times(1);
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 16, _)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 16, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + 16, _, 0xffffffff)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + 16, _, 0xffffffff)).Times(1);
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, _)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, _, 0xffffffff)).Times(1);
 
     context2.submitBatchBuffer(0x100, false);
 }
@@ -661,8 +661,8 @@ HWTEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContext
 
     auto value = contextDescriptor.ulData[0];
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, value));
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, value, 0xffffffff));
 
     context0->submitBatchBuffer(0x100, false);
 }
@@ -694,8 +694,8 @@ HWTEST_F(HardwareContextTest, givenLowPriorityFlagWhenSubmittingHardwareContextT
 
     auto value = contextDescriptor.ulData[0];
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, value));
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, value, 0xffffffff));
 
     context0->submitBatchBuffer(0x100, false);
 }
@@ -728,8 +728,8 @@ TEST_F(HardwareContextTest, givenHighPriorityFlagWhenSubmittingHardwareContextTh
     contextDescriptor.sData.FunctionType = 2;
     auto value = contextDescriptor.ulData[0];
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, value));
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, value, 0xffffffff));
 
     context0->submitBatchBuffer(0x100, false);
 }
@@ -762,8 +762,8 @@ TEST_F(HardwareContextTest, givenLowPriorityFlagWhenSubmittingHardwareContextThe
     contextDescriptor.sData.FunctionType = 0;
     auto value = contextDescriptor.ulData[0];
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AtLeast(0));
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, value));
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510, value, 0xffffffff));
 
     context0->submitBatchBuffer(0x100, false);
 }
@@ -843,10 +843,10 @@ HWTEST_F(HardwareContextTest, givenContextWhenSubmittingThenUseExeclistPortSubmi
 
     ::testing::Mock::VerifyAndClearExpectations(&stream);
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AnyNumber());
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AnyNumber());
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, _)).Times(2 * contextGroupCount);
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, _, 0xffffffff)).Times(2 * contextGroupCount);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1, 0xffffffff)).Times(1);
 
     context0.submitBatchBuffer(0x100, false);
 }
@@ -867,13 +867,13 @@ HWTEST_F(HardwareContextTest, givenExeclistSubmitPortSubmissionDisabledWhenSubmi
 
     ::testing::Mock::VerifyAndClearExpectations(&stream);
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AnyNumber());
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AnyNumber());
 
     for (int i = 0; i < 8; i++) {
-        EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + (i * 8), _)).Times(1);
-        EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + (i * 8), _)).Times(1);
+        EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2510 + (i * 8), _, 0xffffffff)).Times(1);
+        EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2514 + (i * 8), _, 0xffffffff)).Times(1);
     }
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1, 0xffffffff)).Times(1);
 
     context0.submitBatchBuffer(0x100, false);
 }
@@ -910,9 +910,9 @@ HWTEST_F(HardwareContextTest, givenXe3pHighPriorityFlagWhenSubmittingHardwareCon
     contextDescriptor.sData.FunctionType = HardwareContextImp::priorityHigh;
     auto value = contextDescriptor.ulData[0];
 
-    EXPECT_CALL(stream, writeMMIO(_, _)).Times(::testing::AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AtLeast(0));
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, value));
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, value, 0xffffffff));
     context0->submitBatchBuffer(0x100, false);
 }
 

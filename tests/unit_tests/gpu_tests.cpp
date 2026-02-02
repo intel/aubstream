@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -53,7 +53,7 @@ TEST(Gpu, gen12lpGivenOneIntegratedDeviceSetMemoryBankSizeOnlyDefinesOneBank) {
     TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::Gen12lp && gpu->productFamily != ProductFamily::Dg1);
 
     MockAubStreamBase stream;
-    EXPECT_CALL(stream, writeMMIO(0x4900, 0x00000000)).Times(1);
+    EXPECT_CALL(stream, writeMMIO(0x4900, 0x00000000, 0xffffffff)).Times(1);
 
     auto deviceCount = 1;
     auto memoryBankSize = 0 * GB;

@@ -94,10 +94,15 @@ void TbxStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t de
     } while (matches == pollNotEqual);
 }
 
-void TbxStream::writeMMIO(uint32_t offset, uint32_t value) {
+void TbxStream::writeMMIO(uint32_t offset, uint32_t value, uint32_t mask) {
     log << "MMIO: " << std::hex << std::showbase << offset
         << "   =: " << std::hex << std::showbase << value;
 
+    if (mask != 0xFFFFFFFF) {
+        uint32_t currentValue = readMMIO(offset);
+        value = (currentValue & ~mask) | (value & mask);
+        log << " (masked from " << std::hex << std::showbase << currentValue << ")";
+    }
     socket->writeMMIO(offset, value);
 }
 

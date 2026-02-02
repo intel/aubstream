@@ -93,7 +93,7 @@ struct AubFileStream : public AubStream {
     void dumpSurface(PageTableType gttType, const SurfaceInfo &surfaceInfo, uint32_t handleDumpContext) override;
 
     void registerPoll(uint32_t registerOffset, uint32_t mask, uint32_t desiredValue, bool pollNotEqual, uint32_t timeoutAction) override;
-    void writeMMIO(uint32_t offset, uint32_t value) override;
+    void writeMMIO(uint32_t offset, uint32_t value, uint32_t mask = 0xffffffff) override;
     uint32_t readMMIO(uint32_t offset) override {
         return 0;
     }

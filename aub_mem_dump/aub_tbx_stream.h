@@ -61,11 +61,11 @@ struct AubTbxStream : public AubStream {
         tbxStream.registerPoll(registerOffset, mask, desiredValue, pollNotEqual, timeoutAction);
     }
 
-    void writeMMIO(uint32_t offset, uint32_t value) override {
+    void writeMMIO(uint32_t offset, uint32_t value, uint32_t mask = 0xffffffff) override {
         if (!isAubFileStreamPaused) {
-            aubFileStream.writeMMIO(offset, value);
+            aubFileStream.writeMMIO(offset, value, mask);
         }
-        tbxStream.writeMMIO(offset, value);
+        tbxStream.writeMMIO(offset, value, mask);
     }
 
     uint32_t readMMIO(uint32_t offset) override {
