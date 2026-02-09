@@ -694,6 +694,7 @@ TEST(PDE, allocateChildReturns64KBPTEWhenPageSize64KB) {
 
 TEST_F(PageTableTest, GivenPPGTTWhenWriteMemoryWith2MBPagesThenCorrectHierarchyIsCreated) {
     TEST_REQUIRES(localMemorySupportedInTests);
+    TEST_REQUIRES(gpu->isMemorySupported(MEMORY_BANK_0, Page2MB::pageSize2MB));
 
     PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
@@ -720,6 +721,7 @@ TEST_F(PageTableTest, GivenPPGTTWhenWriteMemoryWith2MBPagesThenCorrectHierarchyI
 
 TEST_F(PageTableTest, GivenPPGTTWith2MBPageWhenFreeMemoryThenPageIsRemoved) {
     TEST_REQUIRES(localMemorySupportedInTests);
+    TEST_REQUIRES(gpu->isMemorySupported(MEMORY_BANK_0, Page2MB::pageSize2MB));
 
     PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
@@ -754,6 +756,7 @@ TEST_F(PageTableTest, GivenPPGTTWith2MBPageWhenFreeMemoryThenPageIsRemoved) {
 
 TEST_F(PageTableTest, GivenPPGTTWith2MBPageWhenFreeMemoryThenEmptyPDEIsAlsoRemoved) {
     TEST_REQUIRES(localMemorySupportedInTests);
+    TEST_REQUIRES(gpu->isMemorySupported(MEMORY_BANK_0, Page2MB::pageSize2MB));
 
     PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
@@ -775,6 +778,7 @@ TEST_F(PageTableTest, GivenPPGTTWith2MBPageWhenFreeMemoryThenEmptyPDEIsAlsoRemov
 
 TEST_F(PageTableTest, GivenPPGTTWithMultiple2MBPagesWhenFreeOneThenOthersRemain) {
     TEST_REQUIRES(localMemorySupportedInTests);
+    TEST_REQUIRES(gpu->isMemorySupported(MEMORY_BANK_0, Page2MB::pageSize2MB));
 
     PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
@@ -813,6 +817,7 @@ TEST_F(PageTableTest, GivenPPGTTWithMultiple2MBPagesWhenFreeOneThenOthersRemain)
 
 TEST_F(PageTableTest, Write2MBFollowedBy4KBAtSameAddressShouldNotChangePageSize) {
     TEST_REQUIRES(localMemorySupportedInTests);
+    TEST_REQUIRES(gpu->isMemorySupported(MEMORY_BANK_0, Page2MB::pageSize2MB));
 
     PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
@@ -839,6 +844,7 @@ TEST_F(PageTableTest, Write2MBFollowedBy4KBAtSameAddressShouldNotChangePageSize)
 
 TEST_F(PageTableTest, GivenPPGTTWhenWriteMemoryWith2MBPagesThenCorrectHintsAreUsed) {
     TEST_REQUIRES(localMemorySupportedInTests);
+    TEST_REQUIRES(gpu->isMemorySupported(MEMORY_BANK_0, Page2MB::pageSize2MB));
 
     PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
@@ -883,6 +889,7 @@ TEST(PDE, allocateChildReturns2MBPageWhenPageSize2MBWithAdditionalParamsAndPhysi
 
 TEST_F(PageTableTest, GivenPPGTTWith2MBPageWhenFreeMemoryAndPDEBecomesEmptyThenPDPLevelEntryIsWritten) {
     TEST_REQUIRES(localMemorySupportedInTests);
+    TEST_REQUIRES(gpu->isMemorySupported(MEMORY_BANK_0, Page2MB::pageSize2MB));
 
     PhysicalAddressAllocatorSimple allocator;
     PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);

@@ -6,6 +6,7 @@
  */
 
 #include "aub_mem_dump/page_table_walker.h"
+#include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/memory_bank_helper.h"
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/settings.h"
@@ -15,19 +16,24 @@ namespace aub_stream {
 
 namespace {
 
-inline size_t apply2MBFallback(size_t pageSize, uint64_t gfxAddress) {
-    if (pageSize == Page2MB::pageSize2MB && (gfxAddress & (Page2MB::pageSize2MB - 1)) != 0) {
-        PRINT_LOG_ERROR("Warning: 2MB page requested but gfxAddress 0x%llx is not 2MB-aligned. Falling back to 64KB pages.\n",
-                        static_cast<unsigned long long>(gfxAddress));
+inline size_t adjustPageSizeForHardwareSupport(const Gpu &gpu, size_t pageSize, uint32_t memoryBanks) {
+    if (pageSize == Page2MB::pageSize2MB && !gpu.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize))) {
+        PRINT_LOG_ERROR("Warning: 2MB page requested but hardware does not support it for memoryBanks 0x%x. Falling back to 64KB pages.\n",
+                        memoryBanks);
         return 65536;
     }
     return pageSize;
 }
 
-inline bool detect2MBConflict(PageTable *child, int level, size_t pageSize) {
-    return child && level == PageTableLevel::Pde &&
-           pageSize == Page2MB::pageSize2MB &&
-           child->getPageSize() != Page2MB::pageSize2MB;
+inline bool hasExistingPageTableConflict(PageTable *child, int level, size_t pageSize) {
+    if (child && level == PageTableLevel::Pde &&
+        pageSize == Page2MB::pageSize2MB &&
+        child->getPageSize() != Page2MB::pageSize2MB) {
+        PRINT_LOG_ERROR("Warning: 2MB page requested but smaller page structure already exists at this PDE (pageSize=%zu). Using existing structure.\n",
+                        child->getPageSize());
+        return true;
+    }
+    return false;
 }
 
 } // namespace
@@ -104,17 +110,24 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
     assert(pageSize > 0);
 
-    pageSize = apply2MBFallback(pageSize, gfxAddress);
+    pageSize = adjustPageSizeForHardwareSupport(ppgtt->getGpu(), pageSize, memoryBanks);
 
     const PageInfo *clonePageInfo = nullptr;
     uint32_t clonePageInfoIndex = 0;
 
     bool isLocalMemory = memoryBanks != PhysicalAddressAllocator::mainBank;
-    size_t sizePageAligned = (size + pageSize - 1) & ~(pageSize - 1);
-    MemoryBankHelper bankHelper(memoryBanks, gfxAddress & ~(pageSize - 1), sizePageAligned);
+
+    uint64_t alignedStart = gfxAddress & ~(pageSize - 1);
+    uint64_t alignedEnd = (gfxAddress + size + pageSize - 1) & ~(pageSize - 1);
+    size_t sizePageAligned = static_cast<size_t>(alignedEnd - alignedStart);
+    MemoryBankHelper bankHelper(memoryBanks, alignedStart, sizePageAligned);
 
     // 2MB pages terminate at PDE level, smaller pages at PTE level
     int leafLevel = (pageSize == Page2MB::pageSize2MB) ? PageTableLevel::Pde : PageTableLevel::Pte;
+
+    // Conflict fallback should only affect the PDE where it occurs
+    const size_t requestedPageSize = pageSize;
+    const int requestedLeafLevel = leafLevel;
 
     // Reserve # of entries plus two for leading/trailing pages
     pageWalkEntries[PageTableLevel::Pml5].reserve(2 + (uint64_t(size) >> 48));
@@ -126,6 +139,10 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     entries.reserve(2 + (uint64_t(size) / pageSize));
 
     while (size > 0) {
+        // Reset per-iteration. Conflict fallback is scoped to a single PDE
+        pageSize = requestedPageSize;
+        leafLevel = requestedLeafLevel;
+
         PageTable *parent = nullptr;
         PageTable *child = ppgtt;
         int level = ppgtt->getNumLevels() - 1;
@@ -153,11 +170,10 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             // Handle pre-existing 2MB pages
             if (child && level == PageTableLevel::Pde && child->getPageSize() == Page2MB::pageSize2MB) {
                 pageSize = Page2MB::pageSize2MB;
-                leafLevel = PageTableLevel::Pde;
                 break;
             }
 
-            if (detect2MBConflict(child, level, pageSize)) {
+            if (hasExistingPageTableConflict(child, level, pageSize)) {
                 pageSize = 65536;
                 leafLevel = PageTableLevel::Pte;
             }
@@ -233,7 +249,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
     assert(pageSize > 0);
 
-    pageSize = apply2MBFallback(pageSize, gfxAddress);
+    pageSize = adjustPageSizeForHardwareSupport(ppgtt->getGpu(), pageSize, pageMemoryBank);
 
     const PageInfo *clonePageInfo = nullptr;
     uint32_t clonePageInfoIndex = 0;
@@ -242,6 +258,10 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
     // 2MB pages terminate at PDE level, smaller pages at PTE level
     int leafLevel = (pageSize == Page2MB::pageSize2MB) ? PageTableLevel::Pde : PageTableLevel::Pte;
+
+    // Conflict fallback should only affect the PDE where it occurs
+    const size_t requestedPageSize = pageSize;
+    const int requestedLeafLevel = leafLevel;
 
     // Reserve # of entries plus two for leading/trailing pages
     pageWalkEntries[PageTableLevel::Pml5].reserve(2 + (uint64_t(size) >> 48));
@@ -253,6 +273,10 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     entries.reserve(2 + (uint64_t(size) / pageSize));
 
     while (size > 0) {
+        // Reset per-iteration. Conflict fallback is scoped to a single PDE
+        pageSize = requestedPageSize;
+        leafLevel = requestedLeafLevel;
+
         PageTable *parent = nullptr;
         PageTable *child = ppgtt;
         int level = ppgtt->getNumLevels() - 1;
@@ -280,12 +304,17 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             if (child && level == PageTableLevel::Pde && child->getPageSize() == Page2MB::pageSize2MB) {
                 pageSize = Page2MB::pageSize2MB;
                 leafLevel = PageTableLevel::Pde;
-                break;
             }
 
-            if (detect2MBConflict(child, level, pageSize)) {
+            if (hasExistingPageTableConflict(child, level, pageSize)) {
                 pageSize = 65536;
                 leafLevel = PageTableLevel::Pte;
+            }
+
+            // Prior 64 KB fallback may have left physicalAddress unaligned
+            if (level == leafLevel && pageSize == Page2MB::pageSize2MB &&
+                (physicalAddress & (Page2MB::pageSize2MB - 1)) != 0) {
+                physicalAddress = (physicalAddress & ~(Page2MB::pageSize2MB - 1)) + Page2MB::pageSize2MB;
             }
 
             if (!child) {
@@ -354,7 +383,12 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             pageMemoryBank};
         entries.push_back(writeInfo);
 
-        physicalAddress += sizeThisIteration;
+        // 2 MB Pages consume a full 2MB-aligned physical page
+        if (pageSizeThisIteration == Page2MB::pageSize2MB) {
+            physicalAddress = (physicalAddress & ~(Page2MB::pageSize2MB - 1)) + Page2MB::pageSize2MB;
+        } else {
+            physicalAddress += sizeThisIteration;
+        }
         gfxAddress += sizeThisIteration;
         size -= sizeThisIteration;
     }
