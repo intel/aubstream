@@ -183,8 +183,6 @@ void HardwareContextImp::initialize() {
 }
 
 void HardwareContextImp::release() {
-    csTraits.cleanupContextEnvironment(stream, *this);
-
     delete[] pLRCA;
     pLRCA = nullptr;
 
