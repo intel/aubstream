@@ -751,3 +751,308 @@ TEST_F(AubFileStreamMemoryPollTest, givenDifferentCompareModesWhenMemoryPollIsCa
         EXPECT_EQ(cmd->comparison, compareMode) << "Failed for compareMode: " << compareMode;
     }
 }
+
+using AubFileStreamWritePagesTest = ::testing::Test;
+
+struct MockWriteAubFileStream : public AubFileStream {
+    using AubFileStream::writeContiguousPages;
+    using AubFileStream::writeDiscontiguousPages;
+
+    void write(const char *buffer, std::streamsize size) override {
+        writtenData.insert(writtenData.end(), buffer, buffer + size);
+    }
+
+    std::vector<char> writtenData;
+};
+
+TEST_F(AubFileStreamWritePagesTest, givenSmallWriteWhenWriteContiguousPagesThenSingleCommandIsWritten) {
+    MockWriteAubFileStream stream;
+
+    const size_t writeSize = 64 * KB;
+    std::vector<uint8_t> memory(writeSize, 0xAB);
+    uint64_t physAddress = 0x100000;
+    int addressSpace = CmdServicesMemTraceMemoryWrite::AddressSpaceValues::TraceLocal;
+    int hint = DataTypeHintValues::TraceNotype;
+
+    stream.writeContiguousPages(memory.data(), writeSize, physAddress, addressSpace, hint);
+
+    auto headerSize = sizeof(CmdServicesMemTraceMemoryWrite) - sizeof(CmdServicesMemTraceMemoryWrite::data);
+    auto alignedWriteSize = (writeSize + sizeof(uint32_t) - 1) & ~(sizeof(uint32_t) - 1);
+    ASSERT_EQ(headerSize + alignedWriteSize, stream.writtenData.size());
+
+    auto *cmd = reinterpret_cast<const CmdServicesMemTraceMemoryWrite *>(stream.writtenData.data());
+    EXPECT_TRUE(cmd->matchesHeader());
+    EXPECT_EQ(physAddress, cmd->address);
+    EXPECT_EQ(writeSize, cmd->dataSizeInBytes);
+    EXPECT_EQ(CmdServicesMemTraceMemoryWrite::AddressSpaceValues::TraceLocal, cmd->addressSpace);
+
+    auto expectedDwordCount = static_cast<uint32_t>((headerSize + alignedWriteSize) / sizeof(uint32_t));
+    EXPECT_EQ(expectedDwordCount - 1, cmd->dwordCount);
+
+    auto *writtenPayload = reinterpret_cast<const uint8_t *>(stream.writtenData.data() + headerSize);
+    EXPECT_EQ(0, memcmp(memory.data(), writtenPayload, writeSize));
+}
+
+TEST_F(AubFileStreamWritePagesTest, givenLargeWriteWhenWriteContiguousPagesThenDataIsSplitIntoMultipleCommands) {
+    MockWriteAubFileStream stream;
+
+    auto headerSize = sizeof(CmdServicesMemTraceMemoryWrite) - sizeof(CmdServicesMemTraceMemoryWrite::data);
+    auto maxDwordCount = static_cast<uint32_t>(std::numeric_limits<uint16_t>::max());
+    auto maxSingleChunkSize = static_cast<size_t>((maxDwordCount - (headerSize / sizeof(uint32_t))) * sizeof(uint32_t));
+    ASSERT_GT(maxSingleChunkSize, 1u);
+
+    const size_t writeSize = maxSingleChunkSize + 64;
+    std::vector<uint8_t> memory(writeSize, 0);
+    memory.front() = 0x11;
+    memory[maxSingleChunkSize - 1] = 0x22;
+    memory[maxSingleChunkSize] = 0x33;
+    memory.back() = 0x44;
+
+    uint64_t physAddress = 0x200000;
+    int addressSpace = CmdServicesMemTraceMemoryWrite::AddressSpaceValues::TraceLocal;
+    int hint = DataTypeHintValues::TraceNotype;
+
+    stream.writeContiguousPages(memory.data(), writeSize, physAddress, addressSpace, hint);
+
+    size_t offset = 0;
+    size_t dataOffset = 0;
+    uint64_t expectedPhysAddress = physAddress;
+    size_t commandCount = 0;
+
+    while (offset < stream.writtenData.size()) {
+        ASSERT_LT(dataOffset, writeSize);
+        auto *cmd = reinterpret_cast<const CmdServicesMemTraceMemoryWrite *>(stream.writtenData.data() + offset);
+        ASSERT_TRUE(cmd->matchesHeader());
+
+        auto packetDwords = static_cast<uint32_t>(cmd->dwordCount) + 1;
+        auto packetSizeInBytes = static_cast<size_t>(packetDwords) * sizeof(uint32_t);
+        ASSERT_GE(packetSizeInBytes, headerSize);
+        auto payloadSizeAligned = packetSizeInBytes - headerSize;
+
+        ASSERT_GE(payloadSizeAligned, cmd->dataSizeInBytes);
+        EXPECT_LT(payloadSizeAligned - cmd->dataSizeInBytes, sizeof(uint32_t));
+        EXPECT_GT(cmd->dataSizeInBytes, 0u);
+        EXPECT_LE(cmd->dataSizeInBytes, writeSize - dataOffset);
+
+        EXPECT_EQ(expectedPhysAddress, cmd->address);
+        EXPECT_EQ(CmdServicesMemTraceMemoryWrite::AddressSpaceValues::TraceLocal, cmd->addressSpace);
+
+        auto *writtenPayload = reinterpret_cast<const uint8_t *>(stream.writtenData.data() + offset + headerSize);
+        EXPECT_EQ(0, memcmp(memory.data() + dataOffset, writtenPayload, cmd->dataSizeInBytes));
+
+        bool isFinalChunk = (dataOffset + cmd->dataSizeInBytes) == writeSize;
+        if (!isFinalChunk) {
+            EXPECT_EQ(65534u, cmd->dwordCount);
+            EXPECT_EQ(65535u, packetDwords);
+        } else {
+            EXPECT_LT(cmd->dwordCount, 65534u);
+        }
+
+        offset += headerSize + payloadSizeAligned;
+        dataOffset += cmd->dataSizeInBytes;
+        expectedPhysAddress += cmd->dataSizeInBytes;
+        commandCount++;
+    }
+
+    EXPECT_GT(commandCount, 1u);
+    EXPECT_EQ(writeSize, dataOffset);
+    EXPECT_EQ(offset, stream.writtenData.size());
+}
+
+TEST_F(AubFileStreamWritePagesTest, givenLargeDiscontiguousEntriesWhenWriteDiscontiguousPagesThenFallbackToContiguousChunks) {
+    MockWriteAubFileStream stream;
+
+    auto headerSize = sizeof(CmdServicesMemTraceMemoryWrite) - sizeof(CmdServicesMemTraceMemoryWrite::data);
+    auto maxDwordCount = static_cast<uint32_t>(std::numeric_limits<uint16_t>::max());
+    auto maxSingleChunkSize = static_cast<size_t>((maxDwordCount - (headerSize / sizeof(uint32_t))) * sizeof(uint32_t));
+    ASSERT_GT(maxSingleChunkSize, 1u);
+
+    const size_t entrySize = maxSingleChunkSize + 64;
+    std::vector<PageInfo> entries = {
+        {0x200000, entrySize, true, MEMORY_BANK_0},
+        {0xA00000, entrySize, true, MEMORY_BANK_0}};
+
+    std::vector<uint8_t> memory(entrySize * entries.size(), 0);
+    memory[0] = 0x11;
+    memory[maxSingleChunkSize - 1] = 0x12;
+    memory[maxSingleChunkSize] = 0x13;
+    memory[entrySize - 1] = 0x14;
+
+    auto secondEntryOffset = entrySize;
+    memory[secondEntryOffset] = 0x21;
+    memory[secondEntryOffset + maxSingleChunkSize - 1] = 0x22;
+    memory[secondEntryOffset + maxSingleChunkSize] = 0x23;
+    memory[secondEntryOffset + entrySize - 1] = 0x24;
+
+    stream.writeDiscontiguousPages(memory.data(), memory.size(), entries, DataTypeHintValues::TraceNotype);
+
+    size_t outputOffset = 0;
+    size_t dataOffset = 0;
+    size_t entryIndex = 0;
+    size_t entryOffset = 0;
+    size_t commandCount = 0;
+
+    while (outputOffset < stream.writtenData.size()) {
+        ASSERT_LT(entryIndex, entries.size());
+
+        auto *cmd = reinterpret_cast<const CmdServicesMemTraceMemoryWrite *>(stream.writtenData.data() + outputOffset);
+        ASSERT_TRUE(cmd->matchesHeader());
+
+        auto packetDwords = static_cast<uint32_t>(cmd->dwordCount) + 1;
+        auto packetSizeInBytes = static_cast<size_t>(packetDwords) * sizeof(uint32_t);
+        ASSERT_GE(packetSizeInBytes, headerSize);
+        auto payloadSizeAligned = packetSizeInBytes - headerSize;
+        ASSERT_GE(payloadSizeAligned, cmd->dataSizeInBytes);
+        EXPECT_LT(payloadSizeAligned - cmd->dataSizeInBytes, sizeof(uint32_t));
+        EXPECT_GT(cmd->dataSizeInBytes, 0u);
+
+        auto remainingInEntry = entries[entryIndex].size - entryOffset;
+        EXPECT_LE(cmd->dataSizeInBytes, remainingInEntry);
+        EXPECT_EQ(entries[entryIndex].physicalAddress + entryOffset, cmd->address);
+        EXPECT_EQ(CmdServicesMemTraceMemoryWrite::AddressSpaceValues::TraceLocal, cmd->addressSpace);
+
+        auto *writtenPayload = reinterpret_cast<const uint8_t *>(stream.writtenData.data() + outputOffset + headerSize);
+        EXPECT_EQ(0, memcmp(memory.data() + dataOffset, writtenPayload, cmd->dataSizeInBytes));
+
+        outputOffset += headerSize + payloadSizeAligned;
+        dataOffset += cmd->dataSizeInBytes;
+        entryOffset += cmd->dataSizeInBytes;
+        commandCount++;
+
+        if (entryOffset == entries[entryIndex].size) {
+            entryOffset = 0;
+            entryIndex++;
+        }
+    }
+
+    EXPECT_GT(commandCount, 1u);
+    EXPECT_EQ(entries.size(), entryIndex);
+    EXPECT_EQ(memory.size(), dataOffset);
+    EXPECT_EQ(stream.writtenData.size(), outputOffset);
+}
+
+TEST_F(AubFileStreamWritePagesTest, givenMixedSmallAndLargeEntriesWhenWriteDiscontiguousPagesThenStateIsResetAroundContiguousFallback) {
+    MockWriteAubFileStream stream;
+
+    constexpr size_t smallEntrySize = 4 * KB;
+    auto contiguousHeaderSize = sizeof(CmdServicesMemTraceMemoryWrite) - sizeof(CmdServicesMemTraceMemoryWrite::data);
+    auto maxDwordCount = static_cast<uint32_t>(std::numeric_limits<uint16_t>::max());
+    auto maxSingleChunkSize = static_cast<size_t>((maxDwordCount - (contiguousHeaderSize / sizeof(uint32_t))) * sizeof(uint32_t));
+    ASSERT_GT(maxSingleChunkSize, 1u);
+
+    const size_t largeEntrySize = maxSingleChunkSize + 64;
+    std::vector<PageInfo> entries = {
+        {0x200000, smallEntrySize, true, MEMORY_BANK_0},
+        {0x400000, largeEntrySize, true, MEMORY_BANK_0},
+        {0xA00000, smallEntrySize, true, MEMORY_BANK_0}};
+
+    std::vector<uint8_t> memory(smallEntrySize + largeEntrySize + smallEntrySize, 0);
+    memory[0] = 0x31;
+    memory[smallEntrySize - 1] = 0x32;
+
+    auto largeEntryOffset = smallEntrySize;
+    memory[largeEntryOffset] = 0x41;
+    memory[largeEntryOffset + maxSingleChunkSize - 1] = 0x42;
+    memory[largeEntryOffset + maxSingleChunkSize] = 0x43;
+    memory[largeEntryOffset + largeEntrySize - 1] = 0x44;
+
+    auto thirdEntryOffset = smallEntrySize + largeEntrySize;
+    memory[thirdEntryOffset] = 0x51;
+    memory[thirdEntryOffset + smallEntrySize - 1] = 0x52;
+
+    stream.writeDiscontiguousPages(memory.data(), memory.size(), entries, DataTypeHintValues::TraceNotype);
+
+    auto discontiguousHeaderSize = sizeof(CmdServicesMemTraceMemoryWriteDiscontiguous) - sizeof(CmdServicesMemTraceMemoryWriteDiscontiguous::data);
+
+    size_t outputOffset = 0;
+
+    auto *firstDiscontiguousCmd = reinterpret_cast<const CmdServicesMemTraceMemoryWriteDiscontiguous *>(stream.writtenData.data() + outputOffset);
+    ASSERT_TRUE(firstDiscontiguousCmd->matchesHeader());
+    EXPECT_EQ(1u, firstDiscontiguousCmd->numberOfAddressDataPairs);
+    EXPECT_EQ(entries[0].physicalAddress, firstDiscontiguousCmd->Dword_2_To_190[0].address);
+    EXPECT_EQ(entries[0].size, firstDiscontiguousCmd->Dword_2_To_190[0].dataSizeInBytes);
+
+    auto *firstPayload = reinterpret_cast<const uint8_t *>(stream.writtenData.data() + outputOffset + discontiguousHeaderSize);
+    EXPECT_EQ(0, memcmp(memory.data(), firstPayload, entries[0].size));
+    outputOffset += discontiguousHeaderSize + entries[0].size;
+
+    size_t largeDataOffset = entries[0].size;
+    uint64_t expectedLargePhysicalAddress = entries[1].physicalAddress;
+    size_t remainingLargeSize = entries[1].size;
+    size_t contiguousCommandCount = 0;
+
+    while (remainingLargeSize > 0) {
+        ASSERT_LT(outputOffset, stream.writtenData.size());
+
+        auto *contiguousCmd = reinterpret_cast<const CmdServicesMemTraceMemoryWrite *>(stream.writtenData.data() + outputOffset);
+        ASSERT_TRUE(contiguousCmd->matchesHeader());
+
+        auto packetDwords = static_cast<uint32_t>(contiguousCmd->dwordCount) + 1;
+        auto packetSizeInBytes = static_cast<size_t>(packetDwords) * sizeof(uint32_t);
+        ASSERT_GE(packetSizeInBytes, contiguousHeaderSize);
+        auto payloadSizeAligned = packetSizeInBytes - contiguousHeaderSize;
+        ASSERT_GE(payloadSizeAligned, contiguousCmd->dataSizeInBytes);
+        EXPECT_LT(payloadSizeAligned - contiguousCmd->dataSizeInBytes, sizeof(uint32_t));
+        EXPECT_GT(contiguousCmd->dataSizeInBytes, 0u);
+        EXPECT_LE(contiguousCmd->dataSizeInBytes, remainingLargeSize);
+
+        EXPECT_EQ(expectedLargePhysicalAddress, contiguousCmd->address);
+        EXPECT_EQ(CmdServicesMemTraceMemoryWrite::AddressSpaceValues::TraceLocal, contiguousCmd->addressSpace);
+
+        auto *contiguousPayload = reinterpret_cast<const uint8_t *>(stream.writtenData.data() + outputOffset + contiguousHeaderSize);
+        EXPECT_EQ(0, memcmp(memory.data() + largeDataOffset, contiguousPayload, contiguousCmd->dataSizeInBytes));
+
+        bool isFinalLargeChunk = contiguousCmd->dataSizeInBytes == remainingLargeSize;
+        if (!isFinalLargeChunk) {
+            EXPECT_EQ(65534u, contiguousCmd->dwordCount);
+            EXPECT_EQ(65535u, packetDwords);
+        }
+
+        outputOffset += contiguousHeaderSize + payloadSizeAligned;
+        largeDataOffset += contiguousCmd->dataSizeInBytes;
+        expectedLargePhysicalAddress += contiguousCmd->dataSizeInBytes;
+        remainingLargeSize -= contiguousCmd->dataSizeInBytes;
+        contiguousCommandCount++;
+    }
+
+    EXPECT_GT(contiguousCommandCount, 1u);
+
+    ASSERT_LT(outputOffset, stream.writtenData.size());
+    auto *secondDiscontiguousCmd = reinterpret_cast<const CmdServicesMemTraceMemoryWriteDiscontiguous *>(stream.writtenData.data() + outputOffset);
+    ASSERT_TRUE(secondDiscontiguousCmd->matchesHeader());
+    EXPECT_EQ(1u, secondDiscontiguousCmd->numberOfAddressDataPairs);
+    EXPECT_EQ(entries[2].physicalAddress, secondDiscontiguousCmd->Dword_2_To_190[0].address);
+    EXPECT_EQ(entries[2].size, secondDiscontiguousCmd->Dword_2_To_190[0].dataSizeInBytes);
+
+    auto finalPayloadOffset = entries[0].size + entries[1].size;
+    auto *secondPayload = reinterpret_cast<const uint8_t *>(stream.writtenData.data() + outputOffset + discontiguousHeaderSize);
+    EXPECT_EQ(0, memcmp(memory.data() + finalPayloadOffset, secondPayload, entries[2].size));
+
+    outputOffset += discontiguousHeaderSize + entries[2].size;
+    EXPECT_EQ(stream.writtenData.size(), outputOffset);
+}
+
+TEST_F(AubFileStreamWritePagesTest, givenSmallAlignedDiscontiguousEntriesWhenWriteDiscontiguousPagesThenSingleDiscontiguousCommandIsWritten) {
+    MockWriteAubFileStream stream;
+
+    std::vector<PageInfo> entries = {
+        {0x200000, 4096, true, MEMORY_BANK_0},
+        {0x300000, 4096, true, MEMORY_BANK_0}};
+    std::vector<uint8_t> memory(8192, 0xCD);
+
+    stream.writeDiscontiguousPages(memory.data(), memory.size(), entries, DataTypeHintValues::TraceNotype);
+
+    auto headerSize = sizeof(CmdServicesMemTraceMemoryWriteDiscontiguous) - sizeof(CmdServicesMemTraceMemoryWriteDiscontiguous::data);
+    ASSERT_EQ(headerSize + memory.size(), stream.writtenData.size());
+
+    auto *cmd = reinterpret_cast<const CmdServicesMemTraceMemoryWriteDiscontiguous *>(stream.writtenData.data());
+    EXPECT_TRUE(cmd->matchesHeader());
+    EXPECT_EQ(2u, cmd->numberOfAddressDataPairs);
+    EXPECT_EQ(entries[0].physicalAddress, cmd->Dword_2_To_190[0].address);
+    EXPECT_EQ(entries[0].size, cmd->Dword_2_To_190[0].dataSizeInBytes);
+    EXPECT_EQ(entries[1].physicalAddress, cmd->Dword_2_To_190[1].address);
+    EXPECT_EQ(entries[1].size, cmd->Dword_2_To_190[1].dataSizeInBytes);
+
+    auto *writtenPayload = reinterpret_cast<const uint8_t *>(stream.writtenData.data() + headerSize);
+    EXPECT_EQ(0, memcmp(memory.data(), writtenPayload, memory.size()));
+}

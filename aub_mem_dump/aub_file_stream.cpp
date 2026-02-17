@@ -16,6 +16,7 @@
 #include <cassert>
 #include <string.h>
 #include <algorithm>
+#include <limits>
 
 namespace aub_stream {
 
@@ -262,28 +263,44 @@ void AubFileStream::reserveContiguousPages(const std::vector<uint64_t> &entries)
 }
 
 void AubFileStream::writeContiguousPages(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint) {
-    CmdServicesMemTraceMemoryWrite header = {};
     auto sizeMemoryWriteHeader = sizeof(CmdServicesMemTraceMemoryWrite) - sizeof(CmdServicesMemTraceMemoryWrite::data);
-    auto alignedBlockSize = (size + sizeof(uint32_t) - 1) & ~(sizeof(uint32_t) - 1);
-    auto dwordCount = (sizeMemoryWriteHeader + alignedBlockSize) / sizeof(uint32_t);
-    assert(dwordCount <= std::numeric_limits<uint16_t>::max());
+    auto maxDwordCount = static_cast<uint32_t>(std::numeric_limits<uint16_t>::max());
+    auto maxChunkSize = static_cast<size_t>((maxDwordCount - (sizeMemoryWriteHeader / sizeof(uint32_t))) * sizeof(uint32_t));
+    assert(maxChunkSize > 0);
 
-    header.setHeader();
-    header.dwordCount = static_cast<uint32_t>(dwordCount - 1);
-    header.address = physAddress;
-    header.repeatMemory = CmdServicesMemTraceMemoryWrite::RepeatMemoryValues::NoRepeat;
-    header.tiling = CmdServicesMemTraceMemoryWrite::TilingValues::NoTiling;
-    header.dataTypeHint = hint;
-    header.addressSpace = addressSpace;
-    header.dataSizeInBytes = static_cast<uint32_t>(size);
+    auto remainingSize = size;
+    auto currentMemory = reinterpret_cast<const uint8_t *>(memory);
+    auto currentPhysAddress = physAddress;
 
-    write(reinterpret_cast<const char *>(&header), sizeMemoryWriteHeader);
-    write((const char *)memory, size);
+    while (remainingSize > 0) {
+        auto chunkSize = std::min(remainingSize, maxChunkSize);
 
-    auto remainder = size & (sizeof(uint32_t) - 1);
-    if (remainder) {
-        uint32_t zero = 0;
-        write((const char *)&zero, sizeof(uint32_t) - remainder);
+        CmdServicesMemTraceMemoryWrite header = {};
+        auto alignedBlockSize = (chunkSize + sizeof(uint32_t) - 1) & ~(sizeof(uint32_t) - 1);
+        auto dwordCount = (sizeMemoryWriteHeader + alignedBlockSize) / sizeof(uint32_t);
+        assert(dwordCount <= maxDwordCount);
+
+        header.setHeader();
+        header.dwordCount = static_cast<uint32_t>(dwordCount - 1);
+        header.address = currentPhysAddress;
+        header.repeatMemory = CmdServicesMemTraceMemoryWrite::RepeatMemoryValues::NoRepeat;
+        header.tiling = CmdServicesMemTraceMemoryWrite::TilingValues::NoTiling;
+        header.dataTypeHint = hint;
+        header.addressSpace = addressSpace;
+        header.dataSizeInBytes = static_cast<uint32_t>(chunkSize);
+
+        write(reinterpret_cast<const char *>(&header), sizeMemoryWriteHeader);
+        write(reinterpret_cast<const char *>(currentMemory), chunkSize);
+
+        auto remainder = chunkSize & (sizeof(uint32_t) - 1);
+        if (remainder) {
+            uint32_t zero = 0;
+            write(reinterpret_cast<const char *>(&zero), sizeof(uint32_t) - remainder);
+        }
+
+        currentMemory += chunkSize;
+        currentPhysAddress += chunkSize;
+        remainingSize -= chunkSize;
     }
     fileHandle.flush();
 }
@@ -316,89 +333,91 @@ void AubFileStream::writeDiscontiguousPages(const void *memory, size_t size, con
         auto ptrDump = memory;
         auto ptr = memory;
         auto headerSize = sizeof(CmdServicesMemTraceMemoryWriteDiscontiguous) - sizeof(CmdServicesMemTraceMemoryWriteDiscontiguous::data);
+        auto maxDwordCount = static_cast<uint32_t>(std::numeric_limits<uint16_t>::max());
+        auto headerDwordCount = static_cast<uint32_t>((headerSize / sizeof(uint32_t)) - 1);
+        auto maxDataDwordCount = maxDwordCount - headerDwordCount;
+
+        auto flushDiscontiguousToken = [&]() {
+            if (index == 0) {
+                return;
+            }
+
+            cmd.numberOfAddressDataPairs = index;
+            write((char *)&cmd, headerSize);
+
+            while (itorDumpStart != itorCurrent) {
+                bool unalignedSize = itorDumpStart->size & (sizeof(uint32_t) - 1);
+                bool unalignedAddress = itorDumpStart->physicalAddress & (sizeof(uint32_t) - 1);
+                bool differentAddressSpace = (isLocalMemory != itorDumpStart->isLocalMemory);
+                if (!unalignedSize && !unalignedAddress && !differentAddressSpace) {
+                    write((const char *)ptrDump, itorDumpStart->size);
+                }
+
+                ptrDump = itorDumpStart->size + (uint8_t *)ptrDump;
+                ++itorDumpStart;
+            }
+
+            cmd.dwordCount = 0;
+            index = 0;
+        };
 
         // Loop for all entries
         while (itorCurrent != writeInfoTable.end()) {
             auto &writeInfo = *itorCurrent;
-            auto dwordCount = uint32_t(writeInfo.size / sizeof(uint32_t));
-
-            // Make sure we have room for another entry.
-            if (index >= maxEntries || ((dwordCount + cmd.dwordCount) > 65535)) {
-                // if not, flush out existing token
-                cmd.numberOfAddressDataPairs = index;
-                write((char *)&cmd, headerSize);
-
-                // Write the data
-                while (itorDumpStart != itorCurrent) {
-                    bool unalignedSize = itorDumpStart->size & (sizeof(uint32_t) - 1);
-                    bool unalignedAddress = itorDumpStart->physicalAddress & (sizeof(uint32_t) - 1);
-                    bool differentAddressSpace = (isLocalMemory != itorDumpStart->isLocalMemory);
-                    if (!unalignedSize && !unalignedAddress && !differentAddressSpace) {
-                        write((const char *)ptrDump, itorDumpStart->size);
-                    }
-
-                    ptrDump = itorDumpStart->size + (uint8_t *)ptrDump;
-                    ++itorDumpStart;
-                }
-
-                // reset for next token
-                cmd.dwordCount = 0;
-            }
-
-            if (!cmd.dwordCount) {
-                assert(itorDumpStart == itorCurrent);
-                assert(ptrDump == ptr);
-                cmd.dwordCount = (headerSize / sizeof(uint32_t)) - 1;
-                index = 0;
-            }
-
             bool unalignedSize = writeInfo.size & (sizeof(uint32_t) - 1);
             bool unalignedAddress = writeInfo.physicalAddress & (sizeof(uint32_t) - 1);
             bool differentAddressSpace = (isLocalMemory != writeInfo.isLocalMemory);
-            if (unalignedSize || unalignedAddress || differentAddressSpace) {
-                // If we're unaligned, fall back to simplified write
+            auto alignedBlockSize = (writeInfo.size + sizeof(uint32_t) - 1) & ~(sizeof(uint32_t) - 1);
+            auto dwordCount = static_cast<uint32_t>(alignedBlockSize / sizeof(uint32_t));
+            bool exceedsDiscontiguousPayloadLimit = dwordCount > maxDataDwordCount;
+
+            if (unalignedSize || unalignedAddress || differentAddressSpace || exceedsDiscontiguousPayloadLimit) {
+                flushDiscontiguousToken();
+
                 writeContiguousPages(
                     ptr,
                     writeInfo.size,
                     writeInfo.physicalAddress,
                     writeInfo.isLocalMemory ? AddressSpaceValues::TraceLocal : AddressSpaceValues::TraceNonlocal,
                     hint);
-            } else {
-                // Store the entries in the command
-                cmd.Dword_2_To_190[index].dataSizeInBytes = uint32_t(writeInfo.size);
-                cmd.Dword_2_To_190[index].address = writeInfo.physicalAddress;
 
-                cmd.dwordCount += dwordCount;
-
-                ++index;
+                ptr = writeInfo.size + (uint8_t *)ptr;
+                ptrDump = ptr;
+                ++itorCurrent;
+                itorDumpStart = itorCurrent;
+                writtenSize += writeInfo.size;
+                continue;
             }
+
+            if (!cmd.dwordCount) {
+                assert(itorDumpStart == itorCurrent);
+                assert(ptrDump == ptr);
+                cmd.dwordCount = headerDwordCount;
+                index = 0;
+            }
+
+            // Make sure we have room for another entry.
+            if (index >= maxEntries || ((dwordCount + cmd.dwordCount) > maxDwordCount)) {
+                flushDiscontiguousToken();
+                assert(itorDumpStart == itorCurrent);
+                assert(ptrDump == ptr);
+                cmd.dwordCount = headerDwordCount;
+            }
+
+            // Store the entries in the command
+            cmd.Dword_2_To_190[index].dataSizeInBytes = uint32_t(writeInfo.size);
+            cmd.Dword_2_To_190[index].address = writeInfo.physicalAddress;
+
+            cmd.dwordCount += dwordCount;
+
+            ++index;
 
             ptr = writeInfo.size + (uint8_t *)ptr;
             writtenSize += writeInfo.size;
             ++itorCurrent;
         }
 
-        if (index) {
-            assert(itorDumpStart != itorCurrent);
-
-            // if not, flush out existing token
-            cmd.numberOfAddressDataPairs = index;
-            write((char *)&cmd, headerSize);
-
-            // Write the data
-            while (itorDumpStart != itorCurrent) {
-                auto &writeInfo = *itorDumpStart;
-                bool unalignedSize = writeInfo.size & (sizeof(uint32_t) - 1);
-                bool unalignedAddress = writeInfo.physicalAddress & (sizeof(uint32_t) - 1);
-                bool differentAddressSpace = (isLocalMemory != writeInfo.isLocalMemory);
-                if (!unalignedSize && !unalignedAddress && !differentAddressSpace) {
-                    write((const char *)ptrDump, writeInfo.size);
-                }
-
-                ptrDump = writeInfo.size + (uint8_t *)ptrDump;
-                ++itorDumpStart;
-            }
-        }
+        flushDiscontiguousToken();
         fileHandle.flush();
         assert(writtenSize == size);
     }
