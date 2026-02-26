@@ -439,4 +439,29 @@ uint32_t HardwareContextImp::getExpectedFence() {
     return contextFenceValue;
 }
 
+void HardwareContextImp::resubmit() {
+    if (this->contextGroupId != std::numeric_limits<uint32_t>::max()) {
+        csTraits.submit(stream, contextGroup->contexts, ppgtt.getNumAddressBits() != 32);
+    } else {
+        csTraits.submit(stream, ggttLRCA, ppgtt.getNumAddressBits() != 32, contextId, priority);
+    }
+}
+
+bool HardwareContextImp::isActive() {
+    if (this->contextGroupId != std::numeric_limits<uint32_t>::max()) {
+        return false;
+    }
+    // Since this is not atimic 64b read, order of low and high part read is important.
+    // Even if EXECLIST_STATUS will be modified between these reads isActive() still
+    // return correct result.
+    uint32_t execListStatusLo = stream.readMMIO(csTraits.mmioEngine + 0x2234);
+    bool activeBit = (execListStatusLo & 0x80) != 0;
+    if (!activeBit) {
+        return false;
+    }
+    uint32_t execListStatusHi = stream.readMMIO(csTraits.mmioEngine + 0x2234 + 4);
+    bool contextIdMatch = (execListStatusHi >> 7) == contextId;
+    return contextIdMatch;
+}
+
 } // namespace aub_stream

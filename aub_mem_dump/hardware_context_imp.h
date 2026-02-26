@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -64,6 +64,8 @@ struct HardwareContextImp : public HardwareContext {
     void pollForFenceCompletion() override;
     uint32_t getCurrentFence() override;
     uint32_t getExpectedFence() override;
+    bool isActive() override;
+    void resubmit() override;
 
     AubStream &stream;
     const CommandStreamerHelper &csTraits;

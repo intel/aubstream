@@ -152,7 +152,7 @@ TEST_F(HardwareContextTest, submitShouldPerformFenceOperations) {
     context.getCurrentFence();
 }
 
-HWTEST_F(HardwareContextTest, submitBatchBufferShouldPerformAtLeastOneMMIOWriteAndDiscontiguousPageWrites, ringDataDisabled) {
+HWTEST_F(HardwareContextTest, submitBatchBufferShouldPerformAtLeastOneMMIOWriteAndDiscontiguousPageWritesAndNoDiscontiguousPageWriteForResubmit, ringDataDisabled) {
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
@@ -180,6 +180,9 @@ HWTEST_F(HardwareContextTest, submitBatchBufferShouldPerformAtLeastOneMMIOWriteA
     auto numWrites = 2;
     EXPECT_CALL(stream, writeDiscontiguousPages(_, _, _, _)).Times(numWrites);
     context.submitBatchBuffer(ppgttBatchBuffer, false);
+    EXPECT_CALL(stream, writeDiscontiguousPages(_, _, _, _)).Times(0);
+    EXPECT_CALL(stream, writeMMIO(_, _, 0xffffffff)).Times(AtLeast(1));
+    context.resubmit();
 }
 
 TEST_F(HardwareContextTest, givenHardwareContextWhenCallingFreeMemoryThenEntriesAreRemovedFromPageTable) {
@@ -849,6 +852,7 @@ HWTEST_F(HardwareContextTest, givenContextWhenSubmittingThenUseExeclistPortSubmi
     EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1, 0xffffffff)).Times(1);
 
     context0.submitBatchBuffer(0x100, false);
+    EXPECT_FALSE(context0.isActive());
 }
 
 HWTEST_F(HardwareContextTest, givenExeclistSubmitPortSubmissionDisabledWhenSubmittingThenSQSubmissionIsUsed, HwMatcher::coreEqualGreaterXe3p) {
@@ -960,4 +964,23 @@ TEST_F(HardwareContextTest, givenRegisterBasedPollForCompletionWhenPollForComple
     }
 
     context.pollForCompletion();
+}
+
+TEST_F(HardwareContextTest, isActiveMustReturnProperValue) {
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+
+    MockCommandStreamerHelperWithMemoryPoll csHelper(defaultDevice, 0);
+    csHelper.gpu = gpu.get();
+    HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
+
+    EXPECT_CALL(stream, readMMIO(_)).Times(1).WillOnce(::testing::Return(0));
+    EXPECT_FALSE(context.isActive());
+
+    EXPECT_CALL(stream, readMMIO(_)).Times(2).WillOnce(::testing::Return(0x80)).WillOnce(::testing::Return(0));
+    EXPECT_FALSE(context.isActive());
+
+    EXPECT_CALL(stream, readMMIO(_)).Times(2).WillOnce(::testing::Return(0x80)).WillOnce(::testing::Return(context.contextId << 7));
+    EXPECT_TRUE(context.isActive());
 }
