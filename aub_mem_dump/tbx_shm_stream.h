@@ -23,7 +23,7 @@ class TbxSockets;
 struct TbxShmStream : public AubStream {
     typedef std::function<void(uint64_t physAddress, size_t size, bool isLocalMemory, void *&p, size_t &availableSize)> TranslatePhysicalAddressToSystemMemoryFn;
 
-    TbxShmStream(uint32_t m) : mode(m){};
+    TbxShmStream(uint32_t m) : mode(m) {};
     virtual ~TbxShmStream();
 
     void addComment(const char *message) override;

@@ -39,8 +39,8 @@ struct HardwareContextImp : public HardwareContext {
     uint32_t contextGroupId = std::numeric_limits<uint32_t>::max();
     uint32_t priority = priorityNormal;
 
-    HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggtt, PageTable &ppgtt, uint32_t flags) : HardwareContextImp(deviceIndex, aubStream, traits, ggtt, ppgtt, nullptr, flags, priorityNormal){};
-    HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggtt, PageTable &ppgtt, ContextGroup *contextGroup, uint32_t flags) : HardwareContextImp(deviceIndex, aubStream, traits, ggtt, ppgtt, contextGroup, flags, priorityNormal){};
+    HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggtt, PageTable &ppgtt, uint32_t flags) : HardwareContextImp(deviceIndex, aubStream, traits, ggtt, ppgtt, nullptr, flags, priorityNormal) {};
+    HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggtt, PageTable &ppgtt, ContextGroup *contextGroup, uint32_t flags) : HardwareContextImp(deviceIndex, aubStream, traits, ggtt, ppgtt, contextGroup, flags, priorityNormal) {};
     HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggtt, PageTable &ppgtt, ContextGroup *contextGroup, uint32_t flags, uint32_t priority);
 
     ~HardwareContextImp() override;

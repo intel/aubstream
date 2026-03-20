@@ -9,7 +9,7 @@ components:
     dest_dir: tools/clang-format
     type: git
     branch: clang-format
-    revision: 15.0.6
+    revision: 22.1.1
   aub_configs:
     branch: aub_configs
     dest_dir: aub_configs
