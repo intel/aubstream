@@ -249,14 +249,11 @@ void HardwareContextImp::writeAndSubmitBatchBuffer(uint64_t gfxAddress, const vo
 }
 
 void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRingHead) {
-    contextFenceValue++;
-
-    // Submit a batch buffer
     std::vector<uint32_t> ringCommands;
 
     csTraits.addBatchBufferJump(ringCommands, gfxAddress);
     csTraits.addFlushCommands(ringCommands);
-    csTraits.storeFenceValue(ringCommands, ggttContextFence, contextFenceValue);
+    csTraits.storeFenceValue(ringCommands, ggttContextFence, contextFenceValue + 1);
 
     if (ringCommands.size() % 2) {
         ringCommands.push_back(0);
@@ -284,7 +281,10 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
             pageSize);
 
         ringTail = 0;
+        pollForCompletion();
     }
+
+    contextFenceValue++;
 
     stream.writeMemory(
         &ggtt,
