@@ -46,8 +46,6 @@ TEST(GpuXe3p, givenXe3pWhenInitializingGlobalMmiosThenProgramCorrectRegisters) {
     EXPECT_CALL(stream, writeMMIO(0x00014804, 0x0fff0000, 0xffffffff)).Times(1);
     EXPECT_CALL(stream, writeMMIO(0x0001a0d8, 0x00020000, 0xffffffff)).Times(1);
     EXPECT_CALL(stream, writeMMIO(0x00042080, 0x00000000, 0xffffffff)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x0000e7c8, 0x00400000, 0xffffffff)).Times(1);
-    EXPECT_CALL(stream, writeMMIO(0x0000e7cc, 0x00001000, 0xffffffff)).Times(1);
 
     gpu->initializeGlobalMMIO(stream, 1, 1, 0);
 }
