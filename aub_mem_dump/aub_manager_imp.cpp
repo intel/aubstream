@@ -496,7 +496,7 @@ bool AubManagerImp::reservePhysicalMemory(AllocationParams allocationParams, Phy
 
     auto pageSize = allocationParams.pageSize;
     auto gfxOffset = allocationParams.gfxAddress & (pageSize - 1);
-    size_t sizePageAligned = (gfxOffset + size + pageSize - 1) & ~(pageSize - 1);
+    size_t sizePageAligned = (gfxOffset + size + pageSize - 1) & ~(static_cast<uint64_t>(pageSize - 1));
 
     physicalAllocInfo.memoryBank = memoryBanks;
     physicalAllocInfo.pageSize = pageSize;
@@ -534,7 +534,7 @@ bool AubManagerImp::reserveOnlyPhysicalSpace(AllocationParams allocationParams, 
 
     auto pageSize = allocationParams.pageSize;
     auto gfxOffset = allocationParams.gfxAddress & (pageSize - 1);
-    size_t sizePageAligned = (gfxOffset + size + pageSize - 1) & ~(pageSize - 1);
+    size_t sizePageAligned = (gfxOffset + size + pageSize - 1) & ~(static_cast<uint64_t>(pageSize - 1));
 
     physicalAllocInfo.memoryBank = memoryBanks;
     physicalAllocInfo.pageSize = pageSize;

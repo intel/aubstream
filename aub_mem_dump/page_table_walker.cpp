@@ -117,8 +117,8 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
     bool isLocalMemory = memoryBanks != PhysicalAddressAllocator::mainBank;
 
-    uint64_t alignedStart = gfxAddress & ~(pageSize - 1);
-    uint64_t alignedEnd = (gfxAddress + size + pageSize - 1) & ~(pageSize - 1);
+    uint64_t alignedStart = gfxAddress & ~(static_cast<uint64_t>(pageSize - 1));
+    uint64_t alignedEnd = (gfxAddress + size + pageSize - 1) & ~(static_cast<uint64_t>(pageSize - 1));
     size_t sizePageAligned = static_cast<size_t>(alignedEnd - alignedStart);
     MemoryBankHelper bankHelper(memoryBanks, alignedStart, sizePageAligned);
 
