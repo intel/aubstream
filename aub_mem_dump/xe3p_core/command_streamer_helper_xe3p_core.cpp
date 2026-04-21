@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Intel Corporation
+ * Copyright (C) 2025-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -133,7 +133,6 @@ template <>
 const MMIOList CommandStreamerHelperXe3pCore<CommandStreamerHelperLinkBcs>::getEngineMMIO() const {
     const MMIOList engineMMIO = {
         MMIOPair(mmioEngine + 0x0000229c, 0xffff8284), // GFX_MODE
-        MMIOPair(mmioEngine + 0x000020C4, 0xFFFF0306)  // CMD_CCTL_BCSUNIT BCS Read/Write point at MOCS#3
     };
 
     return engineMMIO;
