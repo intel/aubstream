@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -133,6 +133,7 @@ struct Gpu : public GpuDescriptor {
     virtual void invalidateTLB(AubStream &stream, uint32_t contextId, bool) const {};
 
     std::unique_ptr<StolenMemory> stolenMemory;
+    bool programAdditionalEngineMMIO{false};
 
   protected:
     uint64_t dsmSizeOverride = 0;

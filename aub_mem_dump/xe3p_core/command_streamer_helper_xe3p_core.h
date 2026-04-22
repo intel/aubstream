@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Intel Corporation
+ * Copyright (C) 2025-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -174,6 +174,7 @@ struct CommandStreamerHelperXe3pCore : public CommandStreamerHelperXeCore<Helper
     }
 
     const MMIOList getEngineMMIO() const override;
+    void appendAdditionalEngineMMIO(MMIOList &engineMMIO) const;
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override;
 
     using Helper::mmioDevice;

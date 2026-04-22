@@ -51,6 +51,7 @@ AubManagerImp::AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOp
                                                                options.devicesCount,
                                                                options.memoryBankSize,
                                                                this->gpu->getStolenMemorySize(options.memoryBankSize));
+    this->gpu->programAdditionalEngineMMIO = options.programAdditionalEngineMMIO;
 
     groupContextHelper = std::make_unique<GroupContextHelper>();
     auto contextGroupCount = this->gpu->getContextGroupCount();

@@ -18,7 +18,7 @@ namespace aub_stream {
 
 template <>
 const MMIOList CommandStreamerHelperXe3pCore<CommandStreamerHelperRcs>::getEngineMMIO() const {
-    const MMIOList engineMMIO = {
+    MMIOList engineMMIO = {
         MMIOPair(mmioEngine + 0x00002058, 0x00000000), // CTX_WA_PTR_RCSUNIT
         MMIOPair(mmioEngine + 0x000020a8, 0x00000000), // IMR
         MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
@@ -28,58 +28,81 @@ const MMIOList CommandStreamerHelperXe3pCore<CommandStreamerHelperRcs>::getEngin
         MMIOPair(mmioEngine + 0x000024d0, 0x00007304), // COMMON_SLICE_CHICKEN3
     };
 
+    if (gpu->programAdditionalEngineMMIO) {
+        appendAdditionalEngineMMIO(engineMMIO);
+    }
+
     return engineMMIO;
 }
 
 template <>
 const MMIOList CommandStreamerHelperXe3pCore<CommandStreamerHelperCccs>::getEngineMMIO() const {
-    const MMIOList engineMMIO = {
+    MMIOList engineMMIO = {
         MMIOPair(mmioEngine + 0x00002058, 0x00000000), // CTX_WA_PTR_RCSUNIT
         MMIOPair(mmioEngine + 0x000020a8, 0x00000000), // IMR
         MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
         MMIOPair(mmioEngine + 0x0000209C, 0x10000000), // MI_MODE
     };
 
+    if (gpu->programAdditionalEngineMMIO) {
+        appendAdditionalEngineMMIO(engineMMIO);
+    }
+
     return engineMMIO;
 }
 
 template <>
 const MMIOList CommandStreamerHelperXe3pCore<CommandStreamerHelperBcs>::getEngineMMIO() const {
-    const MMIOList engineMMIO = {
+    MMIOList engineMMIO = {
         MMIOPair(mmioEngine + 0x0000229c, 0xffff8284), // GFX_MODE
-
     };
+
+    if (gpu->programAdditionalEngineMMIO) {
+        appendAdditionalEngineMMIO(engineMMIO);
+    }
 
     return engineMMIO;
 }
 
 template <>
 const MMIOList CommandStreamerHelperXe3pCore<CommandStreamerHelperVcs>::getEngineMMIO() const {
-    const MMIOList engineMMIO = {
+    MMIOList engineMMIO = {
         MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
 
         // FORCE_TO_NONPRIV
         MMIOPair(mmioEngine + 0x000024d0, 0x00002920), // OAR_OAPERF_B0
     };
 
+    if (gpu->programAdditionalEngineMMIO) {
+        appendAdditionalEngineMMIO(engineMMIO);
+    }
+
     return engineMMIO;
 }
 
 template <>
 const MMIOList CommandStreamerHelperXe3pCore<CommandStreamerHelperVecs>::getEngineMMIO() const {
-    const MMIOList engineMMIO = {
+    MMIOList engineMMIO = {
         MMIOPair(mmioEngine + 0x0000229c, 0xffff8280), // GFX_MODE
     };
+
+    if (gpu->programAdditionalEngineMMIO) {
+        appendAdditionalEngineMMIO(engineMMIO);
+    }
 
     return engineMMIO;
 }
 
 template <>
 const MMIOList CommandStreamerHelperXe3pCore<CommandStreamerHelperCcs>::getEngineMMIO() const {
-    const MMIOList engineMMIO = {
+    MMIOList engineMMIO = {
         MMIOPair(mmioEngine + 0x0000229c, 0xffff8284), // GFX_MODE
         MMIOPair(mmioEngine + 0x0000209C, 0x10000000), // MI_MODE
     };
+
+    if (gpu->programAdditionalEngineMMIO) {
+        appendAdditionalEngineMMIO(engineMMIO);
+    }
 
     return engineMMIO;
 }
@@ -131,9 +154,13 @@ void CommandStreamerHelperXe3pCore<CommandStreamerHelperCcs>::addFlushCommands(s
 
 template <>
 const MMIOList CommandStreamerHelperXe3pCore<CommandStreamerHelperLinkBcs>::getEngineMMIO() const {
-    const MMIOList engineMMIO = {
+    MMIOList engineMMIO = {
         MMIOPair(mmioEngine + 0x0000229c, 0xffff8284), // GFX_MODE
     };
+
+    if (gpu->programAdditionalEngineMMIO) {
+        appendAdditionalEngineMMIO(engineMMIO);
+    }
 
     return engineMMIO;
 }
