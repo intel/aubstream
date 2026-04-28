@@ -27,6 +27,7 @@ PageTable::PageTable(const Gpu &gpu, PhysicalAddressAllocator *physicalAddressAl
 uint64_t PageTable::getEntryValue() const {
     auto bits = toBitValue(PpgttEntryBits::writableBit, PpgttEntryBits::presentBit);
     bits |= isLocalMemory() ? toBitValue(PpgttEntryBits::localMemoryBit) : 0;
+    bits |= ps64 ? toBitValue(PpgttEntryBits::ps64Bit) : 0;
     bits |= gpu.getPPGTTExtraEntryBits(additionalAllocParams);
     return getPhysicalAddress() | bits;
 }

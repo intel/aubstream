@@ -36,6 +36,31 @@ inline bool hasExistingPageTableConflict(PageTable *child, int level, size_t pag
     return false;
 }
 
+inline uint64_t ps64EntryFlags(const PageTable *entry) {
+    return (entry->getEntryValue() ^ entry->getPhysicalAddress()) & ~toBitValue(PpgttEntryBits::ps64Bit);
+}
+
+// Returns true when all 16 hardware PTE slots of the naturally-aligned 64KB group
+// starting at hwBase are occupied by children with consecutive physical addresses
+// and identical permission bits (PS64 spec: same perms, 64KB-aligned PA).
+inline bool isPs64GroupComplete(PageTable *parent, uint32_t hwBase) {
+    PageTable *c0 = parent->getChild(hwBase);
+    if (!c0)
+        return false;
+    const uint64_t base = c0->getPhysicalAddress();
+    if (base & 0xffff)
+        return false;
+    const uint64_t flags0 = ps64EntryFlags(c0);
+    for (uint32_t i = 1; i < 16; i++) {
+        PageTable *ci = parent->getChild(hwBase + i);
+        if (!ci || ci->getPhysicalAddress() != base + i * 4096)
+            return false; // must be consecutive physical addresses
+        if (ps64EntryFlags(ci) != flags0)
+            return false; // must have the same flags (e.g. permissions)
+    }
+    return true;
+}
+
 } // namespace
 
 void PageTableWalker::walkMemory(GGTT *ggtt, uint64_t gfxAddress, size_t size, uint32_t memoryBanks, size_t pageSize, WalkMode mode, const std::vector<PageInfo> *pageInfos) {
@@ -98,7 +123,7 @@ void PageTableWalker::walkMemory(GGTT *ggtt, uint64_t gfxAddress, size_t size, u
     }
 }
 
-void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos) {
+void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos, std::optional<uint64_t> physicalAddress) {
     auto size = allocationParams.size;
     if (size == 0) {
         return;
@@ -116,7 +141,6 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     uint32_t clonePageInfoIndex = 0;
 
     bool isLocalMemory = memoryBanks != PhysicalAddressAllocator::mainBank;
-
     uint64_t alignedStart = gfxAddress & ~(static_cast<uint64_t>(pageSize - 1));
     uint64_t alignedEnd = (gfxAddress + size + pageSize - 1) & ~(static_cast<uint64_t>(pageSize - 1));
     size_t sizePageAligned = static_cast<size_t>(alignedEnd - alignedStart);
@@ -128,6 +152,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     // Conflict fallback should only affect the PDE where it occurs
     const size_t requestedPageSize = pageSize;
     const int requestedLeafLevel = leafLevel;
+    const bool ps64Applicable = globalSettings->EnablePs64.get() && requestedPageSize == 4096 && ppgtt->getNumLevels() == 5; // PS64 was introduced with 5-level PPGTT (PML5)
 
     // Reserve # of entries plus two for leading/trailing pages
     pageWalkEntries[PageTableLevel::Pml5].reserve(2 + (uint64_t(size) >> 48));
@@ -147,139 +172,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
         PageTable *child = ppgtt;
         int level = ppgtt->getNumLevels() - 1;
 
-        uint32_t pageMemoryBank = bankHelper.getMemoryBank(gfxAddress);
-
-        if (mode == WalkMode::Clone) {
-            clonePageInfo = &(*pageInfos)[clonePageInfoIndex++];
-        }
-        PTE *pte = nullptr;
-        while (level >= leafLevel) {
-            parent = child;
-            auto index = parent->getIndex(gfxAddress);
-
-            pte = (level == PageTableLevel::Pte) ? static_cast<PTE *>(parent) : nullptr;
-
-            // Existing PTE determines actual page size
-            if (pte && pte->getPageSize() != pageSize) {
-                pageSize = pte->getPageSize();
-            }
-
-            // Get or allocate each of the page structures
-            child = parent->getChild(index);
-
-            // Handle pre-existing 2MB pages
-            if (child && level == PageTableLevel::Pde && child->getPageSize() == Page2MB::pageSize2MB) {
-                pageSize = Page2MB::pageSize2MB;
-                break;
-            }
-
-            if (hasExistingPageTableConflict(child, level, pageSize)) {
-                pageSize = 65536;
-                leafLevel = PageTableLevel::Pte;
-            }
-
-            if (!child) {
-                assert(mode != WalkMode::Expect);
-                if (level == leafLevel && clonePageInfo) {
-                    const auto physicalAddressAligned = clonePageInfo->physicalAddress & ~(static_cast<uint64_t>(pageSize - 1));
-                    if (pageSize == Page2MB::pageSize2MB) {
-                        child = new Page2MB(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo->memoryBank, allocationParams.additionalParams);
-                    } else {
-                        child = new PageTableMemory(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo->memoryBank, allocationParams.additionalParams);
-                    }
-                } else if (level != leafLevel) {
-                    // For interior nodes, child use parent's memory bank
-                    child = parent->allocateChild(ppgtt->getGpu(), pageSize, parent->getMemoryBank());
-                } else {
-                    // For leaf nodes, use pageMemoryBank which manages coloring
-                    child = parent->allocateChild(ppgtt->getGpu(), pageSize, pageMemoryBank, allocationParams.additionalParams);
-                }
-
-                parent->setChild(index, child);
-
-                PageEntryInfo info = {
-                    parent->getPhysicalAddress() + index * sizeof(uint64_t),
-                    child->getEntryValue()};
-                pageWalkEntries[level].push_back(info);
-
-                // Need to keep track of 64KB system pages
-                if (level == PageTableLevel::Pte && mode == WalkMode::Reserve && !isLocalMemory && pageSize == 65536) {
-                    pages64KB.push_back(child->getPhysicalAddress());
-                }
-            }
-            --level;
-        }
-
-        // pte is null for 2MB pages
-        size_t pageSizeThisIteration;
-        if (pageSize == Page2MB::pageSize2MB) {
-            pageSizeThisIteration = Page2MB::pageSize2MB;
-        } else {
-            assert(pte);
-            pageSizeThisIteration = pte->getPageSize(); // NOLINT(clang-analyzer-core.CallAndMessage)
-        }
-        assert(pageSizeThisIteration == 4096 || pageSizeThisIteration == 65536 || pageSizeThisIteration == Page2MB::pageSize2MB);
-
-        auto pageOffset = gfxAddress & (pageSizeThisIteration - 1);
-        auto sizeThisIteration = static_cast<size_t>(pageSizeThisIteration - pageOffset);
-        sizeThisIteration = std::min(size, sizeThisIteration);
-
-        // Record page information
-        PageInfo writeInfo = {
-            child->getPhysicalAddress() + pageOffset,
-            sizeThisIteration,
-            child->isLocalMemory(),
-            pageMemoryBank};
-        entries.push_back(writeInfo);
-
-        gfxAddress += sizeThisIteration;
-        size -= sizeThisIteration;
-    }
-}
-
-void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos, uint64_t physicalAddress) {
-    auto size = allocationParams.size;
-    if (size == 0) {
-        return;
-    }
-
-    auto pageSize = allocationParams.pageSize;
-    auto pageMemoryBank = allocationParams.memoryBanks;
-    auto gfxAddress = allocationParams.gfxAddress;
-
-    assert(pageSize > 0);
-
-    pageSize = adjustPageSizeForHardwareSupport(ppgtt->getGpu(), pageSize, pageMemoryBank);
-
-    const PageInfo *clonePageInfo = nullptr;
-    uint32_t clonePageInfoIndex = 0;
-
-    bool isLocalMemory = pageMemoryBank != PhysicalAddressAllocator::mainBank;
-
-    // 2MB pages terminate at PDE level, smaller pages at PTE level
-    int leafLevel = (pageSize == Page2MB::pageSize2MB) ? PageTableLevel::Pde : PageTableLevel::Pte;
-
-    // Conflict fallback should only affect the PDE where it occurs
-    const size_t requestedPageSize = pageSize;
-    const int requestedLeafLevel = leafLevel;
-
-    // Reserve # of entries plus two for leading/trailing pages
-    pageWalkEntries[PageTableLevel::Pml5].reserve(2 + (uint64_t(size) >> 48));
-    pageWalkEntries[PageTableLevel::Pml4].reserve(2 + (uint64_t(size) >> 39));
-    pageWalkEntries[PageTableLevel::Pdp].reserve(2 + (uint64_t(size) >> 30));
-    pageWalkEntries[PageTableLevel::Pde].reserve(2 + (uint64_t(size) >> 21));
-    pageWalkEntries[PageTableLevel::Pte].reserve(2 + (uint64_t(size) / pageSize));
-    pages64KB.reserve(2 + (uint64_t(size) / pageSize));
-    entries.reserve(2 + (uint64_t(size) / pageSize));
-
-    while (size > 0) {
-        // Reset per-iteration. Conflict fallback is scoped to a single PDE
-        pageSize = requestedPageSize;
-        leafLevel = requestedLeafLevel;
-
-        PageTable *parent = nullptr;
-        PageTable *child = ppgtt;
-        int level = ppgtt->getNumLevels() - 1;
+        uint32_t pageMemoryBank = physicalAddress ? memoryBanks : bankHelper.getMemoryBank(gfxAddress);
 
         if (mode == WalkMode::Clone) {
             clonePageInfo = &(*pageInfos)[clonePageInfoIndex++];
@@ -304,6 +197,9 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             if (child && level == PageTableLevel::Pde && child->getPageSize() == Page2MB::pageSize2MB) {
                 pageSize = Page2MB::pageSize2MB;
                 leafLevel = PageTableLevel::Pde;
+                if (!physicalAddress) {
+                    break;
+                }
             }
 
             if (hasExistingPageTableConflict(child, level, pageSize)) {
@@ -312,10 +208,18 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             }
 
             // Prior 64 KB fallback may have left physicalAddress unaligned
-            if (level == leafLevel && pageSize == Page2MB::pageSize2MB &&
-                (physicalAddress & (Page2MB::pageSize2MB - 1)) != 0) {
-                physicalAddress = (physicalAddress & ~(Page2MB::pageSize2MB - 1)) + Page2MB::pageSize2MB;
+            if (physicalAddress && level == leafLevel && pageSize == Page2MB::pageSize2MB &&
+                (*physicalAddress & (Page2MB::pageSize2MB - 1)) != 0) {
+                *physicalAddress = (*physicalAddress & ~(Page2MB::pageSize2MB - 1)) + Page2MB::pageSize2MB;
             }
+
+            // PS64: snapshot group state before this child is allocated/remapped
+            const bool checkPs64 = ps64Applicable && level == PageTableLevel::Pte && pte != nullptr &&
+                                   pte->getPageSize() == 4096;
+            const uint32_t hwBase = checkPs64 ? (index & ~0xfu) : 0;
+            const PageTable *c0 = checkPs64 ? parent->getChild(hwBase) : nullptr;
+            const bool wasPs64Group = c0 != nullptr && c0->isPs64() && isPs64GroupComplete(parent, hwBase);
+            bool emitEntry = false;
 
             if (!child) {
                 assert(mode != WalkMode::Expect);
@@ -331,33 +235,82 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                     child = parent->allocateChild(ppgtt->getGpu(), pageSize, parent->getMemoryBank());
                 } else {
                     // for child node use memory bank previously reserved
-                    child = parent->allocateChild(ppgtt->getGpu(), pageSize, pageMemoryBank, allocationParams.additionalParams, physicalAddress);
+                    if (physicalAddress) {
+                        child = parent->allocateChild(ppgtt->getGpu(), pageSize, pageMemoryBank, allocationParams.additionalParams, *physicalAddress);
+                    } else {
+                        child = parent->allocateChild(ppgtt->getGpu(), pageSize, pageMemoryBank, allocationParams.additionalParams);
+                    }
                 }
 
                 parent->setChild(index, child);
+                // Need to keep track of 64KB system pages
+                if (level == PageTableLevel::Pte && mode == WalkMode::Reserve && !isLocalMemory && pageSize == 65536) {
+                    pages64KB.push_back(child->getPhysicalAddress());
+                }
+                emitEntry = true;
             }
 
             // When using PreReserved memory via explicit Map we want to override the PTEs for remapping cases
-            if (level == leafLevel) {
-                if (child->getPhysicalAddress() != physicalAddress) {
+            if (physicalAddress && level == leafLevel) {
+                if (child->getPhysicalAddress() != *physicalAddress) {
                     // We need to remap here
-                    child->setPhysicalAddress(physicalAddress);
+                    child->setPhysicalAddress(*physicalAddress);
+                    emitEntry = true;
                 }
                 if (child->getMemoryBank() != pageMemoryBank) {
                     child->setMemoryBank(pageMemoryBank);
+                    emitEntry = true;
                 }
             }
 
-            PageEntryInfo info = {
-                parent->getPhysicalAddress() + index * sizeof(uint64_t),
-                child->getEntryValue()};
-            pageWalkEntries[level].push_back(info);
-
-            // Need to keep track of 64KB system pages
-            if (level == PageTableLevel::Pte && mode == WalkMode::Reserve && !isLocalMemory && pageSize == 65536) {
-                pages64KB.push_back(child->getPhysicalAddress());
+            if (checkPs64) {
+                if (isPs64GroupComplete(parent, hwBase)) {
+                    // Group is now complete - emit only slots not yet written with PS64
+                    for (uint32_t i = 0; i < 16; i++) {
+                        PageTable *ci = parent->getChild(hwBase + i);
+                        if (!ci->isPs64()) {
+                            ci->setPs64(true);
+                            PageEntryInfo infoPs64 = {
+                                parent->getPhysicalAddress() + (hwBase + i) * sizeof(uint64_t),
+                                ci->getEntryValue()};
+                            pageWalkEntries[level].push_back(infoPs64);
+                        }
+                    }
+                    emitEntry = false;
+                } else if (wasPs64Group) {
+                    // Group was PS64-complete but is no longer consecutive - clear PS64 on each leaf
+                    for (uint32_t i = 0; i < 16; i++) {
+                        PageTable *ci = parent->getChild(hwBase + i);
+                        assert(ci != nullptr);
+                        ci->setPs64(false);
+                        PageEntryInfo info4kb = {
+                            parent->getPhysicalAddress() + (hwBase + i) * sizeof(uint64_t),
+                            ci->getEntryValue()};
+                        pageWalkEntries[level].push_back(info4kb);
+                    }
+                    emitEntry = false;
+                } else {
+                    const uint32_t k = index - hwBase;
+                    const uint64_t expectedPhysBase = child->getPhysicalAddress() - static_cast<uint64_t>(k) * 4096;
+                    const bool willComplete = (expectedPhysBase & 0xffff) == 0 &&
+                                              size >= static_cast<size_t>(16 - k) * 4096 &&
+                                              (k == 0 || (c0 != nullptr &&
+                                                          c0->getPhysicalAddress() == expectedPhysBase &&
+                                                          ps64EntryFlags(c0) == ps64EntryFlags(child)));
+                    if (willComplete) {
+                        child->setPs64(true);
+                    }
+                    emitEntry = true;
+                }
+            } else {
+                emitEntry = emitEntry || physicalAddress.has_value();
             }
-
+            if (emitEntry) {
+                PageEntryInfo info = {
+                    parent->getPhysicalAddress() + index * sizeof(uint64_t),
+                    child->getEntryValue()};
+                pageWalkEntries[level].push_back(info);
+            }
             --level;
         }
 
@@ -383,14 +336,25 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             pageMemoryBank};
         entries.push_back(writeInfo);
 
-        // 2 MB Pages consume a full 2MB-aligned physical page
-        if (pageSizeThisIteration == Page2MB::pageSize2MB) {
-            physicalAddress = (physicalAddress & ~(Page2MB::pageSize2MB - 1)) + Page2MB::pageSize2MB;
-        } else {
-            physicalAddress += sizeThisIteration;
+        if (physicalAddress) {
+            // 2 MB Pages consume a full 2MB-aligned physical page
+            if (pageSizeThisIteration == Page2MB::pageSize2MB) {
+                *physicalAddress = (*physicalAddress & ~(Page2MB::pageSize2MB - 1)) + Page2MB::pageSize2MB;
+            } else {
+                *physicalAddress += sizeThisIteration;
+            }
         }
         gfxAddress += sizeThisIteration;
         size -= sizeThisIteration;
     }
 }
+
+void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos) {
+    walkMemory(ppgtt, allocationParams, mode, pageInfos, std::nullopt);
+}
+
+void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos, uint64_t physicalAddress) {
+    walkMemory(ppgtt, allocationParams, mode, pageInfos, std::make_optional(physicalAddress));
+}
+
 } // namespace aub_stream

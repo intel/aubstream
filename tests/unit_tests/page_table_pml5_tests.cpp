@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -15,6 +15,8 @@
 #include "tests/unit_tests/hardware_context_tests.h"
 #include "tests/unit_tests/mock_aub_stream.h"
 #include "gtest/gtest.h"
+#include "tests/unit_tests/page_table_helper.h"
+#include "variable_backup.h"
 
 using namespace aub_stream;
 using ::testing::_;
@@ -122,4 +124,50 @@ TEST_F(HardwareContextTestPML5, givenHardwareContextWhenCallingFreeMemoryThenEnt
     EXPECT_CALL(stream, writeDiscontiguousPages(_, AddressSpaceValues::TraceNonlocal, DataTypeHintValues::TracePpgttLevel1)).Times(1);
 
     context.freeMemory(gfxAddress, sizeof(bytes));
+}
+
+TEST_F(HardwareContextTestPML5, givenPs64GroupWhenPartiallyFreedThenPS64BitClearedInRemainingEntries) {
+    PhysicalAddressAllocatorSimple allocator(1, aub_stream::GB, true);
+    PML5 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    auto settings = std::make_unique<Settings>();
+    VariableBackup<Settings *> backup(&globalSettings);
+    globalSettings = settings.get();
+    globalSettings->EnablePs64.set(true);
+
+    const uint64_t physBase = allocator.reservePhysicalMemory(MEMORY_BANK_SYSTEM, 65536, 65536);
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(&ppgtt, {0x10000, nullptr, 5 * 16 * 4096, MEMORY_BANK_SYSTEM, 0, 4096}, PageTableWalker::WalkMode::Reserve, nullptr, physBase);
+
+    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
+    EXPECT_TRUE(PageTableHelper::getEntry(&ppgtt, 0x10000) & ps64Mask);
+
+    // Free first 8 pages - breaks 2 from 3 PS64 group
+    stream.freeMemory(&ppgtt, 0x10000 + 12 * 4096, 8 * 4096);
+    // Free one aligned group of 16 pages
+    stream.freeMemory(&ppgtt, 0x10000 + 48 * 4096, 16 * 4096);
+
+    // Freed slots: no mapping
+    for (int i = 12; i < 20; i++) {
+        EXPECT_EQ(0u, PageTableHelper::getEntry(&ppgtt, 0x10000 + i * 4096) & ps64Mask);
+    }
+    // Still mapped but PS64 bit must be cleared
+    for (int i = 0; i < 12; i++) {
+        EXPECT_FALSE(PageTableHelper::getEntry(&ppgtt, 0x10000 + i * 4096) & ps64Mask);
+    }
+    for (int i = 20; i < 32; i++) {
+        EXPECT_FALSE(PageTableHelper::getEntry(&ppgtt, 0x10000 + i * 4096) & ps64Mask);
+    }
+    // Still mapped but PS64 bit must survive
+    for (int i = 32; i < 48; i++) {
+        EXPECT_TRUE(PageTableHelper::getEntry(&ppgtt, 0x10000 + i * 4096) & ps64Mask);
+    }
+    // Freed slots: no mapping
+    for (int i = 48; i < 64; i++) {
+        EXPECT_EQ(0u, PageTableHelper::getEntry(&ppgtt, 0x10000 + i * 4096) & ps64Mask);
+    }
+    // Still mapped but PS64 bit must survive
+    for (int i = 64; i < 80; i++) {
+        EXPECT_TRUE(PageTableHelper::getEntry(&ppgtt, 0x10000 + i * 4096) & ps64Mask);
+    }
 }

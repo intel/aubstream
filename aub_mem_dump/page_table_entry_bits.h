@@ -24,6 +24,7 @@ const uint32_t writableBit = 1;
 const uint32_t userSupervisorBit = 2;
 const uint32_t intermediatePageSizeBit = 6;
 const uint32_t largePageSizeBit = 7;
+const uint32_t ps64Bit = 8;
 const uint32_t atomicEnableBit = 10;
 const uint32_t legacyIntermediatePageSizeBit = 11;
 const uint32_t localMemoryBit = 11;

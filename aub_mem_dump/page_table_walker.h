@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -10,6 +10,7 @@
 #include "aub_mem_dump/page_table.h"
 #include "aubstream/page_info.h"
 #include "aubstream/allocation_params.h"
+#include <optional>
 
 namespace aub_stream {
 
@@ -33,6 +34,9 @@ class PageTableWalker {
     void walkMemory(GGTT *pageTable, uint64_t gfxAddress, size_t size, uint32_t memoryBanks, size_t pageSize, WalkMode mode, const std::vector<PageInfo> *pageInfos);
     void walkMemory(PageTable *pageTable, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos);
     void walkMemory(PageTable *pageTable, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos, uint64_t physicalAddress);
+
+  protected:
+    void walkMemory(PageTable *ppgtt, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos, std::optional<uint64_t> physicalAddress);
 };
 
 } // namespace aub_stream

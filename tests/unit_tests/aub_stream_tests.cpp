@@ -7,6 +7,8 @@
 
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table.h"
+#include "aub_mem_dump/page_table_entry_bits.h"
+#include "aub_mem_dump/page_table_pml5.h"
 #include "aub_mem_dump/aub_tbx_stream.h"
 #include "aubstream/allocation_params.h"
 #include "mock_aub_stream.h"
@@ -171,7 +173,7 @@ TEST_F(AubStreamTest, clonePageTablesShouldSetCorrectPageSize) {
         EXPECT_EQ(entries[pageId].physicalAddress, page->getPhysicalAddress());
         EXPECT_EQ(entries[pageId].isLocalMemory, page->isLocalMemory());
 
-        auto physicalAddress = PageTableHelper::getEntry(&ppgtt, gpuAddress);
+        auto physicalAddress = PageTableHelper::getPhysicalAddress(&ppgtt, gpuAddress);
         EXPECT_EQ(physicalAddress, page->getPhysicalAddress());
     }
 }
@@ -186,7 +188,7 @@ TEST_F(AubStreamTest, writeMemoryReturnsPageTableEntriesWritten) {
     auto entriesWritten = stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, 65536});
     EXPECT_EQ(1u, entriesWritten.size());
 
-    auto physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto physicalAddress = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress);
     EXPECT_NE(0u, physicalAddress);
 
     auto pageOffset = gfxAddress & (65536 - 1);
@@ -204,7 +206,7 @@ TEST_F(AubStreamTest, freeMemoryShouldRemovePTEEntriesLocalMemory) {
 
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 65536});
 
-    auto physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto physicalAddress = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress);
     EXPECT_NE(0u, physicalAddress);
 
     stream.freeMemory(&ppgtt1, gfxAddress, sizeof(bytes));
@@ -222,7 +224,7 @@ TEST_F(AubStreamTest, freeMemoryShouldRemovePTEEntriesSystemMemory) {
 
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 65536});
 
-    auto physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto physicalAddress = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress);
     EXPECT_NE(0u, physicalAddress);
 
     stream.freeMemory(&ppgtt1, gfxAddress, sizeof(bytes));
@@ -240,7 +242,7 @@ TEST_F(AubStreamTest, givenPreviousPageTablesWhenNewPageSizeReservedWithTheSameG
 
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 64 * KB});
 
-    auto physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto physicalAddress = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress);
     auto pteEntry = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
     EXPECT_NE(0u, physicalAddress);
     EXPECT_TRUE(pteEntry & toBitValue(PpgttEntryBits::intermediatePageSizeBit));
@@ -250,7 +252,7 @@ TEST_F(AubStreamTest, givenPreviousPageTablesWhenNewPageSizeReservedWithTheSameG
     // Change PageSize
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 4 * KB});
 
-    auto physicalAddress2 = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto physicalAddress2 = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress);
     auto pteEntry2 = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
     EXPECT_NE(0u, physicalAddress2);
     EXPECT_NE(pteEntry, pteEntry2);
@@ -269,17 +271,17 @@ TEST_F(AubStreamTest, givenMultiplePagesInSinglePteWhenPartOfMemoryFreedThenPteI
 
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes.get(), fullSize, MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4 * KB});
 
-    auto physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto physicalAddress = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress);
     auto pteEntry = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
     EXPECT_NE(0u, physicalAddress);
     EXPECT_TRUE(pteEntry & toBitValue(PpgttEntryBits::presentBit));
 
     stream.freeMemory(&ppgtt1, gfxAddress, halfSize);
 
-    physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    physicalAddress = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress);
     EXPECT_EQ(0u, physicalAddress);
 
-    auto physicalAddress2 = PageTableHelper::getEntry(&ppgtt1, gfxAddress + halfSize);
+    auto physicalAddress2 = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress + halfSize);
     auto pteEntry2 = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress + halfSize);
     EXPECT_NE(0u, physicalAddress2);
     EXPECT_EQ(pteEntry, pteEntry2);
@@ -374,7 +376,7 @@ TEST_F(AubStreamTest32, freeMemoryShouldRemovePTEEntries) {
 
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 65536});
 
-    auto physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto physicalAddress = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress);
     EXPECT_NE(0u, physicalAddress);
 
     stream.freeMemory(&ppgtt1, gfxAddress, sizeof(bytes));
@@ -392,7 +394,7 @@ TEST_F(AubStreamTest32, givenPreviousPageTablesWhenNewPageSizeReservedWithTheSam
 
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 64 * KB});
 
-    auto physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto physicalAddress = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress);
     auto pteEntry = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
     EXPECT_NE(0u, physicalAddress);
     EXPECT_TRUE(pteEntry & toBitValue(PpgttEntryBits::intermediatePageSizeBit));
@@ -402,7 +404,7 @@ TEST_F(AubStreamTest32, givenPreviousPageTablesWhenNewPageSizeReservedWithTheSam
     // Change PageSize
     stream.writeMemory(&ppgtt1, {gfxAddress, bytes, sizeof(bytes), defaultMemoryBank, DataTypeHintValues::TraceNotype, 4 * KB});
 
-    auto physicalAddress2 = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto physicalAddress2 = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress);
     auto pteEntry2 = PageTableHelper::getPTEEntry(&ppgtt1, gfxAddress);
     EXPECT_NE(0u, physicalAddress2);
     EXPECT_NE(pteEntry, pteEntry2);
@@ -420,7 +422,7 @@ TEST_F(AubStreamTest32, writeMemoryWithNullPointerReservesMemoryInPPGTT) {
 
     stream.writeMemory(&ppgtt1, {gfxAddress, nullptr, sizeof(uint32_t), defaultMemoryBank, DataTypeHintValues::TraceNotype, 65536});
 
-    auto physicalAddress = PageTableHelper::getEntry(&ppgtt1, gfxAddress);
+    auto physicalAddress = PageTableHelper::getPhysicalAddress(&ppgtt1, gfxAddress);
     EXPECT_NE(0u, physicalAddress);
 }
 
@@ -435,7 +437,7 @@ TEST_F(AubStreamTest32, writeMemoryWithNullPointerReservesMemoryInGGTT) {
 
     stream.writeMemory(&ggtt, gfxAddress, nullptr, sizeof(uint32_t), defaultMemoryBank, DataTypeHintValues::TraceNotype, 4096);
 
-    auto physicalAddress = PageTableHelper::getEntry(&ggtt, gfxAddress);
+    auto physicalAddress = PageTableHelper::getPhysicalAddress(&ggtt, gfxAddress);
     EXPECT_NE(0u, physicalAddress);
 }
 

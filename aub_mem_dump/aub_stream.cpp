@@ -14,6 +14,7 @@
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/page_table_entry_bits.h"
 #include "aubstream/hint_values.h"
+#include "aub_mem_dump/settings.h"
 
 namespace aub_stream {
 
@@ -131,6 +132,11 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
     pageWalkEntries[PageTableLevel::Pde].reserve(1);
     pageWalkEntries[PageTableLevel::Pdp].reserve(1);
 
+    const uint64_t startAddress = gfxAddress;
+    const uint64_t endAddress = gfxAddress + size;
+    const bool isStartAddress64KBAligned = (startAddress & (page64kSize - 1)) == 0;
+    const bool isEndAddress64KBAligned = (endAddress & (page64kSize - 1)) == 0;
+
     while (size > 0) {
         PageTable *parent = nullptr;
         PageTable *child = ppgtt;
@@ -169,13 +175,38 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
             if (child && level == PageTableLevel::Pte) {
                 assert(pte != nullptr);
 
+                const bool wasPs64 = child->isPs64();
+
                 // remove page from PTE
                 pte->setChild(index, nullptr);
-                PageEntryInfo info = {
-                    pte->getPhysicalAddress() + index * sizeof(uint64_t),
-                    0,
-                };
-                pageWalkEntries[PageTableLevel::Pte].push_back(info);
+                pageWalkEntries[PageTableLevel::Pte].push_back({pte->getPhysicalAddress() + index * sizeof(uint64_t), 0});
+
+                if (wasPs64) {
+                    assert(globalSettings->EnablePs64.get());
+                    assert(ppgtt->getNumLevels() == 5);
+
+                    const uint32_t hwBase = index & ~0xfu;
+                    // First PTE of the request: if start is not 64KB-aligned, the group is
+                    // brokeen from TLB perspective - correct slots before the free range start
+                    if (gfxAddress == startAddress && !isStartAddress64KBAligned) {
+                        for (uint32_t i = hwBase; i < index; i++) {
+                            if (PageTable *ci = pte->getChild(i)) {
+                                ci->setPs64(false);
+                                pageWalkEntries[PageTableLevel::Pte].push_back({pte->getPhysicalAddress() + i * sizeof(uint64_t), ci->getEntryValue()});
+                            }
+                        }
+                    }
+                    // Last PTE of the request: if end is not 64KB-aligned, the group is
+                    // brokeen from TLB perspective - correct slots after the free range end
+                    if (size <= 4096 && !isEndAddress64KBAligned) {
+                        for (uint32_t i = index + 1; i < hwBase + 16; i++) {
+                            if (PageTable *ci = pte->getChild(i)) {
+                                ci->setPs64(false);
+                                pageWalkEntries[PageTableLevel::Pte].push_back({pte->getPhysicalAddress() + i * sizeof(uint64_t), ci->getEntryValue()});
+                            }
+                        }
+                    }
+                }
             }
             --level;
         }

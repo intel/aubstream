@@ -628,8 +628,8 @@ HWTEST_F(AubManagerTest, whenAubManagerWritesMemoryThenPageTablesCloned, MatchMu
 
     aubManager.writeMemory2({gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_0, 0, defaultPageSize});
 
-    auto physicalAddress1 = PageTableHelper::getEntry(aubManager.ppgtts[0].get(), gfxAddress);
-    auto physicalAddress2 = PageTableHelper::getEntry(aubManager.ppgtts[1].get(), gfxAddress);
+    auto physicalAddress1 = PageTableHelper::getPhysicalAddress(aubManager.ppgtts[0].get(), gfxAddress);
+    auto physicalAddress2 = PageTableHelper::getPhysicalAddress(aubManager.ppgtts[1].get(), gfxAddress);
     EXPECT_EQ(physicalAddress1, physicalAddress2);
 }
 

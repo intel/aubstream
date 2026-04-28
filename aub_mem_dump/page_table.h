@@ -134,6 +134,9 @@ struct PageTable {
         return 0;
     }
 
+    void setPs64(bool enable) { ps64 = enable; }
+    bool isPs64() const { return ps64; }
+
   protected:
     const Gpu &gpu;
     PhysicalAddressAllocator *allocator;
@@ -141,8 +144,9 @@ struct PageTable {
     uint64_t physicalAddress;
     uint32_t memoryBank = 0;
     std::vector<PageTable *> table;
+    bool ps64 = false;
 
-    // Only defined for PML4/PDP4/GGTT
+    // Only defined for PML5/PML4/PDP4/GGTT
     uint32_t numAddressBits = 0;
     uint32_t numLevels = 0;
 };
