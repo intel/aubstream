@@ -188,10 +188,12 @@ struct GpuXe3pCore : public GpuXeCore {
     static constexpr uint64_t patIndexBit1 = toBitValue(4);
     static constexpr uint64_t patIndexBit2 = toBitValue(7);
     static constexpr uint64_t patIndexBit3 = toBitValue(62);
-    static constexpr uint64_t patIndex0 = 0;                            // 0b0000
-    static constexpr uint64_t patIndex3 = patIndexBit1 | patIndexBit0;  // 0b0011
-    static constexpr uint64_t patIndex9 = patIndexBit3 | patIndexBit0;  // 0b1001
-    static constexpr uint64_t patIndex12 = patIndexBit3 | patIndexBit2; // 0b1100
+    static constexpr uint64_t patIndexBit4 = toBitValue(61);
+    static constexpr uint64_t patIndex0 = 0;                            // 0b00000
+    static constexpr uint64_t patIndex3 = patIndexBit1 | patIndexBit0;  // 0b00011
+    static constexpr uint64_t patIndex9 = patIndexBit3 | patIndexBit0;  // 0b01001
+    static constexpr uint64_t patIndex12 = patIndexBit3 | patIndexBit2; // 0b01100
+    static constexpr uint64_t patIndex18 = patIndexBit4 | patIndexBit1; // 0b10010
 
     CommandStreamerHelper &getCommandStreamerHelper(uint32_t device, EngineType engineType) const override;
     const std::vector<EngineType> getSupportedEngines() const override;

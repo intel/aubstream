@@ -362,7 +362,7 @@ uint64_t GpuXe3pCore::getPPGTTExtraEntryBits(const AllocationParams::AdditionalP
     if (allocationParams.uncached) {
         bits |= (allocationParams.compressionEnabled) ? patIndex12 : patIndex3;
     } else {
-        bits |= (allocationParams.compressionEnabled) ? patIndex9 : patIndex0;
+        bits |= (allocationParams.compressionEnabled) ? patIndex9 : (globalSettings->AppTransientForUncompressedCachedPages.get() ? patIndex18 : patIndex0);
     }
 
     return bits;

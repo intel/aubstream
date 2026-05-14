@@ -8,7 +8,9 @@
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/page_table_walker.h"
+#include "aub_mem_dump/settings.h"
 #include "tests/unit_tests/mock_aub_stream.h"
+#include "tests/variable_backup.h"
 #include "aub_mem_dump/xe3p_core/command_streamer_helper_xe3p_core.h"
 #include "aubstream/product_family.h"
 #include "test_defaults.h"
@@ -121,6 +123,28 @@ TEST(PageTableTestsXe3pCore, givenPageTableInSystemMemoryWhenCallingGetEntryValu
         EXPECT_EQ(expectedExtraBitsWithCompressionEnabled, gpu->getPPGTTExtraEntryBits(params));
         EXPECT_EQ(expectedExtraBitsWithCompressionEnabled | expectedBaseBits, pageTable.getEntryValue());
     }
+}
+
+TEST(PageTableTestsXe3pCore, givenAppTransientForUncompressedCachedPagesSettingWhenCallingGetPPGTTExtraEntryBitsThenCorrectPatIndexIsUsed) {
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::Xe3pCore);
+
+    auto settings = std::make_unique<Settings>();
+    VariableBackup<Settings *> backup(&globalSettings);
+    globalSettings = settings.get();
+
+    const auto atomicBit = toBitValue(PpgttEntryBits::atomicEnableBit);
+
+    AllocationParams::AdditionalParams cachedUncompressed = {};
+    cachedUncompressed.uncached = false;
+    cachedUncompressed.compressionEnabled = false;
+
+    // Setting disabled -> patIndex0
+    globalSettings->AppTransientForUncompressedCachedPages.set(false);
+    EXPECT_EQ(atomicBit | GpuXe3pCore::patIndex0, gpu->getPPGTTExtraEntryBits(cachedUncompressed));
+
+    // Setting enabled -> patIndex18
+    globalSettings->AppTransientForUncompressedCachedPages.set(true);
+    EXPECT_EQ(atomicBit | GpuXe3pCore::patIndex18, gpu->getPPGTTExtraEntryBits(cachedUncompressed));
 }
 
 TEST(Page2MBTestsXe3pCore, givenPage2MBInLocalMemoryWhenCallingGetEntryValueThenCorrectBitsAreSet) {
