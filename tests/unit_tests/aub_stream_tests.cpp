@@ -26,14 +26,41 @@ namespace mock_os_calls {
 extern std::unordered_map<std::string, std::string> environmentStrings;
 }
 
+// Walk the page table using only what was written to the stream.
+// Returns true when every level down to the leaf has a stream entry matching the current node state.
+static bool isFullyStreamed(PageTable &root, uint64_t va, const std::unordered_map<uint64_t, uint64_t> &streamedEntries) {
+    PageTable *node = &root;
+    for (uint32_t i = 0; i < root.getNumLevels(); ++i) {
+        auto idx = node->getIndex(va);
+        auto *child = node->getChild(idx);
+        if (!child)
+            return false;
+        auto it = streamedEntries.find(node->getPhysicalAddress() + idx * sizeof(uint64_t));
+        if (it == streamedEntries.end() || it->second != child->getEntryValue())
+            return false;
+        // Stop at a 2MB data leaf (no sub-entries) or at the final page-table level (PTE->data)
+        if (child->getPageSize() == Page2MB::pageSize2MB || i == root.getNumLevels() - 1)
+            return true;
+        node = child;
+    }
+    return false;
+}
+
 struct AubStreamTest : public MockAubStreamFixture, public ::testing::Test {
     void SetUp() override {
         MockAubStreamFixture::SetUp();
+        ON_CALL(stream, writeDiscontiguousPages(_, _, _))
+            .WillByDefault(::testing::Invoke([this](const std::vector<PageEntryInfo> &entries, int, int) {
+                for (auto &e : entries)
+                    streamedEntries[e.physicalAddress] = e.tableEntry;
+            }));
     }
 
     void TearDown() override {
         MockAubStreamFixture::TearDown();
     }
+
+    std::unordered_map<uint64_t, uint64_t> streamedEntries;
 };
 
 TEST_F(AubStreamTest, multipleWriteMemoryShouldKeepSamePhysicalAddress) {
@@ -233,6 +260,94 @@ TEST_F(AubStreamTest, freeMemoryShouldRemovePTEEntriesSystemMemory) {
     EXPECT_EQ(0u, pteEntry);
 }
 
+TEST_F(AubStreamTest, givenReadFreedMemoryWhenWriteMemoryToSamePdeThenWriteIsProperlyCompleted) {
+    uint64_t va1 = 0x1000;
+    uint64_t va2 = 0x11000;
+    uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    stream.writeMemory(&ppgtt, {va1, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 65536});
+    stream.freeMemory(&ppgtt, va1, sizeof(bytes));
+
+    // PDE zeroed by free: va2's region is not fully streamed yet
+    EXPECT_FALSE(isFullyStreamed(ppgtt, va2, streamedEntries));
+
+    uint8_t readBuf[sizeof(bytes)] = {};
+    stream.AubStream::readMemory(&ppgtt, va1, readBuf, sizeof(bytes), MEMORY_BANK_SYSTEM, 65536);
+    stream.writeMemory(&ppgtt, {va2, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 65536});
+
+    // PDE re-streamed: full page table chain for va2 is now in stream
+    EXPECT_TRUE(isFullyStreamed(ppgtt, va2, streamedEntries));
+}
+
+TEST_F(AubStreamTest, givenRegionReservedByReadMemoryWhenWriteMemoryThenFullPageTableChainIsStreamed) {
+    const uint64_t gfxAddress = 0x4000;
+    uint8_t bytes[4096] = {};
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    uint8_t readBuf[sizeof(bytes)] = {};
+    stream.AubStream::readMemory(&ppgtt, gfxAddress, readBuf, sizeof(bytes), MEMORY_BANK_SYSTEM, 4096);
+    EXPECT_FALSE(isFullyStreamed(ppgtt, gfxAddress, streamedEntries));
+
+    stream.writeMemory(&ppgtt, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
+    EXPECT_TRUE(isFullyStreamed(ppgtt, gfxAddress, streamedEntries));
+}
+
+TEST_F(AubStreamTest, givenRegionWrittenAfterReadMemoryWhenWrittenAgainThenNoAdditionalPageTableEntriesStreamed) {
+    const uint64_t gfxAddress = 0x5000;
+    uint8_t bytes[4096] = {};
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    uint8_t readBuf[sizeof(bytes)] = {};
+    stream.AubStream::readMemory(&ppgtt, gfxAddress, readBuf, sizeof(bytes), MEMORY_BANK_SYSTEM, 4096);
+    stream.writeMemory(&ppgtt, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
+
+    int ptWriteCount = 0;
+    ON_CALL(stream, writeDiscontiguousPages(::testing::An<const std::vector<PageEntryInfo> &>(), ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([&](const std::vector<PageEntryInfo> &entries, int, int) {
+            ptWriteCount += static_cast<int>(entries.size());
+        }));
+
+    stream.writeMemory(&ppgtt, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
+
+    EXPECT_EQ(0, ptWriteCount);
+}
+
+TEST_F(AubStreamTest, givenLargeAllocationSpanningMultiplePagesInSamePDEWhenWriteMemoryThenSharedInteriorNodesStreamedOnce) {
+    const uint64_t gfxAddress = 0x1000;
+    const size_t pageCount = 8;
+    const size_t size = pageCount * 4096;
+    std::vector<uint8_t> bytes(size, 0);
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    std::unordered_map<uint64_t, uint32_t> writeCount;
+    ON_CALL(stream, writeDiscontiguousPages(::testing::An<const std::vector<PageEntryInfo> &>(), ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([&](const std::vector<PageEntryInfo> &entries, int, int) {
+            for (auto &e : entries) {
+                writeCount[e.physicalAddress]++;
+                streamedEntries[e.physicalAddress] = e.tableEntry;
+            }
+        }));
+
+    stream.writeMemory(&ppgtt, {gfxAddress, bytes.data(), size, MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
+
+    for (auto &[addr, count] : writeCount) {
+        EXPECT_EQ(1u, count) << "Page table entry at offset 0x" << std::hex << addr
+                             << " was written " << count << " times";
+    }
+    for (size_t i = 0; i < pageCount; i++) {
+        EXPECT_TRUE(isFullyStreamed(ppgtt, gfxAddress + i * 4096, streamedEntries));
+    }
+}
+
 TEST_F(AubStreamTest, givenPreviousPageTablesWhenNewPageSizeReservedWithTheSameGfxAddressThenEntryIsUpdated) {
     uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
     uint64_t gfxAddress = 0x1000;
@@ -350,6 +465,146 @@ TEST_F(AubStreamTest, givenLocalMemoryWhenWriteMemoryAndClonePageTablesIsCalledT
     PageTable *ppgttForCloning[] = {&ppgttCloned};
 
     stream.writeMemoryAndClonePageTables(&ppgtt, ppgttForCloning, 1, gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_0, DataTypeHintValues::TraceNotype, 65536);
+}
+
+TEST_F(AubStreamTest, givenSystem64KBMemoryWhenWriteAndClonePageTablesThenBothPageTablesAreFullyStreamedForSamePhysicalPages) {
+    const uint64_t gfxAddress = 0x1000;
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgttSrc(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+    PML4 ppgttDst(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    PageTable *ppgttForCloning[] = {&ppgttDst};
+    stream.writeMemoryAndClonePageTables(&ppgttSrc, ppgttForCloning, 1, gfxAddress, nullptr, 65536, MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 65536);
+
+    EXPECT_TRUE(isFullyStreamed(ppgttSrc, gfxAddress, streamedEntries));
+    EXPECT_TRUE(isFullyStreamed(ppgttDst, gfxAddress, streamedEntries));
+    EXPECT_EQ(PageTableHelper::getPhysicalAddress(&ppgttSrc, gfxAddress),
+              PageTableHelper::getPhysicalAddress(&ppgttDst, gfxAddress));
+}
+
+TEST_F(AubStreamTest, givenPreReservedMemoryWhenMapGpuVaThenPageTableIsFullyStreamedAtExpectedPhysicalAddress) {
+    const uint64_t gfxAddress = 0x1000;
+    const size_t pageSize = 4096;
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    const uint64_t physicalAddress = allocator.reservePhysicalMemory(MEMORY_BANK_SYSTEM, pageSize, pageSize);
+
+    stream.AubStream::mapGpuVa(&ppgtt, {gfxAddress, nullptr, pageSize, MEMORY_BANK_SYSTEM, 0, pageSize}, physicalAddress);
+
+    EXPECT_TRUE(isFullyStreamed(ppgtt, gfxAddress, streamedEntries));
+    EXPECT_EQ(physicalAddress, PageTableHelper::getPhysicalAddress(&ppgtt, gfxAddress));
+}
+
+TEST_F(AubStreamTest, givenExisting64KBPTEWhenConflicting2MBRequestedThenPTEStructureIsPreservedAndAllEntriesStreamed) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+    TEST_REQUIRES(gpu->isMemorySupported(MEMORY_BANK_0, Page2MB::pageSize2MB));
+
+    const uint64_t gfxAddress64KB = 0x210000;
+    const uint64_t gfxAddress2MB = 0x200000;
+
+    PhysicalAddressAllocatorSimple allocator(2, aub_stream::GB, true);
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
+
+    stream.writeMemory(&ppgtt, {gfxAddress64KB, nullptr, 65536, MEMORY_BANK_0, DataTypeHintValues::TraceNotype, 65536});
+    auto entries = stream.writeMemory(&ppgtt, {gfxAddress2MB, nullptr, Page2MB::pageSize2MB, MEMORY_BANK_0, DataTypeHintValues::TraceNotype, Page2MB::pageSize2MB});
+
+    // 2MB/64KB = 32 data pages (PTE structure preserved - no Page2MB collapse)
+    EXPECT_EQ(32u, entries.size());
+
+    auto *pdp = ppgtt.getChild(ppgtt.getIndex(gfxAddress2MB));
+    ASSERT_NE(nullptr, pdp);
+    auto *pde = pdp->getChild(pdp->getIndex(gfxAddress2MB));
+    ASSERT_NE(nullptr, pde);
+    auto *pte = pde->getChild(pde->getIndex(gfxAddress2MB));
+    ASSERT_NE(nullptr, pte);
+    EXPECT_NE(Page2MB::pageSize2MB, pte->getPageSize());
+
+    // Both 64KB addresses are reachable through the streamed page table
+    EXPECT_TRUE(isFullyStreamed(ppgtt, gfxAddress64KB, streamedEntries));
+    EXPECT_TRUE(isFullyStreamed(ppgtt, gfxAddress2MB, streamedEntries));
+}
+
+TEST_F(AubStreamTest, givenConflictAt64KBPDEWhen2MBRequestedThenSubsequentPDEsRecover2MBPages) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+    TEST_REQUIRES(gpu->isMemorySupported(MEMORY_BANK_0, Page2MB::pageSize2MB));
+
+    const uint64_t conflictAddress = 0x210000;
+    const uint64_t gfxAddress = 0x200000;
+    const size_t size = 3 * Page2MB::pageSize2MB;
+
+    PhysicalAddressAllocatorSimple allocator(2, aub_stream::GB, true);
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_0);
+
+    stream.writeMemory(&ppgtt, {conflictAddress, nullptr, 65536, MEMORY_BANK_0, DataTypeHintValues::TraceNotype, 65536});
+    auto entries = stream.writeMemory(&ppgtt, {gfxAddress, nullptr, size, MEMORY_BANK_0, DataTypeHintValues::TraceNotype, Page2MB::pageSize2MB});
+
+    // PDE 0: 32 entries (64KB fallback) + PDE 1,2: 1 entry each (2MB)
+    EXPECT_EQ(34u, entries.size());
+
+    // PDE 1 and 2 must have allocated 2MB pages
+    auto *pdp = ppgtt.getChild(ppgtt.getIndex(0x400000));
+    ASSERT_NE(nullptr, pdp);
+    auto *pde = pdp->getChild(pdp->getIndex(0x400000));
+    ASSERT_NE(nullptr, pde);
+
+    auto *page2 = pde->getChild(pde->getIndex(0x400000));
+    ASSERT_NE(nullptr, page2);
+    EXPECT_EQ(Page2MB::pageSize2MB, page2->getPageSize());
+
+    auto *page3 = pde->getChild(pde->getIndex(0x600000));
+    ASSERT_NE(nullptr, page3);
+    EXPECT_EQ(Page2MB::pageSize2MB, page3->getPageSize());
+
+    // 64KB conflict address reachable through streamed page table
+    EXPECT_TRUE(isFullyStreamed(ppgtt, conflictAddress, streamedEntries));
+}
+
+TEST_F(AubStreamTest, givenAlreadyMappedMemoryWhenWriteMemoryThenNoPageTableEntriesAreRestreamed) {
+    uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
+    uint64_t gfxAddress = 0x1000;
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    stream.writeMemory(&ppgtt, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 65536});
+
+    // All nodes are now clean (pendingWrite=false).
+    // A second write to the same address must not add any PT entries to the stream.
+    int ptWriteCount = 0;
+    ON_CALL(stream, writeDiscontiguousPages(::testing::An<const std::vector<PageEntryInfo> &>(), ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([&](const std::vector<PageEntryInfo> &entries, int, int) {
+            ptWriteCount += static_cast<int>(entries.size());
+        }));
+    stream.writeMemory(&ppgtt, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 65536});
+
+    EXPECT_EQ(0, ptWriteCount);
+}
+
+TEST_F(AubStreamTest, givenTwoWritesToSamePDEWhenSecondWriteThenOnlyNewPTEIsStreamed) {
+    uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
+    uint64_t va1 = 0x1000;  // PDE[0]->PTE64KB, slot 0
+    uint64_t va2 = 0x11000; // PDE[0]->PTE64KB, slot 1 - shares PDE and PTE64KB node with va1
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    stream.writeMemory(&ppgtt, {va1, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 65536});
+
+    // Second write shares PML4/PDP/PDE with va1 - only the new PTE for va2 should be added.
+    int ptWriteCount = 0;
+    ON_CALL(stream, writeDiscontiguousPages(::testing::An<const std::vector<PageEntryInfo> &>(), ::testing::_, ::testing::_))
+        .WillByDefault(::testing::Invoke([&](const std::vector<PageEntryInfo> &entries, int, int) {
+            ptWriteCount += static_cast<int>(entries.size());
+            for (auto &e : entries)
+                streamedEntries[e.physicalAddress] = e.tableEntry;
+        }));
+    stream.writeMemory(&ppgtt, {va2, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 65536});
+
+    EXPECT_EQ(1, ptWriteCount);
+    EXPECT_TRUE(isFullyStreamed(ppgtt, va2, streamedEntries));
 }
 
 TEST_F(AubStreamTest, givenAllPossibilitiesToTbxTools) {
@@ -650,6 +905,40 @@ TEST_F(AubTbxStreamTest, givenAubTbxStreamWithPausedAubFileStreamWhenMemoryPollW
     EXPECT_CALL(tbxStream, memoryPoll(::testing::SizeIs(1), expectedValue, compareMode)).Times(1);
 
     aubTbxStream.gttMemoryPoll(&ggtt, gfxAddress, expectedValue, compareMode);
+}
+
+TEST_F(AubTbxStreamTest, givenPausedAubStreamWhenWriteMemoryThenPendingWriteRetainedUntilResume) {
+    AubTbxStream aubTbxStream(aubFileStream, tbxStream);
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+    const uint64_t gfxAddress = 0x1000;
+    uint8_t bytes[4096] = {};
+
+    // While paused: AUB file skips PT writes, pendingWrite must not be cleared
+    aubTbxStream.pauseAubFileStream(true);
+    EXPECT_CALL(aubFileStream, writeDiscontiguousPages(::testing::An<const std::vector<PageEntryInfo> &>(), ::testing::_, ::testing::_)).Times(0);
+    aubTbxStream.AubStream::writeMemory(&ppgtt, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
+
+    auto *pdp = ppgtt.getChild(ppgtt.getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pdp);
+    auto *pde = pdp->getChild(pdp->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pde);
+    auto *pte = pde->getChild(pde->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pte);
+    // All interior nodes and the leaf must remain pending while AUB is paused
+    EXPECT_TRUE(pdp->isPendingWrite());
+    EXPECT_TRUE(pde->isPendingWrite());
+    EXPECT_TRUE(pte->isPendingWrite());
+
+    // On resume: AUB file must receive the pending PT entries and pendingWrite must be cleared
+    aubTbxStream.pauseAubFileStream(false);
+    EXPECT_CALL(aubFileStream, writeDiscontiguousPages(::testing::An<const std::vector<PageEntryInfo> &>(), ::testing::_, ::testing::_)).Times(::testing::AtLeast(1));
+    aubTbxStream.AubStream::writeMemory(&ppgtt, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
+
+    EXPECT_FALSE(pdp->isPendingWrite());
+    EXPECT_FALSE(pde->isPendingWrite());
+    EXPECT_FALSE(pte->isPendingWrite());
 }
 
 using AubFileStreamMemoryPollTest = AubStreamTest;

@@ -19,6 +19,7 @@ struct PageEntryInfo {
     uint64_t tableEntry;
 };
 
+// Per-write instance: all member vectors accumulate during walkMemory and are consumed once by writePageWalkEntries.
 class PageTableWalker {
   public:
     enum class WalkMode {
@@ -29,6 +30,7 @@ class PageTableWalker {
 
     std::vector<PageInfo> entries;
     std::vector<PageEntryInfo> pageWalkEntries[5];
+    std::vector<PageTable *> pendingNodes[5];
     std::vector<uint64_t> pages64KB;
 
     void walkMemory(GGTT *pageTable, uint64_t gfxAddress, size_t size, uint32_t memoryBanks, size_t pageSize, WalkMode mode, const std::vector<PageInfo> *pageInfos);

@@ -11,6 +11,7 @@
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/settings.h"
 #include <cassert>
+#include <unordered_set>
 
 namespace aub_stream {
 
@@ -163,6 +164,9 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     pages64KB.reserve(2 + (uint64_t(size) / pageSize));
     entries.reserve(2 + (uint64_t(size) / pageSize));
 
+    // Per-walk set to emit each pending node at most once; interior nodes are shared across pages
+    std::unordered_set<PageTable *> emittedPending[5];
+
     while (size > 0) {
         // Reset per-iteration. Conflict fallback is scoped to a single PDE
         pageSize = requestedPageSize;
@@ -243,6 +247,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                 }
 
                 parent->setChild(index, child);
+                child->setPendingWrite(true);
                 // Need to keep track of 64KB system pages
                 if (level == PageTableLevel::Pte && mode == WalkMode::Reserve && !isLocalMemory && pageSize == 65536) {
                     pages64KB.push_back(child->getPhysicalAddress());
@@ -255,25 +260,37 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                 if (child->getPhysicalAddress() != *physicalAddress) {
                     // We need to remap here
                     child->setPhysicalAddress(*physicalAddress);
+                    child->setPendingWrite(true);
                     emitEntry = true;
                 }
                 if (child->getMemoryBank() != pageMemoryBank) {
                     child->setMemoryBank(pageMemoryBank);
+                    child->setPendingWrite(true);
                     emitEntry = true;
                 }
             }
 
             if (checkPs64) {
                 if (isPs64GroupComplete(parent, hwBase)) {
-                    // Group is now complete - emit only slots not yet written with PS64
+                    // Group is now complete - emit slots not yet written as PS64 or pending stream commit
                     for (uint32_t i = 0; i < 16; i++) {
                         PageTable *ci = parent->getChild(hwBase + i);
-                        if (!ci->isPs64()) {
+                        bool isNewPs64 = !ci->isPs64();
+                        if (isNewPs64) {
                             ci->setPs64(true);
-                            PageEntryInfo infoPs64 = {
-                                parent->getPhysicalAddress() + (hwBase + i) * sizeof(uint64_t),
-                                ci->getEntryValue()};
-                            pageWalkEntries[level].push_back(infoPs64);
+                            ci->setPendingWrite(true);
+                        }
+                        bool isNewPending = ci->isPendingWrite() && emittedPending[level].insert(ci).second;
+                        // isNewPs64=true with insert=false is intentional: a wasPs64Group downgrade in an
+                        // earlier iteration inserted ci into emittedPending (non-PS64 entry already emitted),
+                        // and this completion pass re-emits ci with the PS64 bit set. The stream receives
+                        // the updated value; the node is already tracked in pendingNodes for clearing.
+                        if (isNewPs64 || isNewPending) {
+                            pageWalkEntries[level].push_back({parent->getPhysicalAddress() + (hwBase + i) * sizeof(uint64_t),
+                                                              ci->getEntryValue()});
+                        }
+                        if (isNewPending) {
+                            pendingNodes[level].push_back(ci);
                         }
                     }
                     emitEntry = false;
@@ -283,10 +300,12 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                         PageTable *ci = parent->getChild(hwBase + i);
                         assert(ci != nullptr);
                         ci->setPs64(false);
-                        PageEntryInfo info4kb = {
-                            parent->getPhysicalAddress() + (hwBase + i) * sizeof(uint64_t),
-                            ci->getEntryValue()};
-                        pageWalkEntries[level].push_back(info4kb);
+                        ci->setPendingWrite(true);
+                        pageWalkEntries[level].push_back({parent->getPhysicalAddress() + (hwBase + i) * sizeof(uint64_t),
+                                                          ci->getEntryValue()});
+                        if (emittedPending[level].insert(ci).second) {
+                            pendingNodes[level].push_back(ci);
+                        }
                     }
                     emitEntry = false;
                 } else {
@@ -299,17 +318,25 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                                                           ps64EntryFlags(c0) == ps64EntryFlags(child)));
                     if (willComplete) {
                         child->setPs64(true);
+                        child->setPendingWrite(true);
                     }
                     emitEntry = true;
                 }
             } else {
                 emitEntry = emitEntry || physicalAddress.has_value();
+                if (child->isPendingWrite()) {
+                    if (emittedPending[level].insert(child).second) {
+                        pendingNodes[level].push_back(child);
+                        emitEntry = true;
+                    }
+                }
             }
             if (emitEntry) {
-                PageEntryInfo info = {
-                    parent->getPhysicalAddress() + index * sizeof(uint64_t),
-                    child->getEntryValue()};
-                pageWalkEntries[level].push_back(info);
+                pageWalkEntries[level].push_back({parent->getPhysicalAddress() + index * sizeof(uint64_t),
+                                                  child->getEntryValue()});
+                if (checkPs64 && child->isPendingWrite() && emittedPending[level].insert(child).second) {
+                    pendingNodes[level].push_back(child);
+                }
             }
             --level;
         }

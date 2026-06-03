@@ -137,6 +137,9 @@ struct PageTable {
     void setPs64(bool enable) { ps64 = enable; }
     bool isPs64() const { return ps64; }
 
+    void setPendingWrite(bool enable) { pendingWrite = enable; }
+    bool isPendingWrite() const { return pendingWrite; }
+
   protected:
     const Gpu &gpu;
     PhysicalAddressAllocator *allocator;
@@ -145,6 +148,7 @@ struct PageTable {
     uint32_t memoryBank = 0;
     std::vector<PageTable *> table;
     bool ps64 = false;
+    bool pendingWrite = false;
 
     // Only defined for PML5/PML4/PDP4/GGTT
     uint32_t numAddressBits = 0;

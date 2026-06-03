@@ -328,6 +328,14 @@ void AubStream::writePageWalkEntries(const PageTableWalker &pageWalker, bool pag
         writeDiscontiguousPages(pageWalker.pageWalkEntries[PageTableLevel::Pde], addressSpace, DataTypeHintValues::TracePpgttLevel2);
         writeDiscontiguousPages(pageWalker.pageWalkEntries[PageTableLevel::Pte], addressSpace, DataTypeHintValues::TracePpgttLevel1);
     }
+
+    if (arePageTableWritesFullyCommitted()) {
+        for (const auto &levelNodes : pageWalker.pendingNodes) {
+            for (auto *node : levelNodes) {
+                node->setPendingWrite(false);
+            }
+        }
+    }
 }
 
 void AubStream::writePpgttLevel2(const std::vector<PageEntryInfo> &pageWalkEntry, bool pageTablesInLocalMemory, uint32_t numAddressBits) {

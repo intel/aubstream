@@ -85,6 +85,7 @@ struct AubTbxStream : public AubStream {
     uint32_t getStreamMode() const override { return aub_stream::mode::aubFileAndTbx; };
 
     void pauseAubFileStream(bool onoff) { isAubFileStreamPaused = onoff; }
+    bool arePageTableWritesFullyCommitted() const override { return !isAubFileStreamPaused; }
 
   protected:
     void writeGttPages(GGTT *ggtt, const std::vector<PageEntryInfo> &writeInfoTable) override {

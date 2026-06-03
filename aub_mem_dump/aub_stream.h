@@ -67,6 +67,7 @@ struct AubStream {
     virtual void dumpSurface(PageTableType gttType, const SurfaceInfo &surfaceInfo, uint32_t handleDumpContext) = 0;
 
     virtual uint32_t getStreamMode() const = 0;
+    virtual bool arePageTableWritesFullyCommitted() const { return true; }
 
     virtual ~AubStream() = default;
     AubStream() = default;
