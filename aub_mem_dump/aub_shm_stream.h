@@ -84,7 +84,7 @@ struct AubShmStream : public AubStream {
 
     void pauseAubFileStream(bool onoff) { isAubFileStreamPaused = onoff; }
     void blockMemWritesViaTbxStream(bool onoff) { isTbxStreamBlockedForMemWrites = onoff; }
-    bool arePageTableWritesFullyCommitted() const override { return !isAubFileStreamPaused; }
+    bool arePageTableWritesFullyCommitted() const override { return !isAubFileStreamPaused && !isTbxStreamBlockedForMemWrites; }
 
   protected:
     void writeGttPages(GGTT *ggtt, const std::vector<PageEntryInfo> &writeInfoTable) override {

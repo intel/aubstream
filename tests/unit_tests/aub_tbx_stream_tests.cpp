@@ -7,8 +7,12 @@
 
 #include "aub_mem_dump/aub_tbx_stream.h"
 #include "aub_mem_dump/aub_shm_stream.h"
+#include "aub_mem_dump/page_table.h"
+#include "aub_mem_dump/physical_address_allocator.h"
 #include "aub_services.h"
 #include "aubstream/aubstream.h"
+#include "aubstream/allocation_params.h"
+#include "aubstream/hint_values.h"
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
 #include "mock_tbx_socket.h"
@@ -267,6 +271,40 @@ TEST(AubTbxStream, RedirectMethodsToTbxStreamOnlyWhenTbxStreamIsPaused) {
 
     std::vector<PageEntryInfo> entryInfoTable;
     aubShmStream->writeDiscontiguousPages(entryInfoTable, 0, 0);
+}
+
+TEST(AubTbxStream, givenBlockedTbxStreamWhenWriteMemoryThenPendingWriteRetainedUntilUnblock) {
+    auto fileStream = std::make_unique<MockAubFileStream>();
+    auto tbxShmStream = std::make_unique<MockTbxShmStream>(mode::aubFileAndShm);
+    auto aubShmStream = std::make_unique<MockAubShmStream>(*fileStream.get(), *tbxShmStream.get());
+
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+    const uint64_t gfxAddress = 0x1000;
+
+    // While TBX is blocked: AUB gets PT writes, TBX does not; pendingWrite must stay true
+    aubShmStream->blockMemWritesViaTbxStream(true);
+    EXPECT_CALL(*tbxShmStream, writeDiscontiguousPages(::testing::An<const std::vector<PageEntryInfo> &>(), ::testing::_, ::testing::_)).Times(0);
+    aubShmStream->AubStream::writeMemory(&ppgtt, {gfxAddress, nullptr, 4096, MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
+
+    auto *pdp = ppgtt.getChild(ppgtt.getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pdp);
+    auto *pde = pdp->getChild(pdp->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pde);
+    auto *pte = pde->getChild(pde->getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pte);
+    EXPECT_TRUE(pdp->isPendingWrite());
+    EXPECT_TRUE(pde->isPendingWrite());
+    EXPECT_TRUE(pte->isPendingWrite());
+
+    // On unblock: TBX must receive the pending PT entries and pendingWrite must be cleared
+    aubShmStream->blockMemWritesViaTbxStream(false);
+    EXPECT_CALL(*tbxShmStream, writeDiscontiguousPages(::testing::An<const std::vector<PageEntryInfo> &>(), ::testing::_, ::testing::_)).Times(::testing::AtLeast(1));
+    aubShmStream->AubStream::writeMemory(&ppgtt, {gfxAddress, nullptr, 4096, MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
+
+    EXPECT_FALSE(pdp->isPendingWrite());
+    EXPECT_FALSE(pde->isPendingWrite());
+    EXPECT_FALSE(pte->isPendingWrite());
 }
 
 TEST(TbxStream, GivenMmioReadFailWhenPollingForCompletionThenFunctionReturnsEarly) {
