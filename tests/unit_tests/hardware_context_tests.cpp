@@ -334,6 +334,7 @@ TEST_F(HardwareContextTest, pollForFenceCompletionShouldForwardToReadMemory) {
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
+    context.initialize();
 
     EXPECT_CALL(stream, readDiscontiguousPages(_, _, _)).Times(1);
     context.pollForFenceCompletion();
@@ -345,6 +346,7 @@ TEST_F(HardwareContextTest, pollForFenceCompletionShouldForwardToReadMemoryUntil
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
     auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
     HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
+    context.initialize();
     context.contextFenceValue = 17;
     uint32_t v = 0;
     EXPECT_CALL(stream, readDiscontiguousPages(_, _, _)).Times(18).WillRepeatedly([&v](void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable) {

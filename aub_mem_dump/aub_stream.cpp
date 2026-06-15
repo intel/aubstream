@@ -39,14 +39,14 @@ void AubStream::expectMemory(PageTable *ppgtt, uint64_t gfxAddress, const void *
 void AubStream::readMemory(PageTable *ppgtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize) {
     assert(ppgtt->getNumLevels() > 1);
     PageTableWalker pageWalker;
-    pageWalker.walkMemory(ppgtt, {gfxAddress, nullptr, size, memoryBanks, 0, pageSize}, PageTableWalker::WalkMode::Reserve, nullptr);
+    pageWalker.walkMemory(ppgtt, {gfxAddress, nullptr, size, memoryBanks, 0, pageSize}, PageTableWalker::WalkMode::Expect, nullptr);
     readDiscontiguousPages(memory, size, pageWalker.entries);
 }
 
 void AubStream::readMemory(GGTT *ggtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize) {
     PageTableWalker pageWalker;
 
-    pageWalker.walkMemory(ggtt, gfxAddress, size, memoryBanks, pageSize, PageTableWalker::WalkMode::Reserve, nullptr);
+    pageWalker.walkMemory(ggtt, gfxAddress, size, memoryBanks, pageSize, PageTableWalker::WalkMode::Expect, nullptr);
     readDiscontiguousPages(memory, size, pageWalker.entries);
 }
 

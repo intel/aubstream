@@ -260,65 +260,6 @@ TEST_F(AubStreamTest, freeMemoryShouldRemovePTEEntriesSystemMemory) {
     EXPECT_EQ(0u, pteEntry);
 }
 
-TEST_F(AubStreamTest, givenReadFreedMemoryWhenWriteMemoryToSamePdeThenWriteIsProperlyCompleted) {
-    uint64_t va1 = 0x1000;
-    uint64_t va2 = 0x11000;
-    uint8_t bytes[] = {'O', 'C', 'L', 0, 'N', 'E', 'O'};
-
-    PhysicalAddressAllocatorSimple allocator;
-    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
-
-    stream.writeMemory(&ppgtt, {va1, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 65536});
-    stream.freeMemory(&ppgtt, va1, sizeof(bytes));
-
-    // PDE zeroed by free: va2's region is not fully streamed yet
-    EXPECT_FALSE(isFullyStreamed(ppgtt, va2, streamedEntries));
-
-    uint8_t readBuf[sizeof(bytes)] = {};
-    stream.AubStream::readMemory(&ppgtt, va1, readBuf, sizeof(bytes), MEMORY_BANK_SYSTEM, 65536);
-    stream.writeMemory(&ppgtt, {va2, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 65536});
-
-    // PDE re-streamed: full page table chain for va2 is now in stream
-    EXPECT_TRUE(isFullyStreamed(ppgtt, va2, streamedEntries));
-}
-
-TEST_F(AubStreamTest, givenRegionReservedByReadMemoryWhenWriteMemoryThenFullPageTableChainIsStreamed) {
-    const uint64_t gfxAddress = 0x4000;
-    uint8_t bytes[4096] = {};
-
-    PhysicalAddressAllocatorSimple allocator;
-    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
-
-    uint8_t readBuf[sizeof(bytes)] = {};
-    stream.AubStream::readMemory(&ppgtt, gfxAddress, readBuf, sizeof(bytes), MEMORY_BANK_SYSTEM, 4096);
-    EXPECT_FALSE(isFullyStreamed(ppgtt, gfxAddress, streamedEntries));
-
-    stream.writeMemory(&ppgtt, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
-    EXPECT_TRUE(isFullyStreamed(ppgtt, gfxAddress, streamedEntries));
-}
-
-TEST_F(AubStreamTest, givenRegionWrittenAfterReadMemoryWhenWrittenAgainThenNoAdditionalPageTableEntriesStreamed) {
-    const uint64_t gfxAddress = 0x5000;
-    uint8_t bytes[4096] = {};
-
-    PhysicalAddressAllocatorSimple allocator;
-    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
-
-    uint8_t readBuf[sizeof(bytes)] = {};
-    stream.AubStream::readMemory(&ppgtt, gfxAddress, readBuf, sizeof(bytes), MEMORY_BANK_SYSTEM, 4096);
-    stream.writeMemory(&ppgtt, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
-
-    int ptWriteCount = 0;
-    ON_CALL(stream, writeDiscontiguousPages(::testing::An<const std::vector<PageEntryInfo> &>(), ::testing::_, ::testing::_))
-        .WillByDefault(::testing::Invoke([&](const std::vector<PageEntryInfo> &entries, int, int) {
-            ptWriteCount += static_cast<int>(entries.size());
-        }));
-
-    stream.writeMemory(&ppgtt, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
-
-    EXPECT_EQ(0, ptWriteCount);
-}
-
 TEST_F(AubStreamTest, givenLargeAllocationSpanningMultiplePagesInSamePDEWhenWriteMemoryThenSharedInteriorNodesStreamedOnce) {
     const uint64_t gfxAddress = 0x1000;
     const size_t pageCount = 8;
