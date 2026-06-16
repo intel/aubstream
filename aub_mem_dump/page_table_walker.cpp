@@ -80,6 +80,9 @@ void PageTableWalker::walkMemory(GGTT *ggtt, uint64_t gfxAddress, size_t size, u
         auto child = ggtt->getChild(index);
         if (child == nullptr) {
             assert(mode != WalkMode::Expect);
+            if (mode == WalkMode::Expect) {
+                break;
+            }
 
             child = ggtt->allocateChild(ggtt->getGpu(), pageSize, ggtt->getMemoryBank());
 
@@ -227,6 +230,9 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
             if (!child) {
                 assert(mode != WalkMode::Expect);
+                if (mode == WalkMode::Expect) {
+                    break;
+                }
                 if (level == leafLevel && clonePageInfo) {
                     const auto physicalAddressAligned = clonePageInfo->physicalAddress & ~(static_cast<uint64_t>(pageSize - 1));
                     if (pageSize == Page2MB::pageSize2MB) {
@@ -339,6 +345,10 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                 }
             }
             --level;
+        }
+
+        if (child == nullptr) {
+            break;
         }
 
         // pte is null for 2MB pages

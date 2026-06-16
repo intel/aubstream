@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022-2023 Intel Corporation
+# Copyright (C) 2022-2026 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -39,6 +39,10 @@ add_executable(${TARGET_NAME}
                ${CMAKE_CURRENT_SOURCE_DIR}/tbx_socket_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/white_box.h
                ${CMAKE_SOURCE_DIR}/tests/empty_test_filters.cpp
+)
+
+target_sources(${TARGET_NAME} PRIVATE
+               $<$<NOT:$<CONFIG:Debug>>:${CMAKE_CURRENT_SOURCE_DIR}/page_table_walker_expect_walk_release_tests.cpp>
 )
 
 get_property(TEST_TRAITS_MACROS GLOBAL PROPERTY TEST_TRAITS_MACROS_property)
