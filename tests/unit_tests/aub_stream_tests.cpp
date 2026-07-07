@@ -728,6 +728,59 @@ TEST_F(AubFileStreamTest, givenClosedStreamWhenWriteIsCalledThenDataIsWrittenToT
     EXPECT_EQ(memcmp(stream.tmpWriteBuffer.data(), buffer, sizeof(buffer)), 0);
 }
 
+TEST_F(AubFileStreamTest, givenCommentExceeding16BitDwordCountWhenAddCommentThenItIsSplitIntoValidRecords) {
+    WhiteBox<AubFileStream> stream;
+
+    const size_t messageChars = 0x50000;
+    const std::string message(messageChars, 'A');
+
+    stream.addComment(message.c_str());
+
+    const auto &buf = stream.tmpWriteBuffer;
+    std::string reconstructed;
+    size_t offset = 0;
+    size_t recordCount = 0;
+
+    while (offset + 2 * sizeof(uint32_t) <= buf.size()) {
+        CmdServicesMemTraceComment header = {};
+        memcpy(&header, buf.data() + offset, 2 * sizeof(uint32_t));
+
+        EXPECT_TRUE(header.matchesHeader());
+        EXPECT_LE(header.dwordCount, 0xFFFFu);
+
+        const size_t messageDwords = header.dwordCount - 1;
+        const size_t messageBytes = messageDwords * sizeof(uint32_t);
+        const char *msg = buf.data() + offset + 2 * sizeof(uint32_t);
+        reconstructed.append(msg, messageBytes);
+
+        offset += 2 * sizeof(uint32_t) + messageBytes;
+        ++recordCount;
+    }
+
+    EXPECT_GT(recordCount, 1u);
+    EXPECT_EQ(offset, buf.size());
+
+    reconstructed.resize(strlen(reconstructed.c_str()));
+    EXPECT_EQ(reconstructed, message);
+}
+
+TEST_F(AubFileStreamTest, givenSmallCommentWhenAddCommentThenSingleRecordIsEmitted) {
+    WhiteBox<AubFileStream> stream;
+    const std::string message = "<KernelInfo>\nname: foo\n";
+
+    stream.addComment(message.c_str());
+
+    const auto &buf = stream.tmpWriteBuffer;
+    CmdServicesMemTraceComment header = {};
+    ASSERT_GE(buf.size(), 2 * sizeof(uint32_t));
+    memcpy(&header, buf.data(), 2 * sizeof(uint32_t));
+
+    EXPECT_TRUE(header.matchesHeader());
+    const size_t recordBytes = 2 * sizeof(uint32_t) + (header.dwordCount - 1) * sizeof(uint32_t);
+    EXPECT_EQ(buf.size(), recordBytes);
+    EXPECT_STREQ(buf.data() + 2 * sizeof(uint32_t), message.c_str());
+}
+
 using ComparisonValues = CmdServicesMemTraceMemoryPoll::ComparisonValues;
 
 TEST_F(AubStreamTest, givenComparisonModesWhenCompareMemoryIsCalledThenCorrectResultIsReturned) {

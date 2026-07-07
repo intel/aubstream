@@ -30,23 +30,37 @@ void AubFileStream::readDiscontiguousPages(void *memory, size_t size, const std:
 }
 
 void AubFileStream::addComment(const char *message) {
-    CmdServicesMemTraceComment cmd = {};
-    cmd.setHeader();
-    cmd.syncOnComment = false;
-    cmd.syncOnSimulatorDisplay = false;
+    // dwordCount is a 16-bit field, so split messages that exceed one record.
+    constexpr size_t maxMessageBytesPerRecord = (std::numeric_limits<uint16_t>::max() - 1) * sizeof(uint32_t);
 
-    auto messageLen = strlen(message) + 1;
-    auto dwordLen = ((messageLen + sizeof(uint32_t) - 1) & ~(sizeof(uint32_t) - 1)) / sizeof(uint32_t);
-    cmd.dwordCount = static_cast<uint32_t>(dwordLen + 1);
+    size_t remaining = strlen(message) + 1;
+    const char *cursor = message;
 
-    write(reinterpret_cast<char *>(&cmd), sizeof(cmd) - sizeof(cmd.comment));
-    write(message, messageLen);
-    auto remainder = messageLen & (sizeof(uint32_t) - 1);
-    if (remainder) {
-        // if size is not 4 byte aligned, write extra zeros to AUB
-        uint32_t zero = 0;
-        write(reinterpret_cast<char *>(&zero), sizeof(uint32_t) - remainder);
-    }
+    do {
+        const size_t chunkBytes = std::min(remaining, maxMessageBytesPerRecord);
+
+        CmdServicesMemTraceComment cmd = {};
+        cmd.setHeader();
+        cmd.syncOnComment = false;
+        cmd.syncOnSimulatorDisplay = false;
+
+        const auto dwordLen = (chunkBytes + sizeof(uint32_t) - 1) / sizeof(uint32_t);
+        cmd.dwordCount = static_cast<uint32_t>(dwordLen + 1);
+
+        write(reinterpret_cast<char *>(&cmd), sizeof(cmd) - sizeof(cmd.comment));
+        write(cursor, chunkBytes);
+
+        auto remainder = chunkBytes & (sizeof(uint32_t) - 1);
+        if (remainder) {
+            // if size is not 4 byte aligned, write extra zeros to AUB
+            uint32_t zero = 0;
+            write(reinterpret_cast<char *>(&zero), sizeof(uint32_t) - remainder);
+        }
+
+        cursor += chunkBytes;
+        remaining -= chunkBytes;
+    } while (remaining > 0);
+
     fileHandle.flush();
 }
 
