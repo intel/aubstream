@@ -22,7 +22,7 @@ struct GpuNvlp : public GpuXe3pCore {
         deviceCount = GpuNvlp::numSupportedDevices;
     }
 
-    uint64_t getWOPCMSize() const override { return 16 * 1024 * 1024; };
+    uint64_t getWOPCMDefaultSize() const override { return 16 * 1024 * 1024; };
 
     const MMIOList getGlobalMMIOPlatformSpecific() const override {
         const MMIOList globalMMIOPlatformSpecific = {

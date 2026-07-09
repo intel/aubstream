@@ -215,6 +215,7 @@ struct GpuXe3pCore : public GpuXeCore {
     uint64_t getPPGTTExtraEntryBits(const AllocationParams::AdditionalParams &allocationParams) const override;
     PageTable *allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const override;
     bool isValidDataStolenMemorySize(uint64_t dataStolenMemorySize) const override;
+    bool isValidWOPCMSize(uint64_t wopcmSize) const override;
     uint32_t sizeToGMS(uint64_t dataStolenMemorySize) const;
     uint32_t sizeToPAVPC(uint64_t wopcmMemorySize) const;
     void initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize) const override;

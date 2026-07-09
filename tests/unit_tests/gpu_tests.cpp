@@ -89,6 +89,40 @@ HWTEST_F(GpuForStolenTest, isValidDataStolenMemorySizeForVariousInputCoreAboveXe
     EXPECT_EQ(gpu->isValidDataStolenMemorySize(gpu->getDSMSize()), true);
 }
 
+TEST(Gpu, givenNoOverrideWhenGettingWOPCMSizeThenDefaultSizeIsReturned) {
+    EXPECT_EQ(gpu->getWOPCMSize(), gpu->getWOPCMDefaultSize());
+}
+
+TEST(Gpu, givenOverrideWOPCMSizeWhenGettingWOPCMSizeThenOverriddenSizeIsReturned) {
+    auto gpu = createGpuFunc();
+    auto defaultSize = gpu->getWOPCMSize();
+
+    gpu->overrideWOPCMSize(defaultSize + MB);
+
+    EXPECT_EQ(gpu->getWOPCMSize(), defaultSize + MB);
+}
+
+HWTEST_F(GpuForStolenTest, isValidWOPCMSizeForVariousInputCoreEqualGreaterXe3p, HwMatcher::coreEqualGreaterXe3p) {
+    auto gpu = createGpuFunc();
+    EXPECT_EQ(gpu->isValidWOPCMSize(1 * MB), true);
+    EXPECT_EQ(gpu->isValidWOPCMSize(2 * MB), true);
+    EXPECT_EQ(gpu->isValidWOPCMSize(4 * MB), true);
+    EXPECT_EQ(gpu->isValidWOPCMSize(8 * MB), true);
+    EXPECT_EQ(gpu->isValidWOPCMSize(16 * MB), true);
+    EXPECT_EQ(gpu->isValidWOPCMSize(32 * MB), true);
+    EXPECT_EQ(gpu->isValidWOPCMSize(3 * MB), false);
+    EXPECT_EQ(gpu->isValidWOPCMSize(64 * MB), false);
+    EXPECT_EQ(gpu->isValidWOPCMSize(gpu->getWOPCMSize()), true);
+}
+
+HWTEST_F(GpuForStolenTest, isValidWOPCMSizeForVariousInputCoreBelowXe3p, HwMatcher::Not<HwMatcher::coreEqualGreaterXe3p>) {
+    auto gpu = createGpuFunc();
+    EXPECT_EQ(gpu->isValidWOPCMSize(0), true);
+    EXPECT_EQ(gpu->isValidWOPCMSize(3 * MB), true);
+    EXPECT_EQ(gpu->isValidWOPCMSize(64 * MB), true);
+    EXPECT_EQ(gpu->isValidWOPCMSize(gpu->getWOPCMSize()), true);
+}
+
 using GpuTest = ::testing::Test;
 HWTEST_F(GpuTest, givenDisabledIndirectRingStateWhenCheckingIndirectRingStateEnableThenFalseReturned, HwMatcher::coreEqualGreaterXe3p) {
     auto settings = std::make_unique<Settings>();

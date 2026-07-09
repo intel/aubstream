@@ -243,6 +243,10 @@ bool GpuXe3pCore::isValidDataStolenMemorySize(uint64_t dataStolenMemorySize) con
     return sizeToGMS(dataStolenMemorySize) != 0xff;
 }
 
+bool GpuXe3pCore::isValidWOPCMSize(uint64_t wopcmSize) const {
+    return sizeToPAVPC(wopcmSize) != 0xff;
+}
+
 void GpuXe3pCore::initializeDefaultMemoryPools(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize) const {
     if (stream.getStreamMode() != aub_stream::mode::tbxShm3 && stream.getStreamMode() != aub_stream::mode::null) {
         auto flatCcsSize = memoryBankSize / 512;

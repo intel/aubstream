@@ -83,13 +83,20 @@ struct Gpu : public GpuDescriptor {
     bool isEngineSupported(uint32_t engine) const;
 
     virtual bool isValidDataStolenMemorySize(uint64_t dataStolenMemorySize) const;
+    virtual bool isValidWOPCMSize(uint64_t wopcmSize) const { return true; }
 
     virtual uint64_t getPPGTTExtraEntryBits(const AllocationParams::AdditionalParams &allocationParams) const { return 0; }
 
     virtual GGTT *allocateGGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gttBaseAddress) const;
     virtual PageTable *allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const;
 
-    virtual uint64_t getWOPCMSize() const { return 8 * MB; };
+    virtual uint64_t getWOPCMSize() const {
+        if (wopcmSizeOverride) {
+            return wopcmSizeOverride;
+        }
+        return getWOPCMDefaultSize();
+    };
+    virtual uint64_t getWOPCMDefaultSize() const { return 8 * MB; };
     virtual uint64_t getDSMSize() const {
         if (dsmSizeOverride) {
             return dsmSizeOverride;
@@ -110,6 +117,10 @@ struct Gpu : public GpuDescriptor {
 
     void overrideDSMSize(uint64_t dsmSize) {
         dsmSizeOverride = dsmSize;
+    }
+
+    void overrideWOPCMSize(uint64_t wopcmSize) {
+        wopcmSizeOverride = wopcmSize;
     }
 
     virtual uint64_t getWOPCMBaseAddress(uint32_t device) const {
@@ -137,6 +148,7 @@ struct Gpu : public GpuDescriptor {
 
   protected:
     uint64_t dsmSizeOverride = 0;
+    uint64_t wopcmSizeOverride = 0;
 };
 
 } // namespace aub_stream

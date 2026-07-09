@@ -46,6 +46,9 @@ AubManagerImp::AubManagerImp(std::unique_ptr<Gpu> gpu, const struct AubManagerOp
     if (options.dataStolenMemorySize != 0) {
         this->gpu->overrideDSMSize(options.dataStolenMemorySize);
     }
+    if (options.wopcmMemorySize != 0) {
+        this->gpu->overrideWOPCMSize(options.wopcmMemorySize);
+    }
 
     this->gpu->stolenMemory = StolenMemory::CreateStolenMemory(options.mode == aub_stream::mode::tbxShm3,
                                                                options.devicesCount,
@@ -73,7 +76,7 @@ AubManagerImp::~AubManagerImp() {
 }
 
 void AubManagerImp::initialize() {
-    if (!gpu->stolenMemory || !gpu->isValidDataStolenMemorySize(gpu->getDSMSize())) {
+    if (!gpu->stolenMemory || !gpu->isValidDataStolenMemorySize(gpu->getDSMSize()) || !gpu->isValidWOPCMSize(gpu->getWOPCMSize())) {
         return;
     }
 
