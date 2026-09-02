@@ -577,6 +577,81 @@ TEST_F(HardwareContextTest, givenNoContextGroupFlagWhenHardwareContextCreatedThe
     aubManager.releaseHardwareContext(context0);
 }
 
+TEST_F(HardwareContextTest, givenHardwareContext2ParamsWhenHardwareContextsCreatedThenContextIdPassedIsUsed) {
+    TEST_REQUIRES(gpu->gfxCoreFamily >= CoreFamily::XeHpcCore);
+
+    auto gpu = createGpuFunc();
+    auto gpuPtr = gpu.get();
+    MockAubManager aubManager(std::move(gpu), 1, defaultHBMSizePerDevice, 0u, true, aub_stream::mode::aubFile);
+    aubManager.initialize();
+
+    auto &csHelper = gpuPtr->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    uint32_t contextId = HardwareContextImp::globalContextId + 3;
+
+    CreateHardwareContext2Params params = {
+        contextId,
+        hardwareContextId::invalidContextId};
+
+    auto context0 = aubManager.createHardwareContext2(params, defaultDevice, defaultEngine, hardwareContextFlags::contextGroup);
+    context0->initialize();
+
+    EXPECT_EQ(contextId, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contexts[0]->contextId);
+
+    CreateHardwareContext2Params params1 = {
+        contextId + 3,
+        contextId};
+    auto context1 = aubManager.createHardwareContext2(params1, defaultDevice, defaultEngine, hardwareContextFlags::contextGroup);
+    context1->initialize();
+
+    EXPECT_EQ(contextId + 3, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contexts[1]->contextId);
+
+    aubManager.releaseHardwareContext(context0);
+    aubManager.releaseHardwareContext(context1);
+}
+
+TEST_F(HardwareContextTest, givenHardwareContext3ParamsWhenHardwareContextsCreatedThenContextIdPassedIsUsed) {
+    TEST_REQUIRES(gpu->gfxCoreFamily >= CoreFamily::XeHpcCore);
+
+    auto gpu = createGpuFunc();
+    auto gpuPtr = gpu.get();
+    MockAubManager aubManager(std::move(gpu), 1, defaultHBMSizePerDevice, 0u, true, aub_stream::mode::aubFile);
+    aubManager.initialize();
+
+    auto &csHelper = gpuPtr->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    uint32_t contextId = HardwareContextImp::globalContextId + 3;
+
+    CreateHardwareContext3Params params = {};
+    params.header.size = sizeof(CreateHardwareContext3Params);
+    params.device = defaultDevice;
+    params.engine = defaultEngine;
+    params.flags = hardwareContextFlags::contextGroup;
+    params.contextId = contextId;
+    params.primaryContextId = hardwareContextId::invalidContextId;
+
+    auto context0 = aubManager.createHardwareContext3(&params.header);
+    context0->initialize();
+
+    EXPECT_EQ(contextId, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contexts[0]->contextId);
+
+    CreateHardwareContext3Params params1 = {};
+    params1.header.size = sizeof(CreateHardwareContext3Params);
+    params1.device = defaultDevice;
+    params1.engine = defaultEngine;
+    params1.flags = hardwareContextFlags::contextGroup;
+    params1.contextId = contextId + 3;
+    params1.primaryContextId = contextId;
+
+    auto context1 = aubManager.createHardwareContext3(&params1.header);
+    context1->initialize();
+
+    EXPECT_EQ(contextId + 3, aubManager.getGroupContextHelper()->contextGroups[defaultDevice][csHelper.engineType][0].contexts[1]->contextId);
+
+    aubManager.releaseHardwareContext(context0);
+    aubManager.releaseHardwareContext(context1);
+}
+
 TEST_F(HardwareContextTest, givenPriorityWhenCreateHardwareContext3CalledThenPriorityIsSet) {
     auto gpu = createGpuFunc();
     MockAubManager aubManager(std::move(gpu), 1, defaultHBMSizePerDevice, 0u, true, aub_stream::mode::aubFile);

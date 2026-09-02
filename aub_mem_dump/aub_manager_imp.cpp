@@ -335,7 +335,9 @@ HardwareContext *AubManagerImp::createHardwareContext2(const CreateHardwareConte
 
             group = &groupContextHelper->contextGroups[device][csTraits.engineType][groupId];
         }
-        context = new HardwareContextImp(device, *stream, csTraits, *ggtts[device], *ppgtts[device], group, flags);
+        auto contextImp = new HardwareContextImp(device, *stream, csTraits, *ggtts[device], *ppgtts[device], group, flags);
+        contextImp->contextId = params.contextId;
+        context = contextImp;
     }
 
     std::lock_guard<std::mutex> lock(hwContextsMutex);
@@ -385,7 +387,9 @@ HardwareContext *AubManagerImp::createHardwareContext3(const HardwareContextPara
             group = &groupContextHelper->contextGroups[device][csTraits.engineType][groupId];
         }
 
-        context = new HardwareContextImp(device, *stream, csTraits, *ggtts[device], *ppgtts[device], group, flags, params->priority);
+        auto contextImp = new HardwareContextImp(device, *stream, csTraits, *ggtts[device], *ppgtts[device], group, flags, params->priority);
+        contextImp->contextId = params->contextId;
+        context = contextImp;
     }
 
     std::lock_guard<std::mutex> lock(hwContextsMutex);
