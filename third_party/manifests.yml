@@ -13,7 +13,7 @@ components:
   aub_configs:
     branch: aub_configs
     dest_dir: aub_configs
-    revision: 78d2415aa81811d07cddae882c0ced6fdc1145bb
+    revision: 4bb8c652efdfbfc96fc19ba7033f90d989dcf46a
     type: git
   infra:
     branch: master
