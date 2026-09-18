@@ -9,6 +9,7 @@
 #include "aub_mem_dump/xe_core/command_streamer_helper_xe_core.h"
 #include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/settings.h"
+#include <utility>
 
 template <typename T>
 inline T ptrOffset(T ptrBefore, size_t offset) {
@@ -21,8 +22,12 @@ namespace aub_stream {
 
 template <typename Helper>
 struct CommandStreamerHelperXe3pCore : public CommandStreamerHelperXeCore<Helper> {
-    using CommandStreamerHelperXeCore<Helper>::CommandStreamerHelperXeCore;
     using BaseClass = CommandStreamerHelperXeCore<Helper>;
+
+    template <typename... Args>
+    explicit CommandStreamerHelperXe3pCore(Args &&...args) : BaseClass(std::forward<Args>(args)...) {
+        setLRCASize<Helper, CoreFamily::Xe3pCore>(*this);
+    }
 
     void submitContext(AubStream &stream, std::vector<MiContextDescriptorReg> &contextDescriptor) const override {
         bool execlistSubmitPortEnabled = isExeclistSubmissionEnabled();

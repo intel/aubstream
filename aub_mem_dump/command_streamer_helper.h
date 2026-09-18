@@ -7,11 +7,14 @@
 
 #pragma once
 #include "aub_mem_dump/aub_stream.h"
+#include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table.h"
 #include "aub_services.h"
 #include "aubstream/engine_node.h"
 #include "aubstream/hint_values.h"
+#include "gfx_core_family.h"
 #include <cstdint>
+#include <type_traits>
 #include <vector>
 #include <mutex>
 
@@ -59,6 +62,14 @@ constexpr uint32_t bcsLinkEngineOffset(uint32_t engineId) {
     }
 };
 
+constexpr size_t sizeLRCADefault = 0x2000;
+constexpr size_t sizeLRCARender = 0x11000;
+constexpr size_t numAdditionalRenderLRCAPages = 9;
+constexpr size_t numAdditionalComputeLRCAPages = 4;
+constexpr size_t sizeLRCARenderExtended = sizeLRCARender + numAdditionalRenderLRCAPages * 4 * KB;
+constexpr size_t sizeLRCAComputeExtended = sizeLRCADefault + numAdditionalComputeLRCAPages * 4 * KB;
+constexpr CoreFamily firstCoreFamilyWithExtendedLRCA = CoreFamily::Xe3pCore;
+
 struct CommandStreamerHelper {
     using AddressSpaceValues = CmdServicesMemTraceMemoryWrite::AddressSpaceValues;
 
@@ -72,7 +83,7 @@ struct CommandStreamerHelper {
 
     const Gpu *gpu = nullptr;
     uint32_t deviceIndex = 0;
-    size_t sizeLRCA = 0x2000;
+    size_t sizeLRCA = sizeLRCADefault;
 
     int aubHintLRCA = DataTypeHintValues::TraceNotype;
     int aubHintCommandBuffer = DataTypeHintValues::TraceCommandBuffer;
@@ -170,7 +181,7 @@ struct CommandStreamerHelperRcs : public CommandStreamerHelper {
         aubHintLRCA = DataTypeHintValues::TraceLogicalRingContextRcs;
         aubHintCommandBuffer = DataTypeHintValues::TraceCommandBufferPrimary;
         aubHintBatchBuffer = DataTypeHintValues::TraceBatchBufferPrimary;
-        sizeLRCA = 0x11000;
+        sizeLRCA = sizeLRCARender;
         name = "RCS";
 
         engineType = EngineType::ENGINE_RCS;
@@ -309,6 +320,20 @@ struct CommandStreamerHelperCcs : public CommandStreamerHelper {
         ringBuffer.push_back(0);
     }
 };
+
+template <typename Helper, CoreFamily coreFamily>
+inline void setLRCASize(CommandStreamerHelper &commandStreamerHelper) {
+    constexpr bool isRenderEngine = std::is_base_of_v<CommandStreamerHelperRcs, Helper>;
+    constexpr bool isComputeEngine = std::is_base_of_v<CommandStreamerHelperCcs, Helper>;
+
+    if constexpr (coreFamily >= firstCoreFamilyWithExtendedLRCA) {
+        if constexpr (isRenderEngine) {
+            commandStreamerHelper.sizeLRCA = sizeLRCARenderExtended;
+        } else if constexpr (isComputeEngine) {
+            commandStreamerHelper.sizeLRCA = sizeLRCAComputeExtended;
+        }
+    }
+}
 
 struct CommandStreamerHelperCccs : public CommandStreamerHelperRcs {
     CommandStreamerHelperCccs(uint32_t baseDevice) : CommandStreamerHelperRcs(baseDevice) {

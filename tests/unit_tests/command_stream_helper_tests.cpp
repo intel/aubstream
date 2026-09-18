@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -93,6 +93,7 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
 TEST_F(CommandStreamerHelperTest, csHelperHasValidParams) {
     const uint32_t numEngines = 4;
     EngineType engines[numEngines] = {ENGINE_RCS, ENGINE_BCS, ENGINE_VCS, ENGINE_VECS};
+    const size_t expectedSizeLRCARender = gpu->gfxCoreFamily >= firstCoreFamilyWithExtendedLRCA ? sizeLRCARenderExtended : sizeLRCARender;
 
     for (auto i = 0u; i < numEngines; i++) {
         if (!gpu->isEngineSupported(engines[i])) {
@@ -105,25 +106,68 @@ TEST_F(CommandStreamerHelperTest, csHelperHasValidParams) {
             EXPECT_EQ(DataTypeHintValues::TraceLogicalRingContextRcs, cs.aubHintLRCA);
             EXPECT_EQ(DataTypeHintValues::TraceCommandBufferPrimary, cs.aubHintCommandBuffer);
             EXPECT_EQ(DataTypeHintValues::TraceBatchBufferPrimary, cs.aubHintBatchBuffer);
-            EXPECT_EQ(0x11000u, cs.sizeLRCA);
+            EXPECT_EQ(expectedSizeLRCARender, cs.sizeLRCA);
         } else if (EngineType::ENGINE_BCS == engines[i]) {
             EXPECT_EQ(DataTypeHintValues::TraceLogicalRingContextBcs, cs.aubHintLRCA);
             EXPECT_EQ(DataTypeHintValues::TraceCommandBufferBlt, cs.aubHintCommandBuffer);
             EXPECT_EQ(DataTypeHintValues::TraceBatchBufferBlt, cs.aubHintBatchBuffer);
-            EXPECT_EQ(0x2000u, cs.sizeLRCA);
+            EXPECT_EQ(sizeLRCADefault, cs.sizeLRCA);
         } else if (EngineType::ENGINE_VCS == engines[i]) {
             EXPECT_EQ(DataTypeHintValues::TraceLogicalRingContextVcs, cs.aubHintLRCA);
             EXPECT_EQ(DataTypeHintValues::TraceCommandBufferMfx, cs.aubHintCommandBuffer);
             EXPECT_EQ(DataTypeHintValues::TraceBatchBufferMfx, cs.aubHintBatchBuffer);
-            EXPECT_EQ(0x2000u, cs.sizeLRCA);
+            EXPECT_EQ(sizeLRCADefault, cs.sizeLRCA);
         } else if (EngineType::ENGINE_VECS == engines[i]) {
             EXPECT_EQ(DataTypeHintValues::TraceLogicalRingContextVecs, cs.aubHintLRCA);
             EXPECT_EQ(DataTypeHintValues::TraceCommandBuffer, cs.aubHintCommandBuffer);
             EXPECT_EQ(DataTypeHintValues::TraceBatchBuffer, cs.aubHintBatchBuffer);
-            EXPECT_EQ(0x2000u, cs.sizeLRCA);
+            EXPECT_EQ(sizeLRCADefault, cs.sizeLRCA);
         } else {
             EXPECT_TRUE(false);
         }
+    }
+}
+
+static const std::vector<EngineType> renderEngines{ENGINE_RCS, ENGINE_CCCS};
+static const std::vector<EngineType> computeEngines{ENGINE_CCS, ENGINE_CCS1, ENGINE_CCS2, ENGINE_CCS3};
+static const std::vector<EngineType> otherEngines{ENGINE_BCS, ENGINE_VCS, ENGINE_VECS, ENGINE_BCS1};
+
+HWTEST_F(CommandStreamerHelperTest, givenXe3pAndLaterCoreWhenQueryingCsHelpersThenRenderAndComputeLRCAAreExtended, HwMatcher::coreEqualGreaterXe3p) {
+    for (auto engineType : renderEngines) {
+        if (!gpu->isEngineSupported(engineType)) {
+            continue;
+        }
+        EXPECT_EQ(sizeLRCARenderExtended, gpu->getCommandStreamerHelper(defaultDevice, engineType).sizeLRCA);
+    }
+
+    for (auto engineType : computeEngines) {
+        if (!gpu->isEngineSupported(engineType)) {
+            continue;
+        }
+        EXPECT_EQ(sizeLRCAComputeExtended, gpu->getCommandStreamerHelper(defaultDevice, engineType).sizeLRCA);
+    }
+
+    for (auto engineType : otherEngines) {
+        if (!gpu->isEngineSupported(engineType)) {
+            continue;
+        }
+        EXPECT_EQ(sizeLRCADefault, gpu->getCommandStreamerHelper(defaultDevice, engineType).sizeLRCA);
+    }
+}
+
+HWTEST_F(CommandStreamerHelperTest, givenCoreBelowXe3pWhenQueryingCsHelpersThenLRCASizesAreNotExtended, HwMatcher::Not<HwMatcher::coreEqualGreaterXe3p>) {
+    for (auto engineType : renderEngines) {
+        if (!gpu->isEngineSupported(engineType)) {
+            continue;
+        }
+        EXPECT_EQ(sizeLRCARender, gpu->getCommandStreamerHelper(defaultDevice, engineType).sizeLRCA);
+    }
+
+    for (auto engineType : computeEngines) {
+        if (!gpu->isEngineSupported(engineType)) {
+            continue;
+        }
+        EXPECT_EQ(sizeLRCADefault, gpu->getCommandStreamerHelper(defaultDevice, engineType).sizeLRCA);
     }
 }
 
