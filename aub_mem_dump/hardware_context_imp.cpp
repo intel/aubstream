@@ -20,7 +20,7 @@
 
 namespace aub_stream {
 
-uint32_t HardwareContextImp::globalContextId = 0;
+std::atomic<uint32_t> HardwareContextImp::globalContextId = 0;
 
 HardwareContextImp::HardwareContextImp(uint32_t deviceIndex, AubStream &aubStream, const CommandStreamerHelper &traits, GGTT &ggttIN, PageTable &ppgttIN, ContextGroup *contextGroupIn, uint32_t flags, uint32_t priorityIn)
     : stream(aubStream),

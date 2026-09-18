@@ -9,6 +9,7 @@
 #include "aubstream/hardware_context.h"
 #include "aubstream/engine_node.h"
 #include "page_table.h"
+#include <atomic>
 #include <type_traits>
 #include <vector>
 #include <unordered_map>
@@ -85,8 +86,8 @@ struct HardwareContextImp : public HardwareContext {
     uint32_t flags;
     uint32_t ggttContextFence;
     uint32_t contextFenceValue;
-    static uint32_t globalContextId;
-    uint32_t contextId{globalContextId++};
+    static std::atomic<uint32_t> globalContextId;
+    uint32_t contextId{globalContextId.fetch_add(1)};
 
     ContextGroup *contextGroup = nullptr;
 };
