@@ -29,7 +29,7 @@ TEST(GpuXe3p, givenXe3pWhenCheckingIndirectRingStateEnableThenTrueReturned) {
 TEST(GpuXe3p, givenXe3pWhenInitializingGlobalMmiosThenProgramCorrectRegisters) {
     TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::Xe3pCore);
     MockAubFileStream stream;
-    EXPECT_CALL(stream, writeMMIO(_, _, 0xffffffff)).Times(::testing::AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AtLeast(0));
 
     EXPECT_CALL(stream, writeMMIO(0x00004b80, 0xffff1001, 0xffffffff)).Times(1);
     EXPECT_CALL(stream, writeMMIO(0x00007000, 0xffff0000, 0xffffffff)).Times(1);

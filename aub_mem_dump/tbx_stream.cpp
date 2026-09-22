@@ -116,7 +116,7 @@ uint32_t TbxStream::readPCICFG(uint32_t offset) {
 }
 
 uint32_t TbxStream::readMMIO(uint32_t offset) {
-    uint32_t value;
+    uint32_t value = 0;
     socket->readMMIO(offset, &value);
     return value;
 }

@@ -33,7 +33,7 @@ TEST(Cri, givenCriWhenAllocatePpgttThenUseAllocatePML5) {
 TEST(Cri, givenCriWhenInitializingGlobalMmiosThenProgramMocsAndPatIndex) {
     TEST_REQUIRES(gpu->productFamily == ProductFamily::Cri);
     MockAubFileStream stream;
-    EXPECT_CALL(stream, writeMMIO(_, _, 0xffffffff)).Times(::testing::AtLeast(0));
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AtLeast(0));
 
     // MOCS
     EXPECT_CALL(stream, writeMMIO(0x4000, 0b0000'0000'1100, 0xffffffff)).Times(1);

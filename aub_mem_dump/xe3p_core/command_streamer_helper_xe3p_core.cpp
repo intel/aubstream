@@ -386,6 +386,8 @@ void GpuXe3pCore::initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount,
             stream.writeMMIO(mmioDevice + mmioPair.first, mmioPair.second);
         }
 
+        initializeAdditionalGlobalMMIO(stream, device);
+
         mmioDevice += mmioDeviceOffset;
     }
 }

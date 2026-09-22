@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -59,7 +59,7 @@ class MockAubManager : public AubManagerImp {
             } else {
                 ON_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).WillByDefault(::testing::Return(0x10000));
             }
-        } else if (streamMode == aub_stream::mode::tbxShm || streamMode == aub_stream::mode::tbxShm4) {
+        } else if (streamMode == aub_stream::mode::tbxShm || streamMode == aub_stream::mode::tbxShm3 || streamMode == aub_stream::mode::tbxShm4) {
             uint32_t localMemDevicesCount = 0;
             for (uint32_t i = 0; i < devicesCount; i++) {
                 localMemDevicesCount += gpu->isMemorySupported(MEMORY_BANK_0 << i, 0x10000) ? 1 : 0;

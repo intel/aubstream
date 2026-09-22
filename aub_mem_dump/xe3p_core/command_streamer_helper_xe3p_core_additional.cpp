@@ -9,6 +9,9 @@
 
 namespace aub_stream {
 
+void GpuXe3pCore::initializeAdditionalGlobalMMIO(AubStream & /*stream*/, uint32_t /*device*/) const {
+}
+
 template <typename Helper>
 void CommandStreamerHelperXe3pCore<Helper>::appendAdditionalEngineMMIO(MMIOList & /*engineMMIO*/) const {
 }

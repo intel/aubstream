@@ -113,8 +113,7 @@ void TbxShmStream::writeMMIO(uint32_t offset, uint32_t value, uint32_t mask) {
         << "   =: " << std::hex << std::showbase << value;
 
     if (mask != 0xFFFFFFFF) {
-        uint32_t currentValue = 0;
-        socket->readMMIO(offset, &currentValue);
+        uint32_t currentValue = readMMIO(offset);
         value = (currentValue & ~mask) | (value & mask);
         log << " (masked from " << std::hex << std::showbase << currentValue << ")";
     }
@@ -139,7 +138,7 @@ void TbxShmStream::writePCICFG(uint32_t offset, uint32_t value) {
 }
 
 uint32_t TbxShmStream::readMMIO(uint32_t offset) {
-    uint32_t value;
+    uint32_t value = 0;
     socket->readMMIO(offset, &value);
 
     log << "MMIO read: " << std::hex << std::showbase << offset

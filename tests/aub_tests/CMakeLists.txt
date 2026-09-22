@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022-2025 Intel Corporation
+# Copyright (C) 2022-2026 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -45,6 +45,10 @@ if(DO_NOT_RUN_AUB_TESTS)
                         EXCLUDE_FROM_DEFAULT_BUILD TRUE
                         EXCLUDE_FROM_ALL TRUE
   )
+endif()
+
+if(NOT ("${BRANCH_TYPE}" STREQUAL ""))
+  add_subdirectory("${BRANCH_TYPE}")
 endif()
 
 aub_stream_create_source_tree(${TARGET_NAME})

@@ -216,6 +216,7 @@ struct GpuXe3pCore : public GpuXeCore {
 
     const MMIOList getGlobalMMIO() const override;
     void initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping) const override;
+    void initializeAdditionalGlobalMMIO(AubStream &stream, uint32_t device) const;
 
     uint64_t getPPGTTExtraEntryBits(const AllocationParams::AdditionalParams &allocationParams) const override;
     PageTable *allocatePPGTT(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace) const override;

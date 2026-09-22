@@ -320,6 +320,18 @@ TEST(TbxStream, GivenMmioReadFailWhenPollingForCompletionThenFunctionReturnsEarl
     tbxStream->registerPoll(0x2234, 1, 1, false, CmdServicesMemTraceRegisterPoll::TimeoutActionValues::Abort);
 }
 
+TEST(TbxStream, givenMmioReadFailureWithoutOutputWhenReadingThenReturnZero) {
+    TbxStream stream;
+    auto socket = new ::testing::NiceMock<MockTbxSocketsImp>();
+    stream.socket = socket;
+
+    EXPECT_CALL(*socket, readMMIO(0x1234, _)).WillOnce(::testing::DoAll(::testing::SetArgPointee<1>(0xA5A55A5Au), ::testing::Return(true)));
+    EXPECT_EQ(0xA5A55A5Au, stream.readMMIO(0x1234));
+
+    EXPECT_CALL(*socket, readMMIO(0x1234, _)).WillOnce(::testing::Return(false));
+    EXPECT_EQ(0u, stream.readMMIO(0x1234));
+}
+
 TEST(TbxStream, GivenNoContextExecutedWhenPollingForCompletionThenFunctionReturnsEarly) {
     auto tbxStream = std::make_unique<MockTbxStream>();
     auto socket = new MockTbxSocketsImp();
@@ -364,6 +376,42 @@ TEST(TbxStream, SocketProperClosingAtModeAubTbxWhenCloseSocketFunctionIsCall) {
 }
 
 using AubShmStreamTest = ::testing::Test;
+
+TEST(AubShmStreamTest, givenMmioReadFailureWithoutOutputWhenReadingThenReturnZero) {
+    for (auto streamMode : {mode::tbxShm, mode::tbxShm3, mode::tbxShm4}) {
+        SCOPED_TRACE(streamMode);
+        TbxShmStream stream(streamMode);
+        auto socket = new ::testing::NiceMock<MockTbxSocketsImp>();
+        stream.socket = socket;
+
+        EXPECT_CALL(*socket, readMMIO(0x1234, _)).WillOnce(::testing::DoAll(::testing::SetArgPointee<1>(0xA5A55A5Au), ::testing::Return(true)));
+        EXPECT_EQ(0xA5A55A5Au, stream.readMMIO(0x1234));
+
+        EXPECT_CALL(*socket, readMMIO(0x1234, _)).WillOnce(::testing::Return(false));
+        EXPECT_EQ(0u, stream.readMMIO(0x1234));
+    }
+}
+
+TEST(AubShmStreamTest, givenMaskedMmioWriteWhenReadingThroughStreamThenPreserveUnmaskedBits) {
+    struct MockWriteMmioSocket : public MockTbxSocketsImp {
+        MOCK_METHOD2(writeMMIO, bool(uint32_t offset, uint32_t value));
+    };
+
+    for (auto streamMode : {mode::tbxShm, mode::tbxShm3, mode::tbxShm4}) {
+        MockReadMMIOTbxShmStream stream(streamMode);
+        auto socket = new ::testing::NiceMock<MockWriteMmioSocket>();
+        stream.socket = socket;
+
+        EXPECT_CALL(stream, readMMIO(0x1234)).WillOnce(::testing::Return(0xA5A55A5A));
+        EXPECT_CALL(*socket, readMMIO(_, _)).Times(0);
+        EXPECT_CALL(*socket, writeMMIO(0x1234, 0xA5A55ADA)).WillOnce(::testing::Return(true));
+        stream.writeMMIO(0x1234, 0x80, 0x80);
+
+        EXPECT_CALL(*socket, writeMMIO(0x1234, 0x12345678)).WillOnce(::testing::Return(true));
+        stream.writeMMIO(0x1234, 0x12345678);
+    }
+}
+
 TEST(AubShmStreamTest, writeContiguousPagesInSHMModeWithCorrectValuesThenTranslateCallIsExpected) {
     MockTbxShmStream stream(mode::tbxShm);
     uint64_t inVal = 1977;
