@@ -281,7 +281,9 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
             pageSize);
 
         ringTail = 0;
+        ggttLock.unlock();
         pollForCompletion();
+        ggttLock.lock();
     }
 
     contextFenceValue++;

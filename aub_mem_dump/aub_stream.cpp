@@ -20,13 +20,19 @@ namespace aub_stream {
 
 void AubStream::gttMemoryPoll(GGTT *ggtt, uint64_t gfxAddress, uint32_t value, uint32_t compareMode) {
     PageTableWalker pageWalker;
-    pageWalker.walkMemory(ggtt, gfxAddress, sizeof(value), PhysicalAddressAllocator::mainBank, ggtt->getPageSize(), PageTableWalker::WalkMode::Expect, nullptr);
+    {
+        auto lock = ggtt->obtainUniqueLock();
+        pageWalker.walkMemory(ggtt, gfxAddress, sizeof(value), PhysicalAddressAllocator::mainBank, ggtt->getPageSize(), PageTableWalker::WalkMode::Expect, nullptr);
+    }
     memoryPoll(pageWalker.entries, value, compareMode);
 }
 
 void AubStream::expectMemory(GGTT *ggtt, uint64_t gfxAddress, const void *memory, size_t size, uint32_t compareOperation) {
     PageTableWalker pageWalker;
-    pageWalker.walkMemory(ggtt, gfxAddress, size, PhysicalAddressAllocator::mainBank, ggtt->getPageSize(), PageTableWalker::WalkMode::Expect, nullptr);
+    {
+        auto lock = ggtt->obtainUniqueLock();
+        pageWalker.walkMemory(ggtt, gfxAddress, size, PhysicalAddressAllocator::mainBank, ggtt->getPageSize(), PageTableWalker::WalkMode::Expect, nullptr);
+    }
     expectMemoryTable(memory, size, pageWalker.entries, compareOperation);
 }
 
@@ -45,8 +51,10 @@ void AubStream::readMemory(PageTable *ppgtt, uint64_t gfxAddress, void *memory, 
 
 void AubStream::readMemory(GGTT *ggtt, uint64_t gfxAddress, void *memory, size_t size, uint32_t memoryBanks, size_t pageSize) {
     PageTableWalker pageWalker;
-
-    pageWalker.walkMemory(ggtt, gfxAddress, size, memoryBanks, pageSize, PageTableWalker::WalkMode::Expect, nullptr);
+    {
+        auto lock = ggtt->obtainUniqueLock();
+        pageWalker.walkMemory(ggtt, gfxAddress, size, memoryBanks, pageSize, PageTableWalker::WalkMode::Expect, nullptr);
+    }
     readDiscontiguousPages(memory, size, pageWalker.entries);
 }
 
