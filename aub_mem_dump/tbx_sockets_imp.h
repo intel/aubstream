@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -8,6 +8,7 @@
 #pragma once
 #include "tbx_sockets.h"
 #include <iostream>
+#include <atomic>
 #include <mutex>
 
 #ifdef _WIN32
@@ -55,16 +56,14 @@ class TbxSocketsImp : public TbxSockets {
     bool sendWriteData(const void *buffer, size_t sizeInBytes);
     bool getResponseData(void *buffer, size_t sizeInBytes);
 
-    inline uint32_t getNextTransID() { return transID++; }
-
     void logErrorInfo(const char *tag);
 
-    uint32_t transID = 0;
+    std::atomic<uint32_t> transID{0};
 
     bool frontdoorMode = false;
     uint64_t lmembar = 0;
 
-    bool inErrorState = false;
+    std::atomic<bool> inErrorState{false};
     std::mutex socket_mutex{};
 
     bool throwOnError = false;
