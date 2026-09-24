@@ -10,16 +10,10 @@
 #include "command_streamer_helper.h"
 #include "gpu.h"
 #include "hardware_context_imp.h"
+#include "misc_helpers.h"
 #include "page_table.h"
 
 namespace aub_stream {
-
-template <typename T>
-inline T ptrOffset(T ptrBefore, size_t offset) {
-    auto addrBefore = (uintptr_t)ptrBefore;
-    auto addrAfter = addrBefore + offset;
-    return (T)addrAfter;
-}
 
 bool CommandStreamerHelper::isMemorySupported(uint32_t memoryBank, uint32_t alignment) const {
     assert(gpu);

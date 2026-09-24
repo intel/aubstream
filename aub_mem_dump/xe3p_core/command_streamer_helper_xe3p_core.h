@@ -8,15 +8,9 @@
 #pragma once
 #include "aub_mem_dump/xe_core/command_streamer_helper_xe_core.h"
 #include "aub_mem_dump/gpu.h"
+#include "aub_mem_dump/misc_helpers.h"
 #include "aub_mem_dump/settings.h"
 #include <utility>
-
-template <typename T>
-inline T ptrOffset(T ptrBefore, size_t offset) {
-    auto addrBefore = (uintptr_t)ptrBefore;
-    auto addrAfter = addrBefore + offset;
-    return (T)addrAfter;
-}
 
 namespace aub_stream {
 

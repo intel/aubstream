@@ -8,6 +8,7 @@
 #include "tbx_stream.h"
 #include "tbx_sockets.h"
 #include "options.h"
+#include "aub_mem_dump/misc_helpers.h"
 #include "aub_mem_dump/settings.h"
 #include "aubstream/hint_values.h"
 
@@ -53,9 +54,25 @@ void TbxStream::readContiguousPages(void *memory, size_t size, uint64_t physAddr
 }
 
 void TbxStream::readDiscontiguousPages(void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable) {
-    for (auto &entry : writeInfoTable) {
-        socket->readMemory(entry.physicalAddress, memory, entry.size, entry.isLocalMemory);
-        memory = entry.size + (uint8_t *)memory;
+    constexpr size_t maxReadSize = 2 * 1024 * 1024;
+
+    auto nextPage = writeInfoTable.cbegin();
+    const auto pagesEnd = writeInfoTable.cend();
+    while (nextPage != pagesEnd) {
+        const auto &firstPage = *nextPage;
+        ++nextPage;
+        size_t readSize = firstPage.size;
+        while (nextPage != pagesEnd &&
+               nextPage->isLocalMemory == firstPage.isLocalMemory &&
+               nextPage->memoryBank == firstPage.memoryBank &&
+               nextPage->physicalAddress >= firstPage.physicalAddress &&
+               nextPage->physicalAddress - firstPage.physicalAddress == readSize &&
+               readSize <= maxReadSize && nextPage->size <= maxReadSize - readSize) {
+            readSize += nextPage->size;
+            ++nextPage;
+        }
+        socket->readMemory(firstPage.physicalAddress, memory, readSize, firstPage.isLocalMemory);
+        memory = ptrOffset(memory, readSize);
     }
 }
 
