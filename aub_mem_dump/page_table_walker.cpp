@@ -6,11 +6,11 @@
  */
 
 #include "aub_mem_dump/page_table_walker.h"
+#include "aub_mem_dump/debug_helpers.h"
 #include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/memory_bank_helper.h"
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/settings.h"
-#include <cassert>
 #include <unordered_set>
 
 namespace aub_stream {
@@ -79,7 +79,7 @@ void PageTableWalker::walkMemory(GGTT *ggtt, uint64_t gfxAddress, size_t size, u
         auto index = ggtt->getIndex(gpuAddressAligned);
         auto child = ggtt->getChild(index);
         if (child == nullptr) {
-            assert(mode != WalkMode::Expect);
+            AUBSTREAM_DEBUG_ASSERT(mode != WalkMode::Expect);
             if (mode == WalkMode::Expect) {
                 break;
             }
@@ -137,7 +137,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     auto memoryBanks = allocationParams.memoryBanks;
     auto gfxAddress = allocationParams.gfxAddress;
 
-    assert(pageSize > 0);
+    AUBSTREAM_DEBUG_ASSERT(pageSize > 0);
 
     pageSize = adjustPageSizeForHardwareSupport(ppgtt->getGpu(), pageSize, memoryBanks);
 
@@ -229,7 +229,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             bool emitEntry = false;
 
             if (!child) {
-                assert(mode != WalkMode::Expect);
+                AUBSTREAM_DEBUG_ASSERT(mode != WalkMode::Expect);
                 if (mode == WalkMode::Expect) {
                     break;
                 }
@@ -304,7 +304,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                     // Group was PS64-complete but is no longer consecutive - clear PS64 on each leaf
                     for (uint32_t i = 0; i < 16; i++) {
                         PageTable *ci = parent->getChild(hwBase + i);
-                        assert(ci != nullptr);
+                        AUBSTREAM_DEBUG_ASSERT(ci != nullptr);
                         ci->setPs64(false);
                         ci->setPendingWrite(true);
                         pageWalkEntries[level].push_back({parent->getPhysicalAddress() + (hwBase + i) * sizeof(uint64_t),
@@ -356,10 +356,10 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
         if (pageSize == Page2MB::pageSize2MB) {
             pageSizeThisIteration = Page2MB::pageSize2MB;
         } else {
-            assert(pte);
+            AUBSTREAM_DEBUG_ASSERT(pte);
             pageSizeThisIteration = pte->getPageSize(); // NOLINT(clang-analyzer-core.CallAndMessage)
         }
-        assert(pageSizeThisIteration == 4096 || pageSizeThisIteration == 65536 || pageSizeThisIteration == Page2MB::pageSize2MB);
+        AUBSTREAM_DEBUG_ASSERT(pageSizeThisIteration == 4096 || pageSizeThisIteration == 65536 || pageSizeThisIteration == Page2MB::pageSize2MB);
 
         auto pageOffset = gfxAddress & (pageSizeThisIteration - 1);
         auto sizeThisIteration = static_cast<size_t>(pageSizeThisIteration - pageOffset);

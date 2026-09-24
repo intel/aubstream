@@ -9,6 +9,8 @@
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/page_table_pml5.h"
 #include "aub_mem_dump/page_table_walker.h"
+#include "aubstream/hint_values.h"
+#include "debug_assert_fixture.h"
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
 #include "test.h"
@@ -1225,4 +1227,71 @@ TEST_F(PageTableWalkerTestPml5Ps64, givenCommittedPs64GroupWhenDowngradedByDisca
 
     EXPECT_EQ(16u, writeWalker.pageWalkEntries[PageTableLevel::Pte].size());
     EXPECT_EQ(16u, writeWalker.pendingNodes[PageTableLevel::Pte].size());
+}
+
+struct PageTableWalkerDebugAssertTest : public DebugAssertFixture, public MockAubStreamFixture, public ::testing::Test {
+    void SetUp() override {
+        DebugAssertFixture::SetUp();
+        MockAubStreamFixture::SetUp();
+    }
+    void TearDown() override {
+        MockAubStreamFixture::TearDown();
+        DebugAssertFixture::TearDown();
+    }
+
+    PhysicalAddressAllocatorSimple allocator;
+};
+
+TEST_F(PageTableWalkerDebugAssertTest, givenDebugAssertsEnabledAndBreakHandledByDebuggerWhenReadingUnmappedGgttAddressThenBreakIsTriggeredOnlyInDebugBuildAndNoNodeCreated) {
+    globalSettings->EnableDebugAsserts.set(true);
+    mock_os_calls::breakHandledByDebugger = true;
+
+    GGTT ggtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+    const uint64_t gfxAddress = 0x1000;
+    const auto index = ggtt.getIndex(static_cast<uint32_t>(gfxAddress));
+
+    uint8_t buffer[4096] = {};
+    ::testing::internal::CaptureStderr();
+    stream.AubStream::readMemory(&ggtt, gfxAddress, buffer, sizeof(buffer), MEMORY_BANK_SYSTEM, 4096);
+    ::testing::internal::GetCapturedStderr();
+
+    EXPECT_EQ(expectedCallsWhenDebugAssertsCompiledIn, mock_os_calls::breakIntoDebuggerCalled);
+    EXPECT_EQ(0u, mock_os_calls::abortProcessCalled);
+    EXPECT_EQ(nullptr, ggtt.getChild(index));
+}
+
+TEST_F(PageTableWalkerDebugAssertTest, givenDebugAssertsEnabledAndBreakNotHandledByDebuggerWhenReadingUnmappedPpgttAddressThenProcessIsAbortedOnlyInDebugBuildAndNoNodeCreated) {
+    globalSettings->EnableDebugAsserts.set(true);
+    mock_os_calls::breakHandledByDebugger = false;
+
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+    const uint64_t gfxAddress = 0x5000;
+
+    uint8_t buffer[4096] = {};
+    ::testing::internal::CaptureStderr();
+    stream.AubStream::readMemory(&ppgtt, gfxAddress, buffer, sizeof(buffer), MEMORY_BANK_SYSTEM, 4096);
+    ::testing::internal::GetCapturedStderr();
+
+    EXPECT_EQ(expectedCallsWhenDebugAssertsCompiledIn, mock_os_calls::breakIntoDebuggerCalled);
+    EXPECT_EQ(expectedCallsWhenDebugAssertsCompiledIn, mock_os_calls::abortProcessCalled);
+    EXPECT_EQ(nullptr, ppgtt.getChild(ppgtt.getIndex(gfxAddress)));
+}
+
+TEST_F(PageTableWalkerDebugAssertTest, givenDebugAssertsDisabledWhenReadingUnmappedPpgttAddressThenFailureIsSkippedAndNoNodeCreated) {
+    globalSettings->EnableDebugAsserts.set(false);
+
+    PML4 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+    stream.writeMemory(&ppgtt, {0x5000, nullptr, 4096, MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, 4096});
+
+    const uint64_t gfxAddress = 0x40000000;
+    auto *pdp = ppgtt.getChild(ppgtt.getIndex(gfxAddress));
+    ASSERT_NE(nullptr, pdp);
+    ASSERT_EQ(nullptr, pdp->getChild(pdp->getIndex(gfxAddress)));
+
+    uint8_t buffer[4096] = {};
+    stream.AubStream::readMemory(&ppgtt, gfxAddress, buffer, sizeof(buffer), MEMORY_BANK_SYSTEM, 4096);
+
+    EXPECT_EQ(0u, mock_os_calls::breakIntoDebuggerCalled);
+    EXPECT_EQ(0u, mock_os_calls::abortProcessCalled);
+    EXPECT_EQ(nullptr, pdp->getChild(pdp->getIndex(gfxAddress)));
 }

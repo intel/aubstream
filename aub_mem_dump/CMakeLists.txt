@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022-2025 Intel Corporation
+# Copyright (C) 2022-2026 Intel Corporation
 #
 # SPDX-License-Identifier: MIT
 #
@@ -30,6 +30,8 @@ add_library(${PROJECT_NAME} STATIC
             ${CMAKE_CURRENT_SOURCE_DIR}/aub_shm_stream.h
             ${CMAKE_CURRENT_SOURCE_DIR}/command_streamer_helper.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/command_streamer_helper.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/debug_helpers.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/debug_helpers.h
             ${CMAKE_CURRENT_SOURCE_DIR}/family_mapper.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/family_mapper.h
             ${CMAKE_CURRENT_SOURCE_DIR}/gpu.cpp

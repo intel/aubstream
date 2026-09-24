@@ -12,3 +12,4 @@ DECLARE_SETTING_VARIABLE(int, LogLevel, 0, "Bitfield. 0: default - logs not prin
 DECLARE_SETTING_VARIABLE(int, IndirectRingState, -1, "Enable indirect ring state")
 DECLARE_SETTING_VARIABLE(bool, EnablePs64, true, "Enable set the PS64 bit for 16 consecutive 4KB pages")
 DECLARE_SETTING_VARIABLE(bool, AppTransientForUncompressedCachedPages, false, "Enables the App-Transient PAT attribute for uncompressed cached pages.")
+DECLARE_SETTING_VARIABLE(bool, EnableDebugAsserts, true, "Debug builds only. true: failed debug asserts break into attached debugger or abort. false: failed debug asserts are skipped")

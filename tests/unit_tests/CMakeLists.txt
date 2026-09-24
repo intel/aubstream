@@ -16,6 +16,8 @@ add_executable(${TARGET_NAME}
                ${CMAKE_CURRENT_SOURCE_DIR}/command_stream_helper_xe_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/command_stream_helper_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/command_stream_helper_tests.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/debug_assert_fixture.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/debug_helpers_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/stolen_memory_tests.cpp
                ${CMAKE_CURRENT_SOURCE_DIR}/test_align_helpers.cpp
