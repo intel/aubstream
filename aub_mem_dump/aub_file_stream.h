@@ -113,6 +113,7 @@ struct AubFileStream : public AubStream {
     }
 
     FileHandleWrapper fileHandle;
+    std::mutex streamMutex{};
     std::string fileName;
     friend AubTbxStream;
     friend AubShmStream;
@@ -125,6 +126,7 @@ struct AubFileStream : public AubStream {
     void reserveContiguousPages(const std::vector<uint64_t> &entries) override;
     void readDiscontiguousPages(void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable) override;
     void writeContiguousPages(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint) override;
+    void writeContiguousPagesUnlocked(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint);
     void writeDiscontiguousPages(const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, int hint) override;
     void writeDiscontiguousPages(const std::vector<PageEntryInfo> &writeInfoTable, int addressSpace, int hint) override;
     void memoryPoll(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode) override;

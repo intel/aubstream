@@ -36,6 +36,7 @@ void AubFileStream::addComment(const char *message) {
     size_t remaining = strlen(message) + 1;
     const char *cursor = message;
 
+    std::lock_guard<std::mutex> lock(streamMutex);
     do {
         const size_t chunkBytes = std::min(remaining, maxMessageBytesPerRecord);
 
@@ -87,6 +88,7 @@ void AubFileStream::declareContextForDumping(uint32_t handleDumpContext, PageTab
         cmd.PageDirPointer[3] = entry ? entry->getPhysicalAddress() : 0;
     }
 
+    std::lock_guard<std::mutex> lock(streamMutex);
     write((char *)&cmd, sizeof(cmd));
     fileHandle.flush();
 }
@@ -109,6 +111,7 @@ void AubFileStream::dumpBufferBIN(AubStream::PageTableType gttType, uint64_t gfx
     cmd.GttType = gttType;
     cmd.DirectoryHandle = handleDumpContext;
 
+    std::lock_guard<std::mutex> lock(streamMutex);
     write(reinterpret_cast<char *>(&cmd), sizeof(cmd));
     fileHandle.flush();
 }
@@ -155,6 +158,7 @@ void AubFileStream::dumpSurface(PageTableType gttType, const SurfaceInfo &surfac
     cmd.auxSurfaceTilingType = surfaceInfo.auxSurfaceTilingType;
     cmd.auxEncodingFormat = surfaceInfo.auxEncodingFormat;
 
+    std::lock_guard<std::mutex> lock(streamMutex);
     write(reinterpret_cast<char *>(&cmd), sizeof(cmd));
     fileHandle.flush();
 }
@@ -182,6 +186,7 @@ bool AubFileStream::init(int stepping, const GpuDescriptor &gpu) {
     }
     getHeaderStr(aubStreamCaller, header.commandLine);
 
+    std::lock_guard<std::mutex> lock(streamMutex);
     write(reinterpret_cast<char *>(&header), sizeof(header));
 
     if (tmpWriteBuffer.size() > 0) {
@@ -218,6 +223,8 @@ void getHeaderStr(uint32_t caller, char *header) {
 
 void AubFileStream::expectMemoryTable(const void *memory, size_t size, const std::vector<PageInfo> &entries, uint32_t compareOperation) {
     [[maybe_unused]] size_t sizeWritten = 0;
+
+    std::lock_guard<std::mutex> lock(streamMutex);
     for (auto &entry : entries) {
         CmdServicesMemTraceMemoryCompare cmd = {};
         cmd.setHeader();
@@ -267,6 +274,7 @@ void AubFileStream::reserveContiguousPages(const std::vector<uint64_t> &entries)
     cmd.setHeader();
     cmd.dwordCount = (sizeof(cmd) / sizeof(uint32_t)) - 1;
 
+    std::lock_guard<std::mutex> lock(streamMutex);
     for (auto &page : entries) {
         // If a 64KB page, reserve that region
         cmd.regionSize = 0x10000;
@@ -277,6 +285,11 @@ void AubFileStream::reserveContiguousPages(const std::vector<uint64_t> &entries)
 }
 
 void AubFileStream::writeContiguousPages(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint) {
+    std::lock_guard<std::mutex> lock(streamMutex);
+    writeContiguousPagesUnlocked(memory, size, physAddress, addressSpace, hint);
+}
+
+void AubFileStream::writeContiguousPagesUnlocked(const void *memory, size_t size, uint64_t physAddress, int addressSpace, int hint) {
     auto sizeMemoryWriteHeader = sizeof(CmdServicesMemTraceMemoryWrite) - sizeof(CmdServicesMemTraceMemoryWrite::data);
     auto maxDwordCount = static_cast<uint32_t>(std::numeric_limits<uint16_t>::max());
     auto maxChunkSize = static_cast<size_t>((maxDwordCount - (sizeMemoryWriteHeader / sizeof(uint32_t))) * sizeof(uint32_t));
@@ -326,10 +339,11 @@ void AubFileStream::writeDiscontiguousPages(const void *memory, size_t size, con
                            ? AddressSpaceValues::TraceLocal
                            : AddressSpaceValues::TraceNonlocal;
 
+    std::lock_guard<std::mutex> lock(streamMutex);
     if (writeInfoTable.size() == 1) {
         // Fall back to a simplified write if only one entry
         auto &entry = writeInfoTable[0];
-        writeContiguousPages(memory, size, entry.physicalAddress, addressSpace, hint);
+        writeContiguousPagesUnlocked(memory, size, entry.physicalAddress, addressSpace, hint);
     } else {
         CmdServicesMemTraceMemoryWriteDiscontiguous cmd = {};
         cmd.setHeader();
@@ -388,7 +402,7 @@ void AubFileStream::writeDiscontiguousPages(const void *memory, size_t size, con
             if (unalignedSize || unalignedAddress || differentAddressSpace || exceedsDiscontiguousPayloadLimit) {
                 flushDiscontiguousToken();
 
-                writeContiguousPages(
+                writeContiguousPagesUnlocked(
                     ptr,
                     writeInfo.size,
                     writeInfo.physicalAddress,
@@ -439,10 +453,12 @@ void AubFileStream::writeDiscontiguousPages(const void *memory, size_t size, con
 
 void AubFileStream::writeDiscontiguousPages(const std::vector<PageEntryInfo> &writeInfoTable, int addressSpace, int hint) {
     auto maxEntries = sizeof(CmdServicesMemTraceMemoryWriteDiscontiguous::Dword_2_To_190) / sizeof(CmdServicesMemTraceMemoryWriteDiscontiguous::Dword_2_To_190[0]);
+
+    std::lock_guard<std::mutex> lock(streamMutex);
     if (writeInfoTable.size() == 1) {
         // Fall back to a simplified write if only one entry
         auto &entry = writeInfoTable[0];
-        writeContiguousPages(&entry.tableEntry, sizeof(entry.tableEntry), entry.physicalAddress, addressSpace, hint);
+        writeContiguousPagesUnlocked(&entry.tableEntry, sizeof(entry.tableEntry), entry.physicalAddress, addressSpace, hint);
     } else {
         CmdServicesMemTraceMemoryWriteDiscontiguous cmd = {};
         cmd.setHeader();
@@ -526,6 +542,7 @@ void AubFileStream::writeMMIO(uint32_t offset, uint32_t value, uint32_t mask) {
     header.writeMaskHigh = 0x00000000;
     header.data[0] = value;
 
+    std::lock_guard<std::mutex> lock(streamMutex);
     write((char *)&header, sizeof(header));
     fileHandle.flush();
 }
@@ -543,6 +560,7 @@ void AubFileStream::registerPoll(uint32_t registerOffset, uint32_t mask, uint32_
     header.data[0] = desiredValue;
     header.dwordCount = (sizeof(header) / sizeof(uint32_t)) - 1;
 
+    std::lock_guard<std::mutex> lock(streamMutex);
     write((char *)&header, sizeof(header));
     fileHandle.flush();
 }
@@ -567,11 +585,13 @@ void AubFileStream::memoryPoll(const std::vector<PageInfo> &entries, uint32_t va
     header.pollMaskHigh = 0xFFFFFFFF;
     header.data[0] = value;
 
+    std::lock_guard<std::mutex> lock(streamMutex);
     write((char *)&header, sizeof(header));
     fileHandle.flush();
 }
 
 void AubFileStream::open(const char *name) {
+    std::lock_guard<std::mutex> lock(streamMutex);
     fileHandle.open(name, std::ofstream::binary);
     if (!fileHandle.isOpen()) {
         assert(false);
@@ -580,11 +600,13 @@ void AubFileStream::open(const char *name) {
 }
 
 void AubFileStream::close() {
+    std::lock_guard<std::mutex> lock(streamMutex);
     fileHandle.close();
     fileName.clear();
 }
 
 bool AubFileStream::isOpen() {
+    std::lock_guard<std::mutex> lock(streamMutex);
     return fileHandle.isOpen();
 }
 

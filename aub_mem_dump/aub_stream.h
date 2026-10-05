@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include <atomic>
 #include <cstdint>
 #include <vector>
 #include <algorithm>
@@ -90,8 +91,8 @@ struct AubStream {
     virtual void memoryPoll(const std::vector<PageInfo> &entries, uint32_t value, uint32_t compareMode) = 0;
 
     bool compareMemory(uint32_t readValue, uint32_t expectedValue, uint32_t compareOperation);
-    bool dumpBinSupported = false;
-    bool dumpSurfaceSupported = false;
+    std::atomic<bool> dumpBinSupported = false;
+    std::atomic<bool> dumpSurfaceSupported = false;
 };
 
 inline bool IsAnyTbxShmMode(uint32_t m) {
