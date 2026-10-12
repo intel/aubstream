@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <vector>
 #include <algorithm>
+#include <mutex>
 
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/page_table_walker.h"
@@ -70,6 +71,10 @@ struct AubStream {
     virtual uint32_t getStreamMode() const = 0;
     virtual bool arePageTableWritesFullyCommitted() const { return true; }
 
+    std::unique_lock<std::mutex> obtainPpgttLock() {
+        return std::unique_lock<std::mutex>(ppgttMutex);
+    }
+
     virtual ~AubStream() = default;
     AubStream() = default;
     AubStream(const AubStream &) = delete;
@@ -93,6 +98,7 @@ struct AubStream {
     bool compareMemory(uint32_t readValue, uint32_t expectedValue, uint32_t compareOperation);
     std::atomic<bool> dumpBinSupported = false;
     std::atomic<bool> dumpSurfaceSupported = false;
+    std::mutex ppgttMutex{};
 };
 
 inline bool IsAnyTbxShmMode(uint32_t m) {

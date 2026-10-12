@@ -363,6 +363,8 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
 }
 
 void HardwareContextImp::writeMemory2(AllocationParams allocationParams) {
+    auto lock = stream.obtainPpgttLock();
+
     allocationParams.pageSize = csTraits.getSupportedPageSize(allocationParams.memoryBanks, allocationParams.pageSize);
     stream.writeMemory(&ppgtt, allocationParams);
 }
@@ -372,6 +374,8 @@ void HardwareContextImp::writeMemory(uint64_t gfxAddress, const void *memory, si
 }
 
 void HardwareContextImp::freeMemory(uint64_t gfxAddress, size_t size) {
+    auto lock = stream.obtainPpgttLock();
+
     stream.freeMemory(&ppgtt,
                       gfxAddress,
                       size);

@@ -107,6 +107,8 @@ TEST(AubManagerImp, givenNullStreamModeWhenAubManagerIsCreatedThenAllMethodsThat
     PhysicalAllocationInfo physicalParams = {gfxAddress, sizeof(bytes), MEMORY_BANK_0, defaultPageSize};
     EXPECT_NO_THROW(aubManager.reservePhysicalMemory({gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_0, 0, defaultPageSize}, physicalParams));
     EXPECT_NO_THROW(aubManager.reserveOnlyPhysicalSpace({gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_0, 0, defaultPageSize}, physicalParams));
+    EXPECT_TRUE(aubManager.mapGpuVa(gfxAddress, sizeof(bytes), physicalParams));
+    EXPECT_TRUE(aubManager.mapGpuVa2(physicalParams.physicalAddress, {gfxAddress, bytes, sizeof(bytes), MEMORY_BANK_0, 0, defaultPageSize}));
 
     EXPECT_NO_THROW(aubManager.writeMMIO(0x1234, 0x5678));
     EXPECT_NO_THROW(aubManager.writePCICFG(0x1234, 0x5678));

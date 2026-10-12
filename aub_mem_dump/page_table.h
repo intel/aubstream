@@ -89,6 +89,7 @@ struct PageTable {
     }
 
     void setPhysicalAddress(uint64_t physicalAddressIn) {
+        assert(numLevels == 0 && "physical address of a page table root must not change");
         physicalAddress = physicalAddressIn;
     }
 

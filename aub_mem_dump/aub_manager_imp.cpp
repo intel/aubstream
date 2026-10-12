@@ -432,6 +432,7 @@ void AubManagerImp::writeMemory2(AllocationParams allocationParams) {
 
     AubStream *stream = getStream();
 
+    auto lock = stream->obtainPpgttLock();
     auto pageTableEntries = stream->writeMemory(ppgtts[0].get(), allocationParams);
 
     for (uint32_t i = 1; i < ppgtts.size(); i++) {
@@ -449,6 +450,7 @@ void AubManagerImp::writePageTableEntries(uint64_t gfxAddress, size_t size, uint
     pageSize = csTraits.getSupportedPageSize(memoryBanks, pageSize);
     AubStream *stream = getStream();
 
+    auto lock = stream->obtainPpgttLock();
     auto pageTableEntries = stream->writeMemory(ppgtts[0].get(), AllocationParams(gfxAddress, nullptr, size, memoryBanks, hint, pageSize));
 
     for (uint32_t i = 1; i < ppgtts.size(); i++) {
@@ -474,6 +476,7 @@ void AubManagerImp::freeMemory(uint64_t gfxAddress, size_t size) {
     }
     AubStream *stream = getStream();
 
+    auto lock = stream->obtainPpgttLock();
     for (auto &ppgtt : ppgtts) {
         stream->freeMemory(ppgtt.get(), gfxAddress, size);
     }
@@ -589,8 +592,12 @@ bool AubManagerImp::mapGpuVa(uint64_t gfxAddress, size_t size, const PhysicalAll
 }
 
 bool AubManagerImp::mapGpuVa2(uint64_t physicalAddress, AllocationParams params) {
+    if (streamMode == aub_stream::mode::null) {
+        return true;
+    }
     AubStream *stream = getStream();
 
+    auto lock = stream->obtainPpgttLock();
     for (auto &ppgtt : ppgtts) {
         stream->mapGpuVa(ppgtt.get(), params, physicalAddress);
     }
