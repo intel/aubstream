@@ -11,6 +11,7 @@
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table.h"
+#include "aub_mem_dump/page_table_walker.h"
 #include "aub_mem_dump/tbx_stream.h"
 #include "aubstream/aubstream.h"
 #include "aubstream/hardware_context.h"
@@ -900,7 +901,7 @@ TEST(AubManager, givenAubManagerMapsGpuVaEachPPGTTIsMapped) {
 
     uint64_t gfxAddr = 0x1000000;
     uint64_t size = 0x10000;
-    uint64_t physicalAddress = 0x8000;
+    uint64_t physicalAddress = 0x10000;
 
     PhysicalAllocationInfo physicalParams = {physicalAddress, size, MEMORY_BANK_0, defaultPageSize};
     AllocationParams allocationParams(gfxAddr, nullptr, size, MEMORY_BANK_0, 0, defaultPageSize);
@@ -932,6 +933,53 @@ TEST(AubManager, givenAubManagerMapsGpuVaEachPPGTTIsMapped) {
     }
 
     aubManager.mapGpuVa2(physicalAddress, allocationParams);
+}
+
+TEST(AubManager, givenExisting64KBPagesInOnePpgttWhenMapGpuVa2WithNonCongruentPhysicalAddressThenNoPpgttIsMappedAndFalseIsReturned) {
+    MockAubManager aubManager(createGpuFunc(), 2, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
+    aubManager.initialize();
+    MockAubFileStream *stream = new MockAubFileStream;
+    aubManager.streamAub.reset(stream);
+    ASSERT_EQ(2u, aubManager.ppgtts.size());
+
+    PageTableWalker setupWalker;
+    setupWalker.walkMemory(aubManager.ppgtts[1].get(), {0x210000, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    for (auto &ppgtt : aubManager.ppgtts) {
+        EXPECT_CALL(*stream, mapGpuVa(ppgtt.get(), _, _)).Times(0);
+    }
+
+    EXPECT_FALSE(aubManager.mapGpuVa2(0x254000, {0x21a000, nullptr, 4096, MEMORY_BANK_SYSTEM, 0, 4096}));
+}
+
+TEST(AubManager, givenThrowOnErrorEnabledAndExisting64KBPagesWhenMapGpuVa2WithNonCongruentPhysicalAddressThenExceptionIsThrown) {
+    MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile, {}, true);
+    aubManager.initialize();
+    MockAubFileStream *stream = new MockAubFileStream;
+    aubManager.streamAub.reset(stream);
+    ASSERT_EQ(1u, aubManager.ppgtts.size());
+
+    PageTableWalker setupWalker;
+    setupWalker.walkMemory(aubManager.ppgtts[0].get(), {0x210000, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    EXPECT_CALL(*stream, mapGpuVa(_, _, _)).Times(0);
+
+    EXPECT_THROW(aubManager.mapGpuVa2(0x254000, {0x21a000, nullptr, 4096, MEMORY_BANK_SYSTEM, 0, 4096}), std::runtime_error);
+}
+
+TEST(AubManager, givenExisting64KBPagesWhenMapGpuVa2WithCongruentPhysicalAddressThenEachPpgttIsMapped) {
+    MockAubManager aubManager(createGpuFunc(), 2, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
+    aubManager.initialize();
+    MockAubFileStream *stream = new MockAubFileStream;
+    aubManager.streamAub.reset(stream);
+
+    for (auto &ppgtt : aubManager.ppgtts) {
+        PageTableWalker setupWalker;
+        setupWalker.walkMemory(ppgtt.get(), {0x210000, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr);
+        EXPECT_CALL(*stream, mapGpuVa(ppgtt.get(), _, 0x25a000u)).Times(1);
+    }
+
+    EXPECT_TRUE(aubManager.mapGpuVa2(0x25a000, {0x21a000, nullptr, 4096, MEMORY_BANK_SYSTEM, 0, 4096}));
 }
 
 TEST(AubManager, givenAubManagerDoMMIOAndPCICFGOperations) {

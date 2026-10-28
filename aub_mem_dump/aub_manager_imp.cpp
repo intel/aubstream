@@ -16,6 +16,7 @@
 #include "aub_mem_dump/null_hardware_context.h"
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/page_table.h"
+#include "aub_mem_dump/page_table_walker.h"
 #include "aub_mem_dump/physical_address_allocator.h"
 #include "aub_mem_dump/tbx_shm_stream.h"
 #include "aub_mem_dump/tbx_stream.h"
@@ -29,6 +30,7 @@
 
 #include <cassert>
 #include <exception>
+#include <sstream>
 #include <stdexcept>
 
 namespace aub_stream {
@@ -598,6 +600,18 @@ bool AubManagerImp::mapGpuVa2(uint64_t physicalAddress, AllocationParams params)
     AubStream *stream = getStream();
 
     auto lock = stream->obtainPpgttLock();
+    for (auto &ppgtt : ppgtts) {
+        const auto conflict = PageTableWalker::findExplicitMappingConflict(ppgtt.get(), params, physicalAddress);
+        if (conflict) {
+            std::ostringstream message;
+            message << std::hex << std::showbase << "Cannot map physical address " << conflict->requestedPhysicalAddress
+                    << " at GPU address " << conflict->gpuAddress << ": with " << std::dec << conflict->pageSize
+                    << "-byte pages there the GPU would use physical address " << std::hex << conflict->gpuVisiblePhysicalAddress << ".";
+            PRINT_LOG_ERROR("%s\n", message.str().c_str());
+            throwErrorIfEnabled(message.str());
+            return false;
+        }
+    }
     for (auto &ppgtt : ppgtts) {
         stream->mapGpuVa(ppgtt.get(), params, physicalAddress);
     }

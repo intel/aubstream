@@ -17,13 +17,32 @@ namespace aub_stream {
 
 namespace {
 
-inline size_t adjustPageSizeForHardwareSupport(const Gpu &gpu, size_t pageSize, uint32_t memoryBanks) {
+inline size_t selectHardwareSupportedPageSize(const Gpu &gpu, size_t pageSize, uint32_t memoryBanks) {
     if (pageSize == Page2MB::pageSize2MB && !gpu.isMemorySupported(memoryBanks, static_cast<uint32_t>(pageSize))) {
-        PRINT_LOG_ERROR("Warning: 2MB page requested but hardware does not support it for memoryBanks 0x%x. Falling back to 64KB pages.\n",
-                        memoryBanks);
         return 65536;
     }
     return pageSize;
+}
+
+inline size_t adjustPageSizeForHardwareSupport(const Gpu &gpu, size_t pageSize, uint32_t memoryBanks) {
+    const size_t supportedPageSize = selectHardwareSupportedPageSize(gpu, pageSize, memoryBanks);
+    if (supportedPageSize != pageSize) {
+        PRINT_LOG_ERROR("Warning: 2MB page requested but hardware does not support it for memoryBanks 0x%x. Falling back to 64KB pages.\n",
+                        memoryBanks);
+    }
+    return supportedPageSize;
+}
+
+inline size_t getLeafPageSizeForExistingTables(PageTable *ppgtt, uint64_t gfxAddress, size_t requestedPageSize) {
+    PageTable *node = ppgtt;
+    for (int level = static_cast<int>(ppgtt->getNumLevels()) - 1; level > PageTableLevel::Pde; --level) {
+        node = node->getChild(node->getIndex(gfxAddress));
+        if (node == nullptr) {
+            return requestedPageSize;
+        }
+    }
+    const PageTable *leafTable = node->getChild(node->getIndex(gfxAddress));
+    return leafTable ? leafTable->getPageSize() : requestedPageSize;
 }
 
 inline bool hasExistingPageTableConflict(PageTable *child, int level, size_t pageSize) {
@@ -170,6 +189,10 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
     // Per-walk set to emit each pending node at most once; interior nodes are shared across pages
     std::unordered_set<PageTable *> emittedPending[5];
 
+    if (physicalAddress) {
+        *physicalAddress += gfxAddress & (allocationParams.pageSize - 1);
+    }
+
     while (size > 0) {
         // Reset per-iteration. Conflict fallback is scoped to a single PDE
         pageSize = requestedPageSize;
@@ -214,11 +237,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                 leafLevel = PageTableLevel::Pte;
             }
 
-            // Prior 64 KB fallback may have left physicalAddress unaligned
-            if (physicalAddress && level == leafLevel && pageSize == Page2MB::pageSize2MB &&
-                (*physicalAddress & (Page2MB::pageSize2MB - 1)) != 0) {
-                *physicalAddress = (*physicalAddress & ~(Page2MB::pageSize2MB - 1)) + Page2MB::pageSize2MB;
-            }
+            const uint64_t leafPhysicalAddress = physicalAddress ? *physicalAddress - (gfxAddress & (pageSize - 1)) : 0;
 
             // PS64: snapshot group state before this child is allocated/remapped
             const bool checkPs64 = ps64Applicable && level == PageTableLevel::Pte && pte != nullptr &&
@@ -246,7 +265,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                 } else {
                     // for child node use memory bank previously reserved
                     if (physicalAddress) {
-                        child = parent->allocateChild(ppgtt->getGpu(), pageSize, pageMemoryBank, allocationParams.additionalParams, *physicalAddress);
+                        child = parent->allocateChild(ppgtt->getGpu(), pageSize, pageMemoryBank, allocationParams.additionalParams, leafPhysicalAddress);
                     } else {
                         child = parent->allocateChild(ppgtt->getGpu(), pageSize, pageMemoryBank, allocationParams.additionalParams);
                     }
@@ -263,9 +282,9 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
             // When using PreReserved memory via explicit Map we want to override the PTEs for remapping cases
             if (physicalAddress && level == leafLevel) {
-                if (child->getPhysicalAddress() != *physicalAddress) {
+                if (child->getPhysicalAddress() != leafPhysicalAddress) {
                     // We need to remap here
-                    child->setPhysicalAddress(*physicalAddress);
+                    child->setPhysicalAddress(leafPhysicalAddress);
                     child->setPendingWrite(true);
                     emitEntry = true;
                 }
@@ -374,12 +393,7 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
         entries.push_back(writeInfo);
 
         if (physicalAddress) {
-            // 2 MB Pages consume a full 2MB-aligned physical page
-            if (pageSizeThisIteration == Page2MB::pageSize2MB) {
-                *physicalAddress = (*physicalAddress & ~(Page2MB::pageSize2MB - 1)) + Page2MB::pageSize2MB;
-            } else {
-                *physicalAddress += sizeThisIteration;
-            }
+            *physicalAddress += sizeThisIteration;
         }
         gfxAddress += sizeThisIteration;
         size -= sizeThisIteration;
@@ -392,6 +406,27 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
 void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos, uint64_t physicalAddress) {
     walkMemory(ppgtt, allocationParams, mode, pageInfos, std::make_optional(physicalAddress));
+}
+
+std::optional<ExplicitMappingConflict> PageTableWalker::findExplicitMappingConflict(PageTable *ppgtt, const AllocationParams &allocationParams, uint64_t physicalAddress) {
+    const size_t requestedPageSize = selectHardwareSupportedPageSize(ppgtt->getGpu(), allocationParams.pageSize, allocationParams.memoryBanks);
+    uint64_t gfxAddress = allocationParams.gfxAddress;
+    uint64_t physicalAddressAtGfxAddress = physicalAddress + (gfxAddress & (allocationParams.pageSize - 1));
+    size_t remainingSize = allocationParams.size;
+
+    while (remainingSize > 0) {
+        const size_t leafPageSize = getLeafPageSizeForExistingTables(ppgtt, gfxAddress, requestedPageSize);
+        const uint64_t pageOffsetMask = leafPageSize - 1;
+        const uint64_t pageOffset = gfxAddress & pageOffsetMask;
+        if ((physicalAddressAtGfxAddress & pageOffsetMask) != pageOffset) {
+            return ExplicitMappingConflict{gfxAddress, physicalAddressAtGfxAddress, leafPageSize, (physicalAddressAtGfxAddress & ~pageOffsetMask) | pageOffset};
+        }
+        const size_t sizeThisIteration = std::min(remainingSize, static_cast<size_t>(leafPageSize - pageOffset));
+        gfxAddress += sizeThisIteration;
+        physicalAddressAtGfxAddress += sizeThisIteration;
+        remainingSize -= sizeThisIteration;
+    }
+    return std::nullopt;
 }
 
 } // namespace aub_stream

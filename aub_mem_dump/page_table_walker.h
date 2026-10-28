@@ -19,6 +19,13 @@ struct PageEntryInfo {
     uint64_t tableEntry;
 };
 
+struct ExplicitMappingConflict {
+    uint64_t gpuAddress;
+    uint64_t requestedPhysicalAddress;
+    size_t pageSize;
+    uint64_t gpuVisiblePhysicalAddress;
+};
+
 // Per-write instance: all member vectors accumulate during walkMemory and are consumed once by writePageWalkEntries.
 class PageTableWalker {
   public:
@@ -36,6 +43,8 @@ class PageTableWalker {
     void walkMemory(GGTT *pageTable, uint64_t gfxAddress, size_t size, uint32_t memoryBanks, size_t pageSize, WalkMode mode, const std::vector<PageInfo> *pageInfos);
     void walkMemory(PageTable *pageTable, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos);
     void walkMemory(PageTable *pageTable, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos, uint64_t physicalAddress);
+
+    static std::optional<ExplicitMappingConflict> findExplicitMappingConflict(PageTable *ppgtt, const AllocationParams &allocationParams, uint64_t physicalAddress);
 
   protected:
     void walkMemory(PageTable *ppgtt, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos, std::optional<uint64_t> physicalAddress);

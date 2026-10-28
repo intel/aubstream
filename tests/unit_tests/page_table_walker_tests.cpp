@@ -12,6 +12,7 @@
 #include "aubstream/hint_values.h"
 #include "debug_assert_fixture.h"
 #include "mock_aub_stream.h"
+#include "page_table_helper.h"
 #include "test_defaults.h"
 #include "test.h"
 #include "gtest/gtest.h"
@@ -143,7 +144,7 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForLocalMem
     EXPECT_EQ(2u, pageWalker.entries.size());
 
     EXPECT_EQ(physicalAddress + (gfxAddress & (65536u - 1)), pageWalker.entries[0].physicalAddress);
-    EXPECT_EQ(physicalAddress + (65536u - (gfxAddress & (65536u - 1))), pageWalker.entries[1].physicalAddress);
+    EXPECT_EQ(physicalAddress + 65536u, pageWalker.entries[1].physicalAddress);
 }
 
 TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForSystem64KBMemoryThenPageTableWalkerHas64KBPagesAndCorrectPageWalkEntriesAndPageEntriesStoredWithPreReserved) {
@@ -164,7 +165,7 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForSystem64
     EXPECT_EQ(2u, pageWalker.entries.size());
 
     EXPECT_EQ(physicalAddress + (gfxAddress & (65536u - 1)), pageWalker.entries[0].physicalAddress);
-    EXPECT_EQ(physicalAddress + (65536u - (gfxAddress & (65536u - 1))), pageWalker.entries[1].physicalAddress);
+    EXPECT_EQ(physicalAddress + 65536u, pageWalker.entries[1].physicalAddress);
 }
 
 TEST_F(PageTableWalkerTest, givenCloneModeAndPPGTTWhenWalkingMemoryForSystem64KBMemoryThenPageTableWalkerHasNo64KBPagesAndPageWalkEntriesAndTwoPageEntriesStoredWithPreReserved) {
@@ -192,7 +193,7 @@ TEST_F(PageTableWalkerTest, givenCloneModeAndPPGTTWhenWalkingMemoryForSystem64KB
     EXPECT_EQ(2u, pageWalker.entries.size());
 
     EXPECT_EQ(physicalAddress + (gfxAddress & (65536u - 1)), pageWalker.entries[0].physicalAddress);
-    EXPECT_EQ(physicalAddress + (65536u - (gfxAddress & (65536u - 1))), pageWalker.entries[1].physicalAddress);
+    EXPECT_EQ(physicalAddress + 65536u, pageWalker.entries[1].physicalAddress);
 }
 
 TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForLocalMemoryForTheSameAddressTwiceReturnsTheSamePageWalkerSizes) {
@@ -215,7 +216,7 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryForLocalMem
     EXPECT_EQ(3u, pageWalker.entries.size());
 
     EXPECT_EQ(physicalAddress + (gfxAddress & (65536u - 1)), pageWalker.entries[0].physicalAddress);
-    EXPECT_EQ(physicalAddress + (65536u - (gfxAddress & (65536u - 1))), pageWalker.entries[1].physicalAddress);
+    EXPECT_EQ(physicalAddress + 65536u, pageWalker.entries[1].physicalAddress);
 
     PageTableWalker pageWalker2;
 
@@ -276,7 +277,7 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWhenWalkingMemoryWithNewPhys
     EXPECT_EQ(3u, pageWalker.entries.size());
 
     EXPECT_EQ(physicalAddress + (gfxAddress & (65536u - 1)), pageWalker.entries[0].physicalAddress);
-    EXPECT_EQ(physicalAddress + (65536u - (gfxAddress & (65536u - 1))), pageWalker.entries[1].physicalAddress);
+    EXPECT_EQ(physicalAddress + 65536u, pageWalker.entries[1].physicalAddress);
 
     auto pdp = ppgtt->getChild(0);
     ASSERT_NE(nullptr, pdp);
@@ -1294,4 +1295,110 @@ TEST_F(PageTableWalkerDebugAssertTest, givenDebugAssertsDisabledWhenReadingUnmap
     EXPECT_EQ(0u, mock_os_calls::breakIntoDebuggerCalled);
     EXPECT_EQ(0u, mock_os_calls::abortProcessCalled);
     EXPECT_EQ(nullptr, pdp->getChild(pdp->getIndex(gfxAddress)));
+}
+
+TEST_F(PageTableWalkerTest, givenExisting64KBPageTableWhenWalkingMemoryFor4KBPageWithCongruentExplicitPhysicalAddressThenLeafStoresAligned64KBBase) {
+    const uint64_t existingPagesAddress = 0x210000;
+    PageTableWalker setupWalker;
+    setupWalker.walkMemory(ppgtt.get(), {existingPagesAddress, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    const uint64_t physicalBase = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, 65536, 65536);
+    const uint64_t gfxAddress = 0x22a000;
+    const uint64_t physicalAddress = physicalBase + 0xa000;
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, 4096, MEMORY_BANK_SYSTEM, 0, 4096}, PageTableWalker::WalkMode::Reserve, nullptr, physicalAddress);
+
+    ASSERT_EQ(1u, pageWalker.entries.size());
+    EXPECT_EQ(physicalAddress, pageWalker.entries[0].physicalAddress);
+    EXPECT_EQ(4096u, pageWalker.entries[0].size);
+    EXPECT_EQ(physicalBase, PageTableHelper::getPhysicalAddress(ppgtt.get(), gfxAddress));
+}
+
+TEST_F(PageTableWalkerTest, givenGfxAddressUnalignedTo64KBWhenWalkingMemoryWithExplicitPhysicalAddressThenEachLeafStoresConsecutiveAlignedBase) {
+    const uint64_t gfxAddress = 0x408000;
+    const uint64_t physicalAddress = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, 2 * 65536, 65536);
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr, physicalAddress);
+
+    ASSERT_EQ(2u, pageWalker.entries.size());
+    EXPECT_EQ(physicalAddress + 0x8000, pageWalker.entries[0].physicalAddress);
+    EXPECT_EQ(physicalAddress + 65536, pageWalker.entries[1].physicalAddress);
+    EXPECT_EQ(physicalAddress, PageTableHelper::getPhysicalAddress(ppgtt.get(), 0x400000));
+    EXPECT_EQ(physicalAddress + 65536, PageTableHelper::getPhysicalAddress(ppgtt.get(), 0x410000));
+}
+
+TEST_F(PageTableWalkerTest, givenNoPageTablesWhenFindingExplicitMappingConflictForAlignedPhysicalAddressThenNoConflictIsReturned) {
+    const uint64_t physicalAddress = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, 65536, 65536);
+
+    EXPECT_FALSE(PageTableWalker::findExplicitMappingConflict(ppgtt.get(), {0x10000, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, physicalAddress).has_value());
+    EXPECT_FALSE(PageTableWalker::findExplicitMappingConflict(ppgtt.get(), {0x10000, nullptr, 0, MEMORY_BANK_SYSTEM, 0, 65536}, physicalAddress + 0x1000).has_value());
+}
+
+TEST_F(PageTableWalkerTest, givenNoPageTablesWhenFindingExplicitMappingConflictForPhysicalAddressUnalignedToRequestedPageSizeThenConflictIsReturned) {
+    const uint64_t physicalAddress = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, 65536, 65536) + 0x1000;
+
+    auto conflict = PageTableWalker::findExplicitMappingConflict(ppgtt.get(), {0x10000, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, physicalAddress);
+
+    ASSERT_TRUE(conflict.has_value());
+    EXPECT_EQ(0x10000u, conflict->gpuAddress);
+    EXPECT_EQ(physicalAddress, conflict->requestedPhysicalAddress);
+    EXPECT_EQ(65536u, conflict->pageSize);
+    EXPECT_EQ(physicalAddress - 0x1000, conflict->gpuVisiblePhysicalAddress);
+}
+
+TEST_F(PageTableWalkerTest, givenExisting64KBPageTableWhenFindingExplicitMappingConflictFor4KBPageThenConflictIsReturnedOnlyForNonCongruentPhysicalAddress) {
+    PageTableWalker setupWalker;
+    setupWalker.walkMemory(ppgtt.get(), {0x210000, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    const uint64_t physicalBase = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, 65536, 65536);
+    const uint64_t gfxAddress = 0x21a000;
+    const uint64_t nonCongruentPhysicalAddress = physicalBase + 0x4000;
+
+    auto conflict = PageTableWalker::findExplicitMappingConflict(ppgtt.get(), {gfxAddress, nullptr, 4096, MEMORY_BANK_SYSTEM, 0, 4096}, nonCongruentPhysicalAddress);
+
+    ASSERT_TRUE(conflict.has_value());
+    EXPECT_EQ(gfxAddress, conflict->gpuAddress);
+    EXPECT_EQ(nonCongruentPhysicalAddress, conflict->requestedPhysicalAddress);
+    EXPECT_EQ(65536u, conflict->pageSize);
+    EXPECT_EQ(physicalBase + 0xa000, conflict->gpuVisiblePhysicalAddress);
+
+    EXPECT_FALSE(PageTableWalker::findExplicitMappingConflict(ppgtt.get(), {gfxAddress, nullptr, 4096, MEMORY_BANK_SYSTEM, 0, 4096}, physicalBase + 0xa000).has_value());
+}
+
+TEST_F(PageTableWalkerTest, givenRangeCrossingInto64KBPageTableWhenFindingExplicitMappingConflictThenConflictIsReportedAtFirstNonCongruentPage) {
+    PageTableWalker setupWalker;
+    setupWalker.walkMemory(ppgtt.get(), {0x210000, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    const uint64_t physicalBase = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, 65536, 65536);
+    const uint64_t physicalAddress = physicalBase + 0x1000;
+
+    auto conflict = PageTableWalker::findExplicitMappingConflict(ppgtt.get(), {0x1ff000, nullptr, 0x2000, MEMORY_BANK_SYSTEM, 0, 4096}, physicalAddress);
+
+    ASSERT_TRUE(conflict.has_value());
+    EXPECT_EQ(0x200000u, conflict->gpuAddress);
+    EXPECT_EQ(physicalBase + 0x2000, conflict->requestedPhysicalAddress);
+    EXPECT_EQ(65536u, conflict->pageSize);
+    EXPECT_EQ(physicalBase, conflict->gpuVisiblePhysicalAddress);
+}
+
+TEST_F(PageTableWalkerTest, givenExisting2MBPageWhenFindingExplicitMappingConflictFor64KBPageThenConflictIsReturnedOnlyForNonCongruentPhysicalAddress) {
+    TEST_REQUIRES(localMemorySupportedInTests);
+    TEST_REQUIRES(gpu->isMemorySupported(MEMORY_BANK_0, Page2MB::pageSize2MB));
+
+    PageTableWalker setupWalker;
+    setupWalker.walkMemory(ppgtt.get(), {0x600000, nullptr, Page2MB::pageSize2MB, MEMORY_BANK_0, 0, Page2MB::pageSize2MB}, PageTableWalker::WalkMode::Reserve, nullptr);
+
+    const uint64_t physicalBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, Page2MB::pageSize2MB, Page2MB::pageSize2MB);
+    const uint64_t gfxAddress = 0x610000;
+
+    auto conflict = PageTableWalker::findExplicitMappingConflict(ppgtt.get(), {gfxAddress, nullptr, 65536, MEMORY_BANK_0, 0, 65536}, physicalBase);
+
+    ASSERT_TRUE(conflict.has_value());
+    EXPECT_EQ(gfxAddress, conflict->gpuAddress);
+    EXPECT_EQ(Page2MB::pageSize2MB, conflict->pageSize);
+    EXPECT_EQ(physicalBase + 0x10000, conflict->gpuVisiblePhysicalAddress);
+
+    EXPECT_FALSE(PageTableWalker::findExplicitMappingConflict(ppgtt.get(), {gfxAddress, nullptr, 65536, MEMORY_BANK_0, 0, 65536}, physicalBase + 0x10000).has_value());
 }
