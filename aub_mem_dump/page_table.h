@@ -13,9 +13,31 @@
 #include <cassert>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <vector>
 #include <mutex>
 namespace aub_stream {
+
+struct SharedPhysicalBlock {
+    SharedPhysicalBlock(PhysicalAddressAllocator *allocator, uint32_t memoryBank, uint64_t physicalAddress)
+        : allocator(allocator), memoryBank(memoryBank), physicalAddress(physicalAddress) {}
+    ~SharedPhysicalBlock() {
+        allocator->freePhysicalMemory(memoryBank, physicalAddress);
+    }
+    SharedPhysicalBlock(const SharedPhysicalBlock &) = delete;
+    SharedPhysicalBlock &operator=(const SharedPhysicalBlock &) = delete;
+
+    PhysicalAddressAllocator *const allocator;
+    const uint32_t memoryBank;
+    const uint64_t physicalAddress;
+    bool reservationPending = true;
+};
+
+namespace Ps64 {
+constexpr size_t pageSize = 4096u;
+constexpr uint32_t groupEntries = 16u;
+constexpr size_t groupSize = groupEntries * pageSize;
+} // namespace Ps64
 
 namespace PageTableLevel {
 constexpr int Pte = 0;
@@ -138,6 +160,17 @@ struct PageTable {
     void setPs64(bool enable) { ps64 = enable; }
     bool isPs64() const { return ps64; }
 
+    void setSharedPhysicalBlock(std::shared_ptr<SharedPhysicalBlock> block) { sharedPhysicalBlock = std::move(block); }
+    const std::shared_ptr<SharedPhysicalBlock> &getSharedPhysicalBlock() const { return sharedPhysicalBlock; }
+
+    void releaseOwnedPhysicalMemory() {
+        assert(table.empty() && "only leaf entries own physical memory");
+        if (allocator) {
+            allocator->freePhysicalMemory(memoryBank, physicalAddress);
+            allocator = nullptr;
+        }
+    }
+
     void setPendingWrite(bool enable) { pendingWrite = enable; }
     bool isPendingWrite() const { return pendingWrite; }
 
@@ -150,6 +183,7 @@ struct PageTable {
     std::vector<PageTable *> table;
     bool ps64 = false;
     bool pendingWrite = false;
+    std::shared_ptr<SharedPhysicalBlock> sharedPhysicalBlock;
 
     // Only defined for PML5/PML4/PDP4/GGTT
     uint32_t numAddressBits = 0;

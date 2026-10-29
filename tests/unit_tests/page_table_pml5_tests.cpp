@@ -135,9 +135,8 @@ TEST_F(HardwareContextTestPML5, givenPs64GroupWhenPartiallyFreedThenPS64BitClear
     globalSettings = settings.get();
     globalSettings->EnablePs64.set(true);
 
-    const uint64_t physBase = allocator.reservePhysicalMemory(MEMORY_BANK_SYSTEM, 65536, 65536);
     PageTableWalker pageWalker;
-    pageWalker.walkMemory(&ppgtt, {0x10000, nullptr, 5 * 16 * 4096, MEMORY_BANK_SYSTEM, 0, 4096}, PageTableWalker::WalkMode::Reserve, nullptr, physBase);
+    pageWalker.walkMemory(&ppgtt, {0x10000, nullptr, 5 * Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize}, PageTableWalker::WalkMode::Reserve, nullptr);
 
     const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
     EXPECT_TRUE(PageTableHelper::getEntry(&ppgtt, 0x10000) & ps64Mask);
@@ -170,4 +169,72 @@ TEST_F(HardwareContextTestPML5, givenPs64GroupWhenPartiallyFreedThenPS64BitClear
     for (int i = 64; i < 80; i++) {
         EXPECT_TRUE(PageTableHelper::getEntry(&ppgtt, 0x10000 + i * 4096) & ps64Mask);
     }
+}
+
+TEST_F(HardwareContextTestPML5, givenPs64GroupWhenFreedPartiallyThenBlockIsReleasedOnlyAfterLastEntryIsFreed) {
+    PhysicalAddressAllocatorSimple allocator(1, aub_stream::GB, true);
+    PML5 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    auto settings = std::make_unique<Settings>();
+    VariableBackup<Settings *> backup(&globalSettings);
+    globalSettings = settings.get();
+    globalSettings->EnablePs64.set(true);
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(&ppgtt, {0x10000, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize}, PageTableWalker::WalkMode::Reserve, nullptr);
+    ASSERT_EQ(1u, pageWalker.pages64KB.size());
+    const uint64_t groupBlock = pageWalker.pages64KB[0];
+
+    stream.freeMemory(&ppgtt, 0x10000, 8 * Ps64::pageSize);
+    EXPECT_NE(groupBlock, allocator.reservePhysicalMemory(MEMORY_BANK_SYSTEM, Ps64::groupSize, Ps64::groupSize));
+
+    stream.freeMemory(&ppgtt, 0x10000 + 8 * Ps64::pageSize, 8 * Ps64::pageSize);
+    EXPECT_EQ(groupBlock, allocator.reservePhysicalMemory(MEMORY_BANK_SYSTEM, Ps64::groupSize, Ps64::groupSize));
+}
+
+TEST_F(HardwareContextTestPML5, givenPs64GroupWithRemappedPageWhenRemainingPagesAreFreedThenBlockIsReleased) {
+    PhysicalAddressAllocatorSimple allocator(1, aub_stream::GB, true);
+    PML5 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+
+    auto settings = std::make_unique<Settings>();
+    VariableBackup<Settings *> backup(&globalSettings);
+    globalSettings = settings.get();
+    globalSettings->EnablePs64.set(true);
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(&ppgtt, {0x10000, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize}, PageTableWalker::WalkMode::Reserve, nullptr);
+    ASSERT_EQ(1u, pageWalker.pages64KB.size());
+    const uint64_t groupBlock = pageWalker.pages64KB[0];
+
+    const uint64_t remappedAddress = 0x10000 + 3 * Ps64::pageSize;
+    const uint64_t physOther = allocator.reservePhysicalMemory(MEMORY_BANK_SYSTEM, Ps64::pageSize, Ps64::pageSize);
+    PageTableWalker remapWalker;
+    remapWalker.walkMemory(&ppgtt, {remappedAddress, nullptr, Ps64::pageSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize}, PageTableWalker::WalkMode::Reserve, nullptr, physOther);
+
+    // Free every page except the remapped one: it no longer uses the block, so the block must be released
+    stream.freeMemory(&ppgtt, 0x10000, 3 * Ps64::pageSize);
+    stream.freeMemory(&ppgtt, remappedAddress + Ps64::pageSize, 12 * Ps64::pageSize);
+    EXPECT_EQ(physOther, PageTableHelper::getPhysicalAddress(&ppgtt, remappedAddress));
+    EXPECT_EQ(groupBlock, allocator.reservePhysicalMemory(MEMORY_BANK_SYSTEM, Ps64::groupSize, Ps64::groupSize));
+}
+
+TEST_F(HardwareContextTestPML5, givenOwnedPageWhenRemappedToCallerMemoryThenOwnedPageIsReleasedAndCallerMemoryIsNotFreedWithMapping) {
+    PhysicalAddressAllocatorSimple allocator(1, aub_stream::GB, true);
+    PML5 ppgtt(*gpu, &allocator, MEMORY_BANK_SYSTEM);
+    constexpr size_t pageSize = 4096u;
+    constexpr uint64_t gfxAddress = 0x10000;
+
+    // Two pages, so the PTE table survives freeing the remapped one and cannot be recycled by the allocator
+    PageTableWalker reserveWalker;
+    reserveWalker.walkMemory(&ppgtt, {gfxAddress, nullptr, 2 * pageSize, MEMORY_BANK_SYSTEM, 0, pageSize}, PageTableWalker::WalkMode::Reserve, nullptr);
+    const uint64_t ownedPage = PageTableHelper::getPhysicalAddress(&ppgtt, gfxAddress);
+
+    const uint64_t callerPage = allocator.reservePhysicalMemory(MEMORY_BANK_SYSTEM, pageSize, pageSize);
+    PageTableWalker remapWalker;
+    remapWalker.walkMemory(&ppgtt, {gfxAddress, nullptr, pageSize, MEMORY_BANK_SYSTEM, 0, pageSize}, PageTableWalker::WalkMode::Reserve, nullptr, callerPage);
+    EXPECT_EQ(callerPage, PageTableHelper::getPhysicalAddress(&ppgtt, gfxAddress));
+    EXPECT_EQ(ownedPage, allocator.reservePhysicalMemory(MEMORY_BANK_SYSTEM, pageSize, pageSize));
+
+    stream.freeMemory(&ppgtt, gfxAddress, pageSize);
+    EXPECT_NE(callerPage, allocator.reservePhysicalMemory(MEMORY_BANK_SYSTEM, pageSize, pageSize));
 }

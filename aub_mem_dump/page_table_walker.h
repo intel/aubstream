@@ -39,6 +39,7 @@ class PageTableWalker {
     std::vector<PageEntryInfo> pageWalkEntries[5];
     std::vector<PageTable *> pendingNodes[5];
     std::vector<uint64_t> pages64KB;
+    std::vector<SharedPhysicalBlock *> pendingBlocks;
 
     void walkMemory(GGTT *pageTable, uint64_t gfxAddress, size_t size, uint32_t memoryBanks, size_t pageSize, WalkMode mode, const std::vector<PageInfo> *pageInfos);
     void walkMemory(PageTable *pageTable, const AllocationParams &allocationParams, WalkMode mode, const std::vector<PageInfo> *pageInfos);

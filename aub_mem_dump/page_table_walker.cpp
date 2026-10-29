@@ -56,29 +56,79 @@ inline bool hasExistingPageTableConflict(PageTable *child, int level, size_t pag
     return false;
 }
 
-inline uint64_t ps64EntryFlags(const PageTable *entry) {
-    return (entry->getEntryValue() ^ entry->getPhysicalAddress()) & ~toBitValue(PpgttEntryBits::ps64Bit);
-}
-
-// Returns true when all 16 hardware PTE slots of the naturally-aligned 64KB group
-// starting at hwBase are occupied by children with consecutive physical addresses
-// and identical permission bits (PS64 spec: same perms, 64KB-aligned PA).
-inline bool isPs64GroupComplete(PageTable *parent, uint32_t hwBase) {
-    PageTable *c0 = parent->getChild(hwBase);
-    if (!c0)
-        return false;
-    const uint64_t base = c0->getPhysicalAddress();
-    if (base & 0xffff)
-        return false;
-    const uint64_t flags0 = ps64EntryFlags(c0);
-    for (uint32_t i = 1; i < 16; i++) {
-        PageTable *ci = parent->getChild(hwBase + i);
-        if (!ci || ci->getPhysicalAddress() != base + i * 4096)
-            return false; // must be consecutive physical addresses
-        if (ps64EntryFlags(ci) != flags0)
-            return false; // must have the same flags (e.g. permissions)
+inline bool isPs64GroupEmpty(PageTable *pte, uint32_t hwBase) {
+    for (uint32_t i = 0; i < Ps64::groupEntries; i++) {
+        if (pte->getChild(hwBase + i) != nullptr) {
+            return false;
+        }
     }
     return true;
+}
+
+// Backs a naturally-aligned 16-entry PTE group with one 64KB-aligned
+// physical block and marks every entry PS64. The entries share ownership
+// of the block, which stays pending reservation until it reaches the streams.
+inline void allocatePs64Group(PageTable *pte, uint32_t hwBase, uint32_t memoryBank, const AllocationParams::AdditionalParams &additionalAllocParams) {
+    auto allocator = pte->getPhysicalAddressAllocator();
+    const uint64_t base = allocator->reservePhysicalMemory(memoryBank, Ps64::groupSize, Ps64::groupSize);
+    AUBSTREAM_DEBUG_ASSERT((base & (Ps64::groupSize - 1)) == 0);
+    auto block = std::make_shared<SharedPhysicalBlock>(allocator, memoryBank, base);
+    for (uint32_t i = 0; i < Ps64::groupEntries; i++) {
+        auto entry = new PageTableMemory(pte->getGpu(), base + i * Ps64::pageSize, memoryBank, additionalAllocParams);
+        entry->setSharedPhysicalBlock(block);
+        entry->setPs64(true);
+        entry->setPendingWrite(true);
+        pte->setChild(hwBase + i, entry);
+    }
+}
+
+// A PS64 translation needs the reservation and all 16 entries of the group, so visiting one
+// pending entry emits every pending entry of its group, preceded by the outstanding reservation.
+inline void emitPendingPs64Group(PageTable *pte, uint32_t index, std::vector<PageEntryInfo> &pteEntries,
+                                 std::unordered_set<PageTable *> &emittedPending, std::vector<PageTable *> &pendingNodes,
+                                 std::vector<uint64_t> &pages64KB, std::vector<SharedPhysicalBlock *> &pendingBlocks) {
+    PageTable *visited = pte->getChild(index);
+    if (emittedPending.count(visited)) {
+        return;
+    }
+    const auto &block = visited->getSharedPhysicalBlock();
+    if (block && block->reservationPending) {
+        pages64KB.push_back(block->physicalAddress);
+        pendingBlocks.push_back(block.get());
+    }
+    const uint32_t hwBase = index & ~(Ps64::groupEntries - 1);
+    for (uint32_t i = hwBase; i < hwBase + Ps64::groupEntries; i++) {
+        PageTable *entry = pte->getChild(i);
+        if (entry == nullptr || !entry->isPs64() || !entry->isPendingWrite()) {
+            continue;
+        }
+        if (emittedPending.insert(entry).second) {
+            pendingNodes.push_back(entry);
+            pteEntries.push_back({pte->getPhysicalAddress() + i * sizeof(uint64_t), entry->getEntryValue()});
+        }
+    }
+}
+
+// A remapped entry no longer belongs to its contiguous block, so the whole group
+// loses PS64. Emits the other entries of the group - the caller emits the remapped one.
+inline void clearPs64Group(PageTable *pte, uint32_t index, std::vector<PageEntryInfo> &pteEntries,
+                           std::unordered_set<PageTable *> &emittedPending, std::vector<PageTable *> &pendingNodes) {
+    const uint32_t hwBase = index & ~(Ps64::groupEntries - 1);
+    for (uint32_t i = hwBase; i < hwBase + Ps64::groupEntries; i++) {
+        PageTable *entry = pte->getChild(i);
+        if (entry == nullptr || !entry->isPs64()) {
+            continue;
+        }
+        entry->setPs64(false);
+        entry->setPendingWrite(true);
+        if (i == index) {
+            continue;
+        }
+        pteEntries.push_back({pte->getPhysicalAddress() + i * sizeof(uint64_t), entry->getEntryValue()});
+        if (emittedPending.insert(entry).second) {
+            pendingNodes.push_back(entry);
+        }
+    }
 }
 
 } // namespace
@@ -239,12 +289,6 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
             const uint64_t leafPhysicalAddress = physicalAddress ? *physicalAddress - (gfxAddress & (pageSize - 1)) : 0;
 
-            // PS64: snapshot group state before this child is allocated/remapped
-            const bool checkPs64 = ps64Applicable && level == PageTableLevel::Pte && pte != nullptr &&
-                                   pte->getPageSize() == 4096;
-            const uint32_t hwBase = checkPs64 ? (index & ~0xfu) : 0;
-            const PageTable *c0 = checkPs64 ? parent->getChild(hwBase) : nullptr;
-            const bool wasPs64Group = c0 != nullptr && c0->isPs64() && isPs64GroupComplete(parent, hwBase);
             bool emitEntry = false;
 
             if (!child) {
@@ -252,7 +296,20 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                 if (mode == WalkMode::Expect) {
                     break;
                 }
-                if (level == leafLevel && clonePageInfo) {
+                // PS64 is planned, not detected: only a walk that maps a whole, still empty,
+                // 64KB-aligned VA window of 4KB system pages gets one fresh contiguous block.
+                // Caller-provided physical memory is not known to be reserved as one contiguous block,
+                // and cloned entries do not own the block they point to, so neither is promoted.
+                const uint32_t hwBase = index & ~(Ps64::groupEntries - 1);
+                const uint64_t pageStart = gfxAddress & ~static_cast<uint64_t>(Ps64::pageSize - 1);
+                const bool planPs64Group = ps64Applicable && mode == WalkMode::Reserve && !physicalAddress &&
+                                           !isLocalMemory && level == PageTableLevel::Pte && pte->getPageSize() == Ps64::pageSize &&
+                                           index == hwBase && pageStart + Ps64::groupSize <= gfxAddress + size &&
+                                           isPs64GroupEmpty(parent, hwBase);
+                if (planPs64Group) {
+                    allocatePs64Group(parent, hwBase, pageMemoryBank, allocationParams.additionalParams);
+                    child = parent->getChild(index);
+                } else if (level == leafLevel && clonePageInfo) {
                     const auto physicalAddressAligned = clonePageInfo->physicalAddress & ~(static_cast<uint64_t>(pageSize - 1));
                     if (pageSize == Page2MB::pageSize2MB) {
                         child = new Page2MB(ppgtt->getGpu(), physicalAddressAligned, clonePageInfo->memoryBank, allocationParams.additionalParams);
@@ -282,71 +339,24 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
 
             // When using PreReserved memory via explicit Map we want to override the PTEs for remapping cases
             if (physicalAddress && level == leafLevel) {
-                if (child->getPhysicalAddress() != leafPhysicalAddress) {
+                if (child->getPhysicalAddress() != leafPhysicalAddress || child->getMemoryBank() != pageMemoryBank) {
                     // We need to remap here
+                    if (child->isPs64()) {
+                        clearPs64Group(parent, index, pageWalkEntries[level], emittedPending[level], pendingNodes[level]);
+                    }
+                    // The remapped entry no longer points into its PS64 block, so it must not keep it alive
+                    child->setSharedPhysicalBlock(nullptr);
+                    child->releaseOwnedPhysicalMemory();
                     child->setPhysicalAddress(leafPhysicalAddress);
-                    child->setPendingWrite(true);
-                    emitEntry = true;
-                }
-                if (child->getMemoryBank() != pageMemoryBank) {
                     child->setMemoryBank(pageMemoryBank);
                     child->setPendingWrite(true);
                     emitEntry = true;
                 }
             }
 
-            if (checkPs64) {
-                if (isPs64GroupComplete(parent, hwBase)) {
-                    // Group is now complete - emit slots not yet written as PS64 or pending stream commit
-                    for (uint32_t i = 0; i < 16; i++) {
-                        PageTable *ci = parent->getChild(hwBase + i);
-                        bool isNewPs64 = !ci->isPs64();
-                        if (isNewPs64) {
-                            ci->setPs64(true);
-                            ci->setPendingWrite(true);
-                        }
-                        bool isNewPending = ci->isPendingWrite() && emittedPending[level].insert(ci).second;
-                        // isNewPs64=true with insert=false is intentional: a wasPs64Group downgrade in an
-                        // earlier iteration inserted ci into emittedPending (non-PS64 entry already emitted),
-                        // and this completion pass re-emits ci with the PS64 bit set. The stream receives
-                        // the updated value; the node is already tracked in pendingNodes for clearing.
-                        if (isNewPs64 || isNewPending) {
-                            pageWalkEntries[level].push_back({parent->getPhysicalAddress() + (hwBase + i) * sizeof(uint64_t),
-                                                              ci->getEntryValue()});
-                        }
-                        if (isNewPending) {
-                            pendingNodes[level].push_back(ci);
-                        }
-                    }
-                    emitEntry = false;
-                } else if (wasPs64Group) {
-                    // Group was PS64-complete but is no longer consecutive - clear PS64 on each leaf
-                    for (uint32_t i = 0; i < 16; i++) {
-                        PageTable *ci = parent->getChild(hwBase + i);
-                        AUBSTREAM_DEBUG_ASSERT(ci != nullptr);
-                        ci->setPs64(false);
-                        ci->setPendingWrite(true);
-                        pageWalkEntries[level].push_back({parent->getPhysicalAddress() + (hwBase + i) * sizeof(uint64_t),
-                                                          ci->getEntryValue()});
-                        if (emittedPending[level].insert(ci).second) {
-                            pendingNodes[level].push_back(ci);
-                        }
-                    }
-                    emitEntry = false;
-                } else {
-                    const uint32_t k = index - hwBase;
-                    const uint64_t expectedPhysBase = child->getPhysicalAddress() - static_cast<uint64_t>(k) * 4096;
-                    const bool willComplete = (expectedPhysBase & 0xffff) == 0 &&
-                                              size >= static_cast<size_t>(16 - k) * 4096 &&
-                                              (k == 0 || (c0 != nullptr &&
-                                                          c0->getPhysicalAddress() == expectedPhysBase &&
-                                                          ps64EntryFlags(c0) == ps64EntryFlags(child)));
-                    if (willComplete) {
-                        child->setPs64(true);
-                        child->setPendingWrite(true);
-                    }
-                    emitEntry = true;
-                }
+            if (level == PageTableLevel::Pte && child->isPs64() && child->isPendingWrite()) {
+                emitPendingPs64Group(parent, index, pageWalkEntries[level], emittedPending[level], pendingNodes[level], pages64KB, pendingBlocks);
+                emitEntry = false;
             } else {
                 emitEntry = emitEntry || physicalAddress.has_value();
                 if (child->isPendingWrite()) {
@@ -359,9 +369,6 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
             if (emitEntry) {
                 pageWalkEntries[level].push_back({parent->getPhysicalAddress() + index * sizeof(uint64_t),
                                                   child->getEntryValue()});
-                if (checkPs64 && child->isPendingWrite() && emittedPending[level].insert(child).second) {
-                    pendingNodes[level].push_back(child);
-                }
             }
             --level;
         }

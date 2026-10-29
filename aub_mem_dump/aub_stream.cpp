@@ -199,9 +199,9 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
                     assert(globalSettings->EnablePs64.get());
                     assert(ppgtt->getNumLevels() == 5);
 
-                    const uint32_t hwBase = index & ~0xfu;
+                    const uint32_t hwBase = index & ~(Ps64::groupEntries - 1);
                     // First PTE of the request: if start is not 64KB-aligned, the group is
-                    // brokeen from TLB perspective - correct slots before the free range start
+                    // broken from TLB perspective - correct slots before the free range start
                     if (gfxAddress == startAddress && !isStartAddress64KBAligned) {
                         for (uint32_t i = hwBase; i < index; i++) {
                             if (PageTable *ci = pte->getChild(i)) {
@@ -211,9 +211,9 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
                         }
                     }
                     // Last PTE of the request: if end is not 64KB-aligned, the group is
-                    // brokeen from TLB perspective - correct slots after the free range end
-                    if (size <= 4096 && !isEndAddress64KBAligned) {
-                        for (uint32_t i = index + 1; i < hwBase + 16; i++) {
+                    // broken from TLB perspective - correct slots after the free range end
+                    if (size <= Ps64::pageSize && !isEndAddress64KBAligned) {
+                        for (uint32_t i = index + 1; i < hwBase + Ps64::groupEntries; i++) {
                             if (PageTable *ci = pte->getChild(i)) {
                                 ci->setPs64(false);
                                 pageWalkEntries[PageTableLevel::Pte].push_back({pte->getPhysicalAddress() + i * sizeof(uint64_t), ci->getEntryValue()});
@@ -294,7 +294,7 @@ void AubStream::freeMemory(PageTable *ppgtt, uint64_t gfxAddress, size_t size) {
 void AubStream::writePages(const PageTableWalker &pageWalker, const void *memory, size_t size, int hint, bool pageTablesInLocalMemory,
                            uint32_t numAddressBits) {
     if (pageWalker.pages64KB.size() > 0) {
-        // For 64KB pages, we have to reserve those regions prior to the dumping the PTEntries to ensure we get 64KB pages.
+        // For 64KB pages, we have to reserve those regions prior to dumping the PTEntries to ensure we get 64KB pages.
         reserveContiguousPages(pageWalker.pages64KB);
     }
 
@@ -348,6 +348,9 @@ void AubStream::writePageWalkEntries(const PageTableWalker &pageWalker, bool pag
             for (auto *node : levelNodes) {
                 node->setPendingWrite(false);
             }
+        }
+        for (auto *block : pageWalker.pendingBlocks) {
+            block->reservationPending = false;
         }
     }
 }

@@ -16,6 +16,7 @@
 #include "test_defaults.h"
 #include "test.h"
 #include "gtest/gtest.h"
+#include <map>
 #include "variable_backup.h"
 
 using namespace aub_stream;
@@ -36,6 +37,8 @@ struct PageTableWalkerFixture : public ::testing::Test {
         for (const auto &levelNodes : walker.pendingNodes)
             for (auto *node : levelNodes)
                 node->setPendingWrite(false);
+        for (auto *block : walker.pendingBlocks)
+            block->reservationPending = false;
     }
 
     std::unique_ptr<PhysicalAddressAllocatorSimple> allocator;
@@ -822,289 +825,19 @@ TEST_F(PageTableWalkerTest, givenReserveModeAndPPGTTWithPreReservedPhysicalAddre
 
 using PageTableWalkerTestPml5Ps64 = PageTableWalkerFixture<PML5, 1>;
 
-TEST_F(PageTableWalkerTestPml5Ps64, givenPartialGroupWhenCompletedWithDifferentPermissionBitsThenPS64BitNotSet) {
-    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    // Map first 8 pages with local memory
-    PageTableWalker pageWalker1;
-    pageWalker1.walkMemory(ppgtt.get(), {0x10000, nullptr, 8 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase);
-
-    // Complete the group with system memory - same consecutive PAs, but localMemoryBit differs
-    PageTableWalker pageWalker2;
-    pageWalker2.walkMemory(ppgtt.get(), {0x18000, nullptr, 8 * 4096, MEMORY_BANK_SYSTEM, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase + 8 * 4096);
-
-    auto &pteEntries = pageWalker2.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(8u, pteEntries.size());
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
-    for (const auto &entry : pteEntries) {
-        EXPECT_FALSE(entry.tableEntry & ps64Mask);
-    }
-}
-
-TEST_F(PageTableWalkerTestPml5Ps64, givenFullGroupWhenPhysAddrIsNotAligned64KBThenPS64BitNotSet) {
-    const uint64_t alignedBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-    const uint64_t physBase = alignedBase + 4096; // guaranteed not 64KB aligned
-
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    PageTableWalker pageWalker;
-    pageWalker.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
-                          PageTableWalker::WalkMode::Reserve, nullptr, physBase);
-
-    auto &pteEntries = pageWalker.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(16u, pteEntries.size());
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
-    for (const auto &entry : pteEntries) {
-        EXPECT_FALSE(entry.tableEntry & ps64Mask);
-    }
-}
-
-TEST_F(PageTableWalkerTestPml5Ps64, givenFullGroupWhenGfxAddrIsNotAligned64KBThenPS64BitNotSet) {
-    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    PageTableWalker pageWalker;
-    pageWalker.walkMemory(ppgtt.get(), {0x11000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
-                          PageTableWalker::WalkMode::Reserve, nullptr, physBase);
-
-    auto &pteEntries = pageWalker.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(16u, pteEntries.size());
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
-    for (const auto &entry : pteEntries) {
-        EXPECT_FALSE(entry.tableEntry & ps64Mask);
-    }
-}
-
-TEST_F(PageTableWalkerTestPml5Ps64, givenAlignedPs64GroupWhenMappedThenPS64BitSetInAllPTEs) {
-    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    PageTableWalker pageWalker;
-    pageWalker.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
-                          PageTableWalker::WalkMode::Reserve, nullptr, physBase);
-
-    auto &pteEntries = pageWalker.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(16u, pteEntries.size());
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
-    for (size_t i = 0; i < pteEntries.size(); i++) {
-        EXPECT_TRUE(pteEntries[i].tableEntry & ps64Mask);
-    }
-}
-
-TEST_F(PageTableWalkerTestPml5Ps64, givenAlignedPs64GroupWhenRemappingUnalignedStartWithNonConsecutivePhysAddrThenPS64BitReset) {
-    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    PageTableWalker pageWalker1;
-    pageWalker1.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase);
-
-    const uint64_t physOther = allocator->reservePhysicalMemory(MEMORY_BANK_0, 4096, 4096);
-    PageTableWalker pageWalker2;
-    pageWalker2.walkMemory(ppgtt.get(), {0x13000, nullptr, 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physOther);
-
-    auto &pteEntries = pageWalker2.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(16u, pteEntries.size());
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
-    for (const auto &entry : pteEntries) {
-        EXPECT_FALSE(entry.tableEntry & ps64Mask);
-    }
-}
-
-TEST_F(PageTableWalkerTestPml5Ps64, givenAlignedPs64GroupWhenRemappingUnalignedEndWithNonConsecutivePhysAddrThenPS64BitReset) {
-    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    PageTableWalker pageWalker1;
-    pageWalker1.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase);
-
-    const uint64_t physOther = allocator->reservePhysicalMemory(MEMORY_BANK_0, 4096, 4096);
-    PageTableWalker pageWalker2;
-    pageWalker2.walkMemory(ppgtt.get(), {0x1e000, nullptr, 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physOther);
-
-    auto &pteEntries = pageWalker2.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(16u, pteEntries.size());
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
-    for (const auto &entry : pteEntries) {
-        EXPECT_FALSE(entry.tableEntry & ps64Mask);
-    }
-}
-
-TEST_F(PageTableWalkerTestPml5Ps64, givenPartialPs64GroupWhenCompletedFromUnalignedStartThenPS64BitSet) {
-    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    PageTableWalker pageWalker1;
-    pageWalker1.walkMemory(ppgtt.get(), {0x10000, nullptr, 13 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase);
-
-    PageTableWalker pageWalker2;
-    pageWalker2.walkMemory(ppgtt.get(), {0x1d000, nullptr, 3 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase + 13 * 4096);
-
-    auto &pteEntries = pageWalker2.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(16u, pteEntries.size());
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
-    for (size_t i = pteEntries.size() - 16; i < pteEntries.size(); i++) {
-        EXPECT_TRUE(pteEntries[i].tableEntry & ps64Mask);
-    }
-}
-
-TEST_F(PageTableWalkerTestPml5Ps64, givenPartialPs64GroupWhenCompletedAtUnalignedEndThenPS64BitSet) {
-    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    PageTableWalker pageWalker1;
-    pageWalker1.walkMemory(ppgtt.get(), {0x12000, nullptr, 14 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase + 2 * 4096);
-
-    PageTableWalker pageWalker2;
-    pageWalker2.walkMemory(ppgtt.get(), {0x10000, nullptr, 2 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase);
-
-    auto &pteEntries = pageWalker2.pageWalkEntries[PageTableLevel::Pte];
-    // Page 0: 1 PTE entry; page 1 completes the group: batch of 16
-    EXPECT_EQ(17u, pteEntries.size());
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
-    for (size_t i = pteEntries.size() - 16; i < pteEntries.size(); i++) {
-        EXPECT_TRUE(pteEntries[i].tableEntry & ps64Mask);
-    }
-}
-
-TEST_F(PageTableWalkerTestPml5Ps64, givenAlignedPs64GroupWhenRemappedToAnotherAlignedPhysAddrThenPS64BitSet) {
-    const uint64_t physBase1 = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-    const uint64_t physBase2 = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    PageTableWalker pageWalker1;
-    pageWalker1.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase1);
-
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
-    auto &pteEntries1 = pageWalker1.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(16u, pteEntries1.size());
-    for (const auto &entry : pteEntries1) {
-        EXPECT_TRUE(entry.tableEntry & ps64Mask);
-    }
-
-    PageTableWalker pageWalker2;
-    pageWalker2.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase2);
-
-    auto &pteEntries2 = pageWalker2.pageWalkEntries[PageTableLevel::Pte];
-    // wasPs64Group downgrade emits 16; willComplete re-maps slots 1..14 one by one (14 entries);
-    // isPs64GroupComplete re-emits slots 0 and 15 as PS64 (2 entries) = 32 total
-    EXPECT_EQ(32u, pteEntries2.size());
-    for (size_t i = pteEntries2.size() - 16; i < pteEntries2.size(); i++) {
-        EXPECT_TRUE(pteEntries2[i].tableEntry & ps64Mask);
-    }
-}
-
-TEST_F(PageTableWalkerTestPml5Ps64, givenPs64GroupWhenRemappedToSamePhysAddrThenNoPTEEntriesEmitted) {
-    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    PageTableWalker pageWalker1;
-    pageWalker1.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase);
-
-    simulateWritePageWalkEntries(pageWalker1);
-
-    PageTableWalker pageWalker2;
-    pageWalker2.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase);
-
-    // All 16 PTEs already have isPs64=true - isPs64GroupComplete branch skips all of them
-    EXPECT_EQ(0u, pageWalker2.pageWalkEntries[PageTableLevel::Pte].size());
-}
-
-TEST_F(PageTableWalkerTestPml5Ps64, givenPartialGroupWhenSlot0HasNonConsecutivePhysAddrThenPS64BitNotSet) {
-    const uint64_t physBase1 = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-    const uint64_t physBase2 = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    // Map PTE 0 with physBase1
-    PageTableWalker pageWalker1;
-    pageWalker1.walkMemory(ppgtt.get(), {0x10000, nullptr, 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase1);
-
-    // Map PTEs 1-15 starting at physBase2+4096: expectedPhysBase=physBase2 is 64KB-aligned and
-    // size is sufficient, but c0->PA=physBase1 != physBase2, so willComplete=false for all slots
-    PageTableWalker pageWalker2;
-    pageWalker2.walkMemory(ppgtt.get(), {0x11000, nullptr, 15 * 4096, MEMORY_BANK_0, 0, 4096},
-                           PageTableWalker::WalkMode::Reserve, nullptr, physBase2 + 4096);
-
-    auto &pteEntries = pageWalker2.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(15u, pteEntries.size());
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
-    for (const auto &entry : pteEntries) {
-        EXPECT_FALSE(entry.tableEntry & ps64Mask);
-    }
-}
-
 TEST_F(PageTableWalkerTestPml5Ps64, givenPs64SupportedWhenMappingWith64KBPageSizeThenPS64BitNotSet) {
-    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-
     auto settings = std::make_unique<Settings>();
     VariableBackup<Settings *> backup(&globalSettings);
     globalSettings = settings.get();
     globalSettings->EnablePs64.set(true);
 
+    // A whole, empty 64KB window of system memory without a caller address - only the page size keeps PS64 off
     PageTableWalker pageWalker;
-    pageWalker.walkMemory(ppgtt.get(), {0x10000, nullptr, 65536, MEMORY_BANK_0, 0, 65536},
-                          PageTableWalker::WalkMode::Reserve, nullptr, physBase);
+    pageWalker.walkMemory(ppgtt.get(), {0x10000, nullptr, 65536, MEMORY_BANK_SYSTEM, 0, 65536},
+                          PageTableWalker::WalkMode::Reserve, nullptr);
 
     auto &pteEntries = pageWalker.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(1u, pteEntries.size());
+    ASSERT_EQ(1u, pteEntries.size());
     const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
     EXPECT_FALSE(pteEntries[0].tableEntry & ps64Mask);
 }
@@ -1129,7 +862,7 @@ TEST_F(PageTableWalkerTestPml5Ps64, givenMultiplePagesInSameRegionWhenWalkingWit
     globalSettings = settings.get();
     globalSettings->EnablePs64.set(true);
 
-    // Two pages in the same region - PS64 group stays incomplete (only 2 of 16 slots filled)
+    // Two pages in the same region - too few to cover a 64KB window, so no PS64 group is planned
     const uint64_t gfxAddress = 0x1000;
     PageTableWalker pageWalker;
     pageWalker.walkMemory(ppgtt.get(), {gfxAddress, nullptr, 2 * 4096, MEMORY_BANK_0, 0, 4096},
@@ -1142,92 +875,299 @@ TEST_F(PageTableWalkerTestPml5Ps64, givenMultiplePagesInSameRegionWhenWalkingWit
     EXPECT_EQ(2u, pageWalker.pageWalkEntries[PageTableLevel::Pte].size());
 }
 
-TEST_F(PageTableWalkerTestPml5Ps64, givenPs64GroupPendingFromPriorWalkWhenSubsequentWalkThenAllGroupEntriesEmitted) {
-    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
+struct PageTableWalkerTestPml5PlannedPs64 : public PageTableWalkerFixture<PML5, 1> {
+    void SetUp() override {
+        PageTableWalkerFixture<PML5, 1>::SetUp();
+        settingsBackup = std::make_unique<VariableBackup<Settings *>>(&globalSettings);
+        globalSettings = settings.get();
+        globalSettings->EnablePs64.set(true);
+    }
 
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
+    void TearDown() override {
+        settingsBackup.reset();
+        PageTableWalkerFixture<PML5, 1>::TearDown();
+    }
 
-    // Reserve without commit - walker discarded, leaving pendingWrite=true on all nodes
+    static bool isPs64(const PageEntryInfo &entry) {
+        return entry.tableEntry & toBitValue(PpgttEntryBits::ps64Bit);
+    }
+
+    static uint64_t physicalAddress(const PageEntryInfo &entry) {
+        return entry.tableEntry & 0x000FFFFFFFFFF000ull;
+    }
+
+    PageTable *getLeaf(uint64_t gfxAddress) {
+        PageTable *entry = ppgtt.get();
+        for (uint32_t level = 0; entry != nullptr && level < ppgtt->getNumLevels(); level++) {
+            entry = entry->getChild(entry->getIndex(gfxAddress));
+        }
+        return entry;
+    }
+
+    static constexpr uint64_t groupAddress = 0x10000; // first 64KB-aligned VA window above 0
+
+    std::unique_ptr<Settings> settings = std::make_unique<Settings>();
+    std::unique_ptr<VariableBackup<Settings *>> settingsBackup;
+};
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenWalkCoveringAlignedWindowOfSystemPagesWhenReservingThenGroupIsBackedByOneReservedAligned64KBBlock) {
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                          PageTableWalker::WalkMode::Reserve, nullptr);
+
+    auto &pteEntries = pageWalker.pageWalkEntries[PageTableLevel::Pte];
+    ASSERT_EQ(Ps64::groupEntries, pteEntries.size());
+    const uint64_t base = physicalAddress(pteEntries[0]);
+    EXPECT_EQ(0u, base & (Ps64::groupSize - 1));
+    for (size_t i = 0; i < pteEntries.size(); i++) {
+        EXPECT_TRUE(isPs64(pteEntries[i]));
+        EXPECT_EQ(base + i * Ps64::pageSize, physicalAddress(pteEntries[i]));
+    }
+    ASSERT_EQ(1u, pageWalker.pages64KB.size());
+    EXPECT_EQ(base, pageWalker.pages64KB[0]);
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenWalkCoveringOnlyPartOfWindowWhenReservingThenOnlyFullyCoveredWindowIsPlanned) {
+    // The first window is entered one page in, the second one is covered completely
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {groupAddress + Ps64::pageSize, nullptr, 31 * Ps64::pageSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                          PageTableWalker::WalkMode::Reserve, nullptr);
+
+    auto &pteEntries = pageWalker.pageWalkEntries[PageTableLevel::Pte];
+    ASSERT_EQ(31u, pteEntries.size());
+    for (size_t i = 0; i < 15; i++) {
+        EXPECT_FALSE(isPs64(pteEntries[i]));
+    }
+    for (size_t i = 15; i < 31; i++) {
+        EXPECT_TRUE(isPs64(pteEntries[i]));
+    }
+    EXPECT_EQ(1u, pageWalker.pages64KB.size());
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenWalkEndingBeforeWindowEndWhenReservingThenPs64NotSetAndNothingReserved) {
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize - 1, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                          PageTableWalker::WalkMode::Reserve, nullptr);
+
+    for (const auto &entry : pageWalker.pageWalkEntries[PageTableLevel::Pte]) {
+        EXPECT_FALSE(isPs64(entry));
+    }
+    EXPECT_EQ(0u, pageWalker.pages64KB.size());
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenWindowWithAlreadyMappedPageWhenRemainingPagesAreReservedThenPs64NotSet) {
+    PageTableWalker firstWalker;
+    firstWalker.walkMemory(ppgtt.get(), {groupAddress + 4 * Ps64::pageSize, nullptr, Ps64::pageSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                           PageTableWalker::WalkMode::Reserve, nullptr);
+
+    PageTableWalker secondWalker;
+    secondWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                            PageTableWalker::WalkMode::Reserve, nullptr);
+
+    for (const auto &entry : secondWalker.pageWalkEntries[PageTableLevel::Pte]) {
+        EXPECT_FALSE(isPs64(entry));
+    }
+    EXPECT_EQ(0u, secondWalker.pages64KB.size());
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenExplicitPhysicalAddressWhenReservingAlignedWindowThenPs64NotSet) {
+    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, Ps64::groupSize, Ps64::groupSize);
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                          PageTableWalker::WalkMode::Reserve, nullptr, physBase);
+
+    auto &pteEntries = pageWalker.pageWalkEntries[PageTableLevel::Pte];
+    EXPECT_EQ(Ps64::groupEntries, pteEntries.size());
+    for (const auto &entry : pteEntries) {
+        EXPECT_FALSE(isPs64(entry));
+    }
+    EXPECT_EQ(0u, pageWalker.pages64KB.size());
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenPlannedGroupWhenWholeWindowIsRemappedToExplicitPhysicalAddressThenPs64IsClearedAndOldBlockIsReleased) {
     PageTableWalker reserveWalker;
-    reserveWalker.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
-                             PageTableWalker::WalkMode::Reserve, nullptr, physBase);
+    reserveWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                             PageTableWalker::WalkMode::Reserve, nullptr);
+    simulateWritePageWalkEntries(reserveWalker);
+    ASSERT_EQ(1u, reserveWalker.pages64KB.size());
+    const uint64_t plannedBlock = reserveWalker.pages64KB[0];
+
+    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, Ps64::groupSize, Ps64::groupSize);
+    PageTableWalker remapWalker;
+    remapWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                           PageTableWalker::WalkMode::Reserve, nullptr, physBase);
+
+    // Entries may be written more than once (group cleared, then remapped); the last write of each wins
+    std::map<uint64_t, uint64_t> lastWrite;
+    for (const auto &entry : remapWalker.pageWalkEntries[PageTableLevel::Pte]) {
+        lastWrite[entry.physicalAddress] = entry.tableEntry;
+    }
+    ASSERT_EQ(Ps64::groupEntries, lastWrite.size());
+    for (uint32_t i = 0; i < Ps64::groupEntries; i++) {
+        EXPECT_FALSE(getLeaf(groupAddress + i * Ps64::pageSize)->isPs64());
+        EXPECT_EQ(physBase + i * Ps64::pageSize, getLeaf(groupAddress + i * Ps64::pageSize)->getPhysicalAddress());
+    }
+    for (const auto &[address, value] : lastWrite) {
+        EXPECT_EQ(0u, value & toBitValue(PpgttEntryBits::ps64Bit));
+    }
+    EXPECT_EQ(0u, remapWalker.pages64KB.size());
+    EXPECT_EQ(plannedBlock, allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, Ps64::groupSize, Ps64::groupSize));
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenPlannedGroupWhenOnePageIsRemappedThenRemappedEntryReleasesItsReferenceToBlock) {
+    PageTableWalker reserveWalker;
+    reserveWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                             PageTableWalker::WalkMode::Reserve, nullptr);
+    const auto block = getLeaf(groupAddress)->getSharedPhysicalBlock();
+    ASSERT_NE(nullptr, block);
+    EXPECT_EQ(Ps64::groupEntries + 1, static_cast<uint32_t>(block.use_count()));
+
+    const uint64_t remappedAddress = groupAddress + 3 * Ps64::pageSize;
+    const uint64_t physOther = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, Ps64::pageSize, Ps64::pageSize);
+    PageTableWalker remapWalker;
+    remapWalker.walkMemory(ppgtt.get(), {remappedAddress, nullptr, Ps64::pageSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                           PageTableWalker::WalkMode::Reserve, nullptr, physOther);
+
+    EXPECT_EQ(nullptr, getLeaf(remappedAddress)->getSharedPhysicalBlock());
+    EXPECT_EQ(Ps64::groupEntries, static_cast<uint32_t>(block.use_count()));
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenLocalMemoryWhenReservingAlignedWindowThenPs64NotSet) {
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_0, 0, Ps64::pageSize},
+                          PageTableWalker::WalkMode::Reserve, nullptr);
+
+    for (const auto &entry : pageWalker.pageWalkEntries[PageTableLevel::Pte]) {
+        EXPECT_FALSE(isPs64(entry));
+    }
+    EXPECT_EQ(0u, pageWalker.pages64KB.size());
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenPs64DisabledWhenReservingAlignedWindowThenPs64NotSet) {
+    globalSettings->EnablePs64.set(false);
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                          PageTableWalker::WalkMode::Reserve, nullptr);
+
+    for (const auto &entry : pageWalker.pageWalkEntries[PageTableLevel::Pte]) {
+        EXPECT_FALSE(isPs64(entry));
+    }
+    EXPECT_EQ(0u, pageWalker.pages64KB.size());
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenPlannedGroupWhenOnePageIsRemappedWithExplicitPhysicalAddressThenPs64IsClearedInWholeGroup) {
+    PageTableWalker reserveWalker;
+    reserveWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                             PageTableWalker::WalkMode::Reserve, nullptr);
+    simulateWritePageWalkEntries(reserveWalker);
+
+    const uint64_t physOther = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, Ps64::pageSize, Ps64::pageSize);
+    PageTableWalker remapWalker;
+    remapWalker.walkMemory(ppgtt.get(), {groupAddress + 3 * Ps64::pageSize, nullptr, Ps64::pageSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                           PageTableWalker::WalkMode::Reserve, nullptr, physOther);
+
+    auto &pteEntries = remapWalker.pageWalkEntries[PageTableLevel::Pte];
+    EXPECT_EQ(Ps64::groupEntries, pteEntries.size());
+    for (const auto &entry : pteEntries) {
+        EXPECT_FALSE(isPs64(entry));
+    }
+    EXPECT_EQ(Ps64::groupEntries, remapWalker.pendingNodes[PageTableLevel::Pte].size());
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenPlannedGroupPendingFromDiscardedWalkWhenWalkedAgainThenReservationAndAllEntriesAreReplayed) {
+    PageTableWalker discardedWalker;
+    discardedWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                               PageTableWalker::WalkMode::Reserve, nullptr);
+    ASSERT_EQ(1u, discardedWalker.pages64KB.size());
+    const uint64_t plannedBlock = discardedWalker.pages64KB[0];
 
     PageTableWalker writeWalker;
-    writeWalker.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
+    writeWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
                            PageTableWalker::WalkMode::Reserve, nullptr);
 
     auto &pteEntries = writeWalker.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(16u, pteEntries.size());
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
+    EXPECT_EQ(Ps64::groupEntries, pteEntries.size());
     for (const auto &entry : pteEntries) {
-        EXPECT_TRUE(entry.tableEntry & ps64Mask);
+        EXPECT_TRUE(isPs64(entry));
     }
-    EXPECT_EQ(16u, writeWalker.pendingNodes[PageTableLevel::Pte].size());
+    EXPECT_EQ(Ps64::groupEntries, writeWalker.pendingNodes[PageTableLevel::Pte].size());
+    ASSERT_EQ(1u, writeWalker.pages64KB.size());
+    EXPECT_EQ(plannedBlock, writeWalker.pages64KB[0]);
 }
 
-TEST_F(PageTableWalkerTestPml5Ps64, givenPartialPs64GroupCommittedAt4KBWhenCompletedByReserveWalkThenSubsequentWalkEmitsAllGroupEntriesAsPs64) {
-    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenPlannedGroupPendingFromDiscardedWalkWhenOnePageIsWalkedThenReservationAndWholeGroupAreReplayed) {
+    PageTableWalker discardedWalker;
+    discardedWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                               PageTableWalker::WalkMode::Reserve, nullptr);
+    ASSERT_EQ(1u, discardedWalker.pages64KB.size());
+    const uint64_t plannedBlock = discardedWalker.pages64KB[0];
 
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    // Map first 13 pages as committed 4KB entries (isPs64=false, pendingWrite=false after commit)
-    PageTableWalker walker13;
-    walker13.walkMemory(ppgtt.get(), {0x10000, nullptr, 13 * 4096, MEMORY_BANK_0, 0, 4096},
-                        PageTableWalker::WalkMode::Reserve, nullptr, physBase);
-    simulateWritePageWalkEntries(walker13);
-
-    // Reserve walk adds the remaining 3 pages, completing the group; walker is discarded
-    PageTableWalker reserveWalker;
-    reserveWalker.walkMemory(ppgtt.get(), {0x1d000, nullptr, 3 * 4096, MEMORY_BANK_0, 0, 4096},
-                             PageTableWalker::WalkMode::Reserve, nullptr, physBase + 13 * 4096);
-
-    // Write walk must emit all 16 PTE entries with the PS64 bit set
     PageTableWalker writeWalker;
-    writeWalker.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
+    writeWalker.walkMemory(ppgtt.get(), {groupAddress + 5 * Ps64::pageSize, nullptr, Ps64::pageSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
                            PageTableWalker::WalkMode::Reserve, nullptr);
 
     auto &pteEntries = writeWalker.pageWalkEntries[PageTableLevel::Pte];
-    EXPECT_EQ(16u, pteEntries.size());
-    const uint64_t ps64Mask = toBitValue(PpgttEntryBits::ps64Bit);
-    for (const auto &entry : pteEntries) {
-        EXPECT_TRUE(entry.tableEntry & ps64Mask);
+    ASSERT_EQ(Ps64::groupEntries, pteEntries.size());
+    for (size_t i = 0; i < pteEntries.size(); i++) {
+        EXPECT_TRUE(isPs64(pteEntries[i]));
+        EXPECT_EQ(plannedBlock + i * Ps64::pageSize, physicalAddress(pteEntries[i]));
     }
+    EXPECT_EQ(Ps64::groupEntries, writeWalker.pendingNodes[PageTableLevel::Pte].size());
+    ASSERT_EQ(1u, writeWalker.pages64KB.size());
+    EXPECT_EQ(plannedBlock, writeWalker.pages64KB[0]);
+    ASSERT_EQ(1u, writeWalker.entries.size());
+    EXPECT_EQ(plannedBlock + 5 * Ps64::pageSize, writeWalker.entries[0].physicalAddress);
 }
 
-TEST_F(PageTableWalkerTestPml5Ps64, givenCommittedPs64GroupWhenDowngradedByDiscardedWalkThenSubsequentWalkEmitsAllPendingEntries) {
-    const uint64_t physBase1 = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
-    const uint64_t physBase2 = allocator->reservePhysicalMemory(MEMORY_BANK_0, 65536, 65536);
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenPlannedGroupWithCommittedReservationButPendingEntriesWhenWalkedThenEntriesAreReplayedWithoutReservation) {
+    PageTableWalker reserveWalker;
+    reserveWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                             PageTableWalker::WalkMode::Reserve, nullptr);
+    ASSERT_EQ(1u, reserveWalker.pendingBlocks.size());
+    reserveWalker.pendingBlocks[0]->reservationPending = false;
 
-    auto settings = std::make_unique<Settings>();
-    VariableBackup<Settings *> backup(&globalSettings);
-    globalSettings = settings.get();
-    globalSettings->EnablePs64.set(true);
-
-    // Commit a full PS64 group
-    PageTableWalker walker1;
-    walker1.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
-                       PageTableWalker::WalkMode::Reserve, nullptr, physBase1);
-    simulateWritePageWalkEntries(walker1);
-
-    // Downgrade walk: remap slot 0 to a non-consecutive address, breaking the group.
-    // Walker is discarded without commit - setPs64(false) mutations must remain pending.
-    PageTableWalker downgradedWalker;
-    downgradedWalker.walkMemory(ppgtt.get(), {0x10000, nullptr, 4096, MEMORY_BANK_0, 0, 4096},
-                                PageTableWalker::WalkMode::Reserve, nullptr, physBase2);
-
-    // Subsequent committed walk must re-emit exactly 16 entries and track all for cleanup
     PageTableWalker writeWalker;
-    writeWalker.walkMemory(ppgtt.get(), {0x10000, nullptr, 16 * 4096, MEMORY_BANK_0, 0, 4096},
+    writeWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::pageSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
                            PageTableWalker::WalkMode::Reserve, nullptr);
 
-    EXPECT_EQ(16u, writeWalker.pageWalkEntries[PageTableLevel::Pte].size());
-    EXPECT_EQ(16u, writeWalker.pendingNodes[PageTableLevel::Pte].size());
+    EXPECT_EQ(Ps64::groupEntries, writeWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(0u, writeWalker.pages64KB.size());
+    EXPECT_EQ(0u, writeWalker.pendingBlocks.size());
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenCommittedPlannedGroupWhenWalkedAgainThenNoPteEntriesEmitted) {
+    PageTableWalker reserveWalker;
+    reserveWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                             PageTableWalker::WalkMode::Reserve, nullptr);
+    simulateWritePageWalkEntries(reserveWalker);
+
+    PageTableWalker writeWalker;
+    writeWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                           PageTableWalker::WalkMode::Reserve, nullptr);
+
+    EXPECT_EQ(0u, writeWalker.pageWalkEntries[PageTableLevel::Pte].size());
+    EXPECT_EQ(0u, writeWalker.pages64KB.size());
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenPlannedGroupWhenClonedThenClonedEntriesUseSamePagesWithoutPs64) {
+    PageTableWalker reserveWalker;
+    reserveWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                             PageTableWalker::WalkMode::Reserve, nullptr);
+
+    PML5 clonedPpgtt(*gpu, allocator.get(), defaultMemoryBank);
+    PageTableWalker cloneWalker;
+    cloneWalker.walkMemory(&clonedPpgtt, {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                           PageTableWalker::WalkMode::Clone, &reserveWalker.entries);
+
+    auto &pteEntries = cloneWalker.pageWalkEntries[PageTableLevel::Pte];
+    ASSERT_EQ(Ps64::groupEntries, pteEntries.size());
+    for (size_t i = 0; i < pteEntries.size(); i++) {
+        EXPECT_FALSE(isPs64(pteEntries[i]));
+        EXPECT_EQ(reserveWalker.entries[i].physicalAddress, physicalAddress(pteEntries[i]));
+    }
+    EXPECT_EQ(0u, cloneWalker.pages64KB.size());
 }
 
 struct PageTableWalkerDebugAssertTest : public DebugAssertFixture, public MockAubStreamFixture, public ::testing::Test {

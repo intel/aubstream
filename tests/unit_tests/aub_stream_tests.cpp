@@ -10,6 +10,8 @@
 #include "aub_mem_dump/page_table_entry_bits.h"
 #include "aub_mem_dump/page_table_pml5.h"
 #include "aub_mem_dump/aub_tbx_stream.h"
+#include "aub_mem_dump/aub_shm_stream.h"
+#include "aub_mem_dump/settings.h"
 #include "aubstream/allocation_params.h"
 #include "mock_aub_stream.h"
 #include "test_defaults.h"
@@ -933,6 +935,115 @@ TEST_F(AubTbxStreamTest, givenPausedAubStreamWhenWriteMemoryThenPendingWriteReta
     EXPECT_FALSE(pdp->isPendingWrite());
     EXPECT_FALSE(pde->isPendingWrite());
     EXPECT_FALSE(pte->isPendingWrite());
+}
+
+// Records what a mocked AUB file stream receives, to check that a PS64 reservation precedes its PTEs.
+struct Ps64AubFileStreamRecorder {
+    explicit Ps64AubFileStreamRecorder(MockAubFileStream &aubFileStream) {
+        ON_CALL(aubFileStream, reserveContiguousPages(_)).WillByDefault([this](const std::vector<uint64_t> &entries) {
+            reservations.insert(reservations.end(), entries.begin(), entries.end());
+            ptesWrittenBeforeReservation += pteEntries.size();
+        });
+        ON_CALL(aubFileStream, writeDiscontiguousPages(::testing::An<const std::vector<PageEntryInfo> &>(), _, _)).WillByDefault([this](const std::vector<PageEntryInfo> &entries, int addressSpace, int hint) {
+            if (hint == DataTypeHintValues::TracePpgttLevel1) {
+                pteEntries.insert(pteEntries.end(), entries.begin(), entries.end());
+            }
+        });
+    }
+
+    void clear() {
+        reservations.clear();
+        pteEntries.clear();
+        ptesWrittenBeforeReservation = 0;
+    }
+
+    size_t countPs64Entries() const {
+        return std::count_if(pteEntries.begin(), pteEntries.end(), [](const PageEntryInfo &entry) {
+            return (entry.tableEntry & toBitValue(PpgttEntryBits::ps64Bit)) != 0;
+        });
+    }
+
+    std::vector<uint64_t> reservations;
+    std::vector<PageEntryInfo> pteEntries;
+    size_t ptesWrittenBeforeReservation = 0;
+};
+
+struct AubStreamPausedPs64Test : public MockAubStreamFixture, public ::testing::Test {
+    void SetUp() override {
+        MockAubStreamFixture::SetUp();
+        settingsBackup = std::make_unique<VariableBackup<Settings *>>(&globalSettings);
+        globalSettings = settings.get();
+        globalSettings->EnablePs64.set(true);
+    }
+
+    void TearDown() override {
+        settingsBackup.reset();
+        MockAubStreamFixture::TearDown();
+    }
+
+    void write(AubStream &stream, uint64_t gfxAddress, size_t size) {
+        stream.writeMemory(&ppgtt, {gfxAddress, bytes.data(), size, MEMORY_BANK_SYSTEM, DataTypeHintValues::TraceNotype, Ps64::pageSize});
+    }
+
+    static constexpr uint64_t groupAddress = 0x10000;
+
+    ::testing::NiceMock<MockAubFileStream> aubFileStream;
+    Ps64AubFileStreamRecorder recorder{aubFileStream};
+    PhysicalAddressAllocatorSimple allocator{1, aub_stream::GB, true};
+    PML5 ppgtt{*gpu, &allocator, MEMORY_BANK_SYSTEM};
+    std::vector<uint8_t> bytes = std::vector<uint8_t>(Ps64::groupSize);
+    std::unique_ptr<Settings> settings = std::make_unique<Settings>();
+    std::unique_ptr<VariableBackup<Settings *>> settingsBackup;
+};
+
+TEST_F(AubStreamPausedPs64Test, givenPs64GroupPlannedWhileAubFileIsPausedWhenOnePageIsWrittenAfterResumeThenAubGetsReservationBeforeWholeGroup) {
+    ::testing::NiceMock<MockTbxStream> tbxStream;
+    AubTbxStream aubTbxStream(aubFileStream, tbxStream);
+
+    aubTbxStream.pauseAubFileStream(true);
+    // TBX ignores reservations, so it may receive the one replayed for the AUB file again
+    EXPECT_CALL(tbxStream, reserveContiguousPages(::testing::SizeIs(1))).Times(::testing::AtLeast(1));
+    write(aubTbxStream, groupAddress, Ps64::groupSize);
+    EXPECT_TRUE(recorder.reservations.empty());
+    EXPECT_TRUE(recorder.pteEntries.empty());
+    const uint64_t block = PageTableHelper::getPhysicalAddress(&ppgtt, groupAddress);
+
+    aubTbxStream.pauseAubFileStream(false);
+    write(aubTbxStream, groupAddress + 5 * Ps64::pageSize, Ps64::pageSize);
+    EXPECT_EQ(std::vector<uint64_t>{block}, recorder.reservations);
+    EXPECT_EQ(0u, recorder.ptesWrittenBeforeReservation);
+    EXPECT_EQ(Ps64::groupEntries, recorder.pteEntries.size());
+    EXPECT_EQ(Ps64::groupEntries, recorder.countPs64Entries());
+
+    recorder.clear();
+    write(aubTbxStream, groupAddress, Ps64::groupSize);
+    EXPECT_TRUE(recorder.reservations.empty());
+    EXPECT_TRUE(recorder.pteEntries.empty());
+}
+
+TEST_F(AubStreamPausedPs64Test, givenPs64GroupPlannedWhileAubFileIsPausedWhenWholeWindowIsWrittenAfterResumeThenAubGetsReservationBeforeWholeGroup) {
+    ::testing::NiceMock<MockTbxShmStream> tbxShmStream(mode::aubFileAndShm);
+    AubShmStream aubShmStream(aubFileStream, tbxShmStream);
+
+    aubShmStream.pauseAubFileStream(true);
+    // TBX ignores reservations, so it may receive the one replayed for the AUB file again
+    EXPECT_CALL(tbxShmStream, reserveContiguousPages(::testing::SizeIs(1))).Times(::testing::AtLeast(1));
+    write(aubShmStream, groupAddress, Ps64::groupSize);
+    EXPECT_TRUE(recorder.reservations.empty());
+    EXPECT_TRUE(recorder.pteEntries.empty());
+    const uint64_t block = PageTableHelper::getPhysicalAddress(&ppgtt, groupAddress);
+
+    aubShmStream.pauseAubFileStream(false);
+    write(aubShmStream, groupAddress, Ps64::groupSize);
+    EXPECT_EQ(std::vector<uint64_t>{block}, recorder.reservations);
+    EXPECT_EQ(0u, recorder.ptesWrittenBeforeReservation);
+    EXPECT_EQ(Ps64::groupEntries, recorder.pteEntries.size());
+    EXPECT_EQ(Ps64::groupEntries, recorder.countPs64Entries());
+
+    recorder.clear();
+    write(aubShmStream, groupAddress, Ps64::groupSize);
+    EXPECT_TRUE(recorder.reservations.empty());
+    EXPECT_TRUE(recorder.pteEntries.empty());
 }
 
 using AubFileStreamMemoryPollTest = AubStreamTest;
