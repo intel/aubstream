@@ -217,6 +217,7 @@ TEST_F(CommandStreamerHelperTest, CheckRCSFlushCommands) {
 }
 
 TEST_F(CommandStreamerHelperTest, CheckBCSFlushCommands) {
+    TEST_REQUIRES(gpu->gfxCoreFamily <= CoreFamily::Xe3pCore);
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_BCS));
     auto &bcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_BCS);
     std::vector<uint32_t> testRingBuffer{};
