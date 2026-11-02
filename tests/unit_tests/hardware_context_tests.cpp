@@ -430,6 +430,44 @@ TEST_F(HardwareContextTest, givenGroupContextWhenSubmittingThenGroupAsSingleExec
     context2.submitBatchBuffer(0x100, false);
 }
 
+HWTEST_F(HardwareContextTest, givenGroupContextAndExeclistSubmitPortWhenSubmittingThenTrailingInvalidDescriptorsAreNotWritten, HwMatcher::coreEqualGreaterXe3p) {
+    auto settings = std::make_unique<Settings>();
+    VariableBackup<Settings *> backup(&globalSettings);
+    globalSettings = settings.get();
+    globalSettings->ExeclistSubmitPortSubmission.set(1);
+
+    PhysicalAddressAllocatorSimple allocator;
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+
+    GroupContextHelper helper;
+    auto contextGroupCount = gpu->getContextGroupCount();
+    for (auto i = 0u; i < arrayCount(helper.contextGroups); i++) {
+        for (auto j = 0u; j < arrayCount(helper.contextGroups[i]); j++) {
+            helper.contextGroups[i][j].resize(1);
+            helper.contextGroups[i][j][0].contexts.resize(contextGroupCount);
+        }
+    }
+    auto group = &helper.contextGroups[defaultDevice][defaultEngine][0];
+
+    HardwareContextImp context0(0, stream, csHelper, ggtt, ppgtt, group, hardwareContextFlags::contextGroup);
+    context0.initialize();
+    HardwareContextImp context1(0, stream, csHelper, ggtt, ppgtt, group, hardwareContextFlags::contextGroup);
+    context1.initialize();
+    HardwareContextImp context2(0, stream, csHelper, ggtt, ppgtt, group, hardwareContextFlags::contextGroup);
+    context2.initialize();
+    ::testing::Mock::VerifyAndClearExpectations(&stream);
+
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AnyNumber());
+
+    // 3 used slots out of contextGroupCount: 2 dwords each, nothing for the empty slots after them
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, _, 0xffffffff)).Times(6);
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1, 0xffffffff)).Times(1);
+    context0.submitBatchBuffer(0x100, false);
+    ::testing::Mock::VerifyAndClearExpectations(&stream);
+}
+
 TEST_F(HardwareContextTest, givenGroupContextWhenMainHardwareContextDestroyedThenGroupIsFreed) {
     TEST_REQUIRES(gpu->gfxCoreFamily >= CoreFamily::XeHpcCore);
 
@@ -925,7 +963,8 @@ HWTEST_F(HardwareContextTest, givenContextWhenSubmittingThenUseExeclistPortSubmi
 
     EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AnyNumber());
 
-    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, _, 0xffffffff)).Times(2 * contextGroupCount);
+    // only slot 0 is used, so only its 2 dwords are written
+    EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2230, _, 0xffffffff)).Times(2);
     EXPECT_CALL(stream, writeMMIO(csHelper.mmioEngine + 0x2550, 1, 0xffffffff)).Times(1);
 
     context0.submitBatchBuffer(0x100, false);

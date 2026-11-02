@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Intel Corporation
+ * Copyright (C) 2025-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -41,6 +41,16 @@ struct CommandStreamerHelperXeCore : public Helper {
     }
 
     uint32_t getPollForCompletionMask() const override { return 0x00008000; }
+
+    // Contexts are never removed from a group, so valid descriptors are at the front; stop at the first invalid one.
+    template <typename Descriptor>
+    static size_t getElspSubmitCount(const std::vector<Descriptor> &contextDescriptor) {
+        size_t count = 1;
+        while (count < contextDescriptor.size() && contextDescriptor[count].sData.Valid) {
+            count++;
+        }
+        return count;
+    }
 
     const MMIOList getEngineMMIO() const override;
 

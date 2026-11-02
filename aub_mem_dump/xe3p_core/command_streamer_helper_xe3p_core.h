@@ -35,7 +35,8 @@ struct CommandStreamerHelperXe3pCore : public CommandStreamerHelperXeCore<Helper
         } else {
             assert(contextDescriptor.size() <= 64);
 
-            for (uint32_t i = 0; i < contextDescriptor.size(); i++) {
+            const size_t count = BaseClass::getElspSubmitCount(contextDescriptor);
+            for (uint32_t i = 0; i < count; i++) {
                 // write lower DWORD first
                 stream.writeMMIO(mmioEngine + 0x2230, contextDescriptor[i].ulData[0]);
                 stream.writeMMIO(mmioEngine + 0x2230, contextDescriptor[i].ulData[1]);
