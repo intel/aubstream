@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2024 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -21,14 +21,22 @@ class HardwareContextFixture : public MockAubStreamFixture {
     void SetUp() {
         MockAubStreamFixture::SetUp();
         aubManager = std::make_unique<::testing::NiceMock<MockAubManager>>(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
+        if (!gpu->stolenMemory) {
+            gpu->stolenMemory = StolenMemory::CreateStolenMemory(false, 1, defaultHBMSizePerDevice, gpu->getStolenMemorySize(defaultHBMSizePerDevice));
+            stolenMemoryCreated = true;
+        }
     }
 
     void TearDown() {
+        if (stolenMemoryCreated) {
+            gpu->stolenMemory.reset();
+        }
         MockAubStreamFixture::TearDown();
     }
 
     PhysicalAddressAllocatorSimple allocator;
     std::unique_ptr<::testing::NiceMock<MockAubManager>> aubManager;
+    bool stolenMemoryCreated = false;
 };
 
 class HardwareContextTest : public HardwareContextFixture, public ::testing::Test {

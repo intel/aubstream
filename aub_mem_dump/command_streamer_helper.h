@@ -154,6 +154,8 @@ struct CommandStreamerHelper {
     void initializeEngineMMIO(AubStream &stream) const;
     virtual const MMIOList getEngineMMIO() const = 0;
 
+    void addPreParserDisable(std::vector<uint32_t> &ringBuffer, bool disable) const;
+    virtual void addInvalidateCommands(std::vector<uint32_t> &ringBuffer) const {}
     virtual void addBatchBufferJump(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress) const;
     virtual void addFlushCommands(std::vector<uint32_t> &ringBuffer) const = 0;
     virtual void storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const;
@@ -201,6 +203,10 @@ struct CommandStreamerHelperRcs : public CommandStreamerHelper {
         ringBuffer.push_back(0);
         ringBuffer.push_back(0);
         ringBuffer.push_back(0);
+    }
+
+    void addInvalidateCommands(std::vector<uint32_t> &ringBuffer) const override {
+        addPreParserDisable(ringBuffer, true);
 
         // Pipe Control for Invalidate
         ringBuffer.push_back(0x7a000004);
@@ -219,6 +225,8 @@ struct CommandStreamerHelperRcs : public CommandStreamerHelper {
         ringBuffer.push_back(0);
         ringBuffer.push_back(0);
         ringBuffer.push_back(0);
+
+        addPreParserDisable(ringBuffer, false);
     }
 };
 
@@ -301,6 +309,10 @@ struct CommandStreamerHelperCcs : public CommandStreamerHelper {
         ringBuffer.push_back(0);
         ringBuffer.push_back(0);
         ringBuffer.push_back(0);
+    }
+
+    void addInvalidateCommands(std::vector<uint32_t> &ringBuffer) const override {
+        addPreParserDisable(ringBuffer, true);
 
         // Pipe Control for Invalidate
         ringBuffer.push_back(0x7a000004);
@@ -318,6 +330,8 @@ struct CommandStreamerHelperCcs : public CommandStreamerHelper {
         ringBuffer.push_back(0);
         ringBuffer.push_back(0);
         ringBuffer.push_back(0);
+
+        addPreParserDisable(ringBuffer, false);
     }
 };
 

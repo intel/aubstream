@@ -179,7 +179,7 @@ TEST_F(CommandStreamerHelperTest, CheckRCSFlushCommands) {
     rcs.addFlushCommands(testRingBuffer);
 
     size_t sizeOfCommands = 0;
-    // Verify the first Pipe Control
+    // Verify the Pipe Control
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x7a000004);
     // We are testing for:
     // CSStallEnable
@@ -193,7 +193,24 @@ TEST_F(CommandStreamerHelperTest, CheckRCSFlushCommands) {
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
 
-    // Verify the second Pipe Control
+    // Finally make sure that we don't have any more commands
+    // which the test doesn't know about
+    EXPECT_EQ(sizeOfCommands, testRingBuffer.size());
+}
+
+TEST_F(CommandStreamerHelperTest, CheckRCSInvalidateCommands) {
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
+    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
+    std::vector<uint32_t> testRingBuffer{};
+
+    rcs.addInvalidateCommands(testRingBuffer);
+    ASSERT_EQ(8u, testRingBuffer.size());
+
+    size_t sizeOfCommands = 0;
+    // Verify the pre-parser disable
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x02800101);
+
+    // Verify the Pipe Control
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x7a000004);
     // We are testing for:
     // CSStallEnable
@@ -211,9 +228,29 @@ TEST_F(CommandStreamerHelperTest, CheckRCSFlushCommands) {
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
 
+    // Verify the pre-parser enable
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x02800100);
+
     // Finally make sure that we don't have any more commands
     // which the test doesn't know about
     EXPECT_EQ(sizeOfCommands, testRingBuffer.size());
+}
+
+TEST_F(CommandStreamerHelperTest, givenCccsWhenAddingInvalidateAndFlushCommandsThenInvalidatingPipeControlIsSeparatedFromFlushingPipeControl) {
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCCS));
+    auto &cccs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCCS);
+    std::vector<uint32_t> invalidateCommands{};
+    std::vector<uint32_t> flushCommands{};
+
+    cccs.addInvalidateCommands(invalidateCommands);
+    cccs.addFlushCommands(flushCommands);
+
+    // Pre-parser disable; PIPE_CONTROL: CSStallEnable, IndirectStatePointersDisable, State/Constant/VF/Texture/Instruction/Command cache invalidate, DCFlushEnable; pre-parser enable
+    std::vector<uint32_t> expectedInvalidateCommands{0x02800101, 0x7a000004, 0x20100E3C, 0, 0, 0, 0, 0x02800100};
+    // CSStallEnable, RenderTargetCacheFlushEnable, DCFlushEnable, IndirectStatePointersDisable, DepthCacheFlushEnable
+    std::vector<uint32_t> expectedFlushCommands{0x7a000004, 0x00101221, 0, 0, 0, 0};
+    EXPECT_EQ(expectedInvalidateCommands, invalidateCommands);
+    EXPECT_EQ(expectedFlushCommands, flushCommands);
 }
 
 TEST_F(CommandStreamerHelperTest, CheckBCSFlushCommands) {
@@ -277,6 +314,20 @@ TEST_F(CommandStreamerHelperTest, CheckVECSFlushCommands) {
     EXPECT_EQ(sizeOfCommands, testRingBuffer.size());
 }
 
+TEST_F(CommandStreamerHelperTest, givenBcsVcsOrVecsWhenAddingInvalidateCommandsThenNothingIsAdded) {
+    for (auto engine : {ENGINE_BCS, ENGINE_BCS1, ENGINE_BCS2, ENGINE_BCS3, ENGINE_BCS4, ENGINE_BCS5, ENGINE_BCS6, ENGINE_BCS7, ENGINE_BCS8, ENGINE_VCS, ENGINE_VECS}) {
+        if (!gpu->isEngineSupported(engine)) {
+            continue;
+        }
+        auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, engine);
+        std::vector<uint32_t> testRingBuffer{};
+
+        csHelper.addInvalidateCommands(testRingBuffer);
+
+        EXPECT_TRUE(testRingBuffer.empty()) << "engine: " << engine;
+    }
+}
+
 TEST_F(CommandStreamerHelperTest, CheckCCSFlushCommands) {
     TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS));
     TEST_REQUIRES(!gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS).isExeclistSubmissionEnabled());
@@ -287,7 +338,7 @@ TEST_F(CommandStreamerHelperTest, CheckCCSFlushCommands) {
     ccs.addFlushCommands(testRingBuffer);
 
     size_t sizeOfCommands = 0;
-    // Verify the first Pipe Control
+    // Verify the Pipe Control
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x7a000004);
     // We are testing for:
     // CSStallEnable
@@ -299,7 +350,26 @@ TEST_F(CommandStreamerHelperTest, CheckCCSFlushCommands) {
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
 
-    // Verify the second Pipe Control
+    // Finally make sure that we don't have any more commands
+    // which the test doesn't know about
+    EXPECT_EQ(sizeOfCommands, testRingBuffer.size());
+}
+
+TEST_F(CommandStreamerHelperTest, CheckCCSInvalidateCommands) {
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS));
+    TEST_REQUIRES(!gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS).isExeclistSubmissionEnabled());
+
+    auto &ccs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
+    std::vector<uint32_t> testRingBuffer{};
+
+    ccs.addInvalidateCommands(testRingBuffer);
+    ASSERT_EQ(8u, testRingBuffer.size());
+
+    size_t sizeOfCommands = 0;
+    // Verify the pre-parser disable
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x02800101);
+
+    // Verify the Pipe Control
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x7a000004);
     // We are testing for:
     // CSStallEnable
@@ -315,6 +385,9 @@ TEST_F(CommandStreamerHelperTest, CheckCCSFlushCommands) {
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
+
+    // Verify the pre-parser enable
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x02800100);
 
     // Finally make sure that we don't have any more commands
     // which the test doesn't know about

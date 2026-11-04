@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Intel Corporation
+ * Copyright (C) 2025-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -32,7 +32,7 @@ HWTEST_F(CommandStreamerHelperTest, CheckCCSFlushCommandsXe3p, coreEqualXe3p) {
     ccs.addFlushCommands(testRingBuffer);
 
     size_t sizeOfCommands = 0;
-    // Verify the first Pipe Control
+    // Verify the Pipe Control
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x7a001004); // QueueDrainMode set
     // We are testing for:
     // no CSStallEnable
@@ -44,8 +44,26 @@ HWTEST_F(CommandStreamerHelperTest, CheckCCSFlushCommandsXe3p, coreEqualXe3p) {
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
 
-    // Verify the second Pipe Control
-    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x7a001004);
+    // Finally make sure that we don't have any more commands
+    // which the test doesn't know about
+    EXPECT_EQ(sizeOfCommands, testRingBuffer.size());
+}
+
+HWTEST_F(CommandStreamerHelperTest, CheckCCSInvalidateCommandsXe3p, coreEqualXe3p) {
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS));
+
+    auto &ccs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
+    std::vector<uint32_t> testRingBuffer{};
+
+    ccs.addInvalidateCommands(testRingBuffer);
+    ASSERT_EQ(8u, testRingBuffer.size());
+
+    size_t sizeOfCommands = 0;
+    // Verify the pre-parser disable
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x02800101);
+
+    // Verify the Pipe Control
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x7a001004); // QueueDrainMode set
     // We are testing for:
     // no CSStallEnable
     // IndirectStatePointersDisable
@@ -60,6 +78,9 @@ HWTEST_F(CommandStreamerHelperTest, CheckCCSFlushCommandsXe3p, coreEqualXe3p) {
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
     EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
+
+    // Verify the pre-parser enable
+    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x02800100);
 
     // Finally make sure that we don't have any more commands
     // which the test doesn't know about

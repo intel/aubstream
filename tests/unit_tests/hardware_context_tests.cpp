@@ -185,6 +185,52 @@ HWTEST_F(HardwareContextTest, submitBatchBufferShouldPerformAtLeastOneMMIOWriteA
     context.resubmit();
 }
 
+TEST_F(HardwareContextTest, givenRenderOrComputeContextWhenSubmittingBatchBufferThenCachesAreInvalidatedBeforeBatchBufferStartAndFlushedAfterIt) {
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    const uint64_t batchBufferAddress = 0x10000;
+
+    for (auto engine : {ENGINE_RCS, ENGINE_CCS, ENGINE_CCCS}) {
+        if (!gpu->isEngineSupported(engine)) {
+            continue;
+        }
+        auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, engine);
+        HardwareContextImp context(0, stream, csHelper, ggtt, ppgtt, 0);
+        context.initialize();
+
+        std::vector<uint32_t> invalidateCommands;
+        csHelper.addInvalidateCommands(invalidateCommands);
+        ASSERT_EQ(8u, invalidateCommands.size()) << "engine: " << engine;
+        EXPECT_EQ(0x02800101u, invalidateCommands[0]) << "engine: " << engine;
+        EXPECT_EQ(0x7a000000u, invalidateCommands[1] & 0xffff0000u) << "engine: " << engine;
+        EXPECT_NE(0u, invalidateCommands[2] & (1u << 11)) << "engine: " << engine;
+        EXPECT_EQ(0x02800100u, invalidateCommands[7]) << "engine: " << engine;
+
+        std::vector<uint32_t> flushCommands;
+        csHelper.addFlushCommands(flushCommands);
+        ASSERT_EQ(6u, flushCommands.size()) << "engine: " << engine;
+        EXPECT_EQ(0u, flushCommands[1] & (1u << 11)) << "engine: " << engine;
+
+        std::vector<uint32_t> expectedRingCommands = invalidateCommands;
+        csHelper.addBatchBufferJump(expectedRingCommands, batchBufferAddress);
+        expectedRingCommands.insert(expectedRingCommands.end(), flushCommands.begin(), flushCommands.end());
+        csHelper.storeFenceValue(expectedRingCommands, context.ggttContextFence, context.contextFenceValue + 1);
+        expectedRingCommands.resize(expectedRingCommands.size() + expectedRingCommands.size() % 2); // padded to an even dword count
+
+        std::vector<uint32_t> ringCommands;
+        EXPECT_CALL(stream, writeDiscontiguousPages(_, _, _, _)).Times(::testing::AnyNumber());
+        EXPECT_CALL(stream, writeDiscontiguousPages(_, _, _, csHelper.aubHintCommandBuffer)).WillOnce(::testing::Invoke([&](const void *memory, size_t size, const std::vector<PageInfo> &writeInfoTable, int hint) {
+            auto commands = static_cast<const uint32_t *>(memory);
+            ringCommands.assign(commands, commands + size / sizeof(uint32_t));
+        }));
+
+        context.submitBatchBuffer(batchBufferAddress, false);
+
+        EXPECT_EQ(expectedRingCommands, ringCommands) << "engine: " << engine;
+        ::testing::Mock::VerifyAndClearExpectations(&stream);
+    }
+}
+
 TEST_F(HardwareContextTest, givenHardwareContextWhenCallingFreeMemoryThenEntriesAreRemovedFromPageTable) {
     GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
     PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);

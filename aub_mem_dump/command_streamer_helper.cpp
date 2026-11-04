@@ -256,6 +256,12 @@ void CommandStreamerHelper::pollForCompletion(AubStream &stream) const {
         CmdServicesMemTraceRegisterPoll::TimeoutActionValues::Abort);
 }
 
+void CommandStreamerHelper::addPreParserDisable(std::vector<uint32_t> &ringBuffer, bool disable) const {
+    // MI_ARB_CHECK with Pre-Parser Disable Mask. The KMDs disable the pre-parser around the invalidating
+    // PIPE_CONTROL, so that the commands after it are not fetched before the caches are invalidated
+    ringBuffer.push_back(0x02800100 | (disable ? 1u : 0u));
+}
+
 void CommandStreamerHelper::addBatchBufferJump(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress) const {
     ringBuffer.push_back(0x11000001);
     ringBuffer.push_back(mmioEngine + 0x2244);

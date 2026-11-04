@@ -121,6 +121,19 @@ template <>
 void CommandStreamerHelperXe3pCore<CommandStreamerHelperVecs>::addFlushCommands(std::vector<uint32_t> &ringBuffer) const { BaseClass::addFlushCommands(ringBuffer); }
 
 template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperCccs>::addInvalidateCommands(std::vector<uint32_t> &ringBuffer) const { BaseClass::addInvalidateCommands(ringBuffer); }
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperRcs>::addInvalidateCommands(std::vector<uint32_t> &ringBuffer) const { BaseClass::addInvalidateCommands(ringBuffer); }
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperBcs>::addInvalidateCommands(std::vector<uint32_t> &ringBuffer) const { BaseClass::addInvalidateCommands(ringBuffer); }
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperLinkBcs>::addInvalidateCommands(std::vector<uint32_t> &ringBuffer) const { BaseClass::addInvalidateCommands(ringBuffer); }
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperVcs>::addInvalidateCommands(std::vector<uint32_t> &ringBuffer) const { BaseClass::addInvalidateCommands(ringBuffer); }
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperVecs>::addInvalidateCommands(std::vector<uint32_t> &ringBuffer) const { BaseClass::addInvalidateCommands(ringBuffer); }
+
+template <>
 void CommandStreamerHelperXe3pCore<CommandStreamerHelperCcs>::addFlushCommands(std::vector<uint32_t> &ringBuffer) const {
     // Pipe Control for flushes
     ringBuffer.push_back(0x7a001004); // QueueDrainMode
@@ -134,9 +147,14 @@ void CommandStreamerHelperXe3pCore<CommandStreamerHelperCcs>::addFlushCommands(s
     ringBuffer.push_back(0);
     ringBuffer.push_back(0);
     ringBuffer.push_back(0);
+}
+
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperCcs>::addInvalidateCommands(std::vector<uint32_t> &ringBuffer) const {
+    addPreParserDisable(ringBuffer, true);
 
     // Pipe Control for Invalidate
-    ringBuffer.push_back(0x7a001004);
+    ringBuffer.push_back(0x7a001004); // QueueDrainMode
     ringBuffer.push_back(
         1 << 9 |  // IndirectStatePointersDisable
         1 << 2 |  // StateCacheInvalidationEnable
@@ -150,6 +168,8 @@ void CommandStreamerHelperXe3pCore<CommandStreamerHelperCcs>::addFlushCommands(s
     ringBuffer.push_back(0);
     ringBuffer.push_back(0);
     ringBuffer.push_back(0);
+
+    addPreParserDisable(ringBuffer, false);
 }
 
 template <>

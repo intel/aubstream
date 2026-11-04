@@ -251,6 +251,8 @@ void HardwareContextImp::writeAndSubmitBatchBuffer(uint64_t gfxAddress, const vo
 void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRingHead) {
     std::vector<uint32_t> ringCommands;
 
+    // Invalidate before the batch, as the KMD does at job start
+    csTraits.addInvalidateCommands(ringCommands);
     csTraits.addBatchBufferJump(ringCommands, gfxAddress);
     csTraits.addFlushCommands(ringCommands);
     csTraits.storeFenceValue(ringCommands, ggttContextFence, contextFenceValue + 1);
