@@ -22,7 +22,9 @@ struct SharedPhysicalBlock {
     SharedPhysicalBlock(PhysicalAddressAllocator *allocator, uint32_t memoryBank, uint64_t physicalAddress)
         : allocator(allocator), memoryBank(memoryBank), physicalAddress(physicalAddress) {}
     ~SharedPhysicalBlock() {
-        allocator->freePhysicalMemory(memoryBank, physicalAddress);
+        if (allocator) { // null for caller-provided memory
+            allocator->freePhysicalMemory(memoryBank, physicalAddress);
+        }
     }
     SharedPhysicalBlock(const SharedPhysicalBlock &) = delete;
     SharedPhysicalBlock &operator=(const SharedPhysicalBlock &) = delete;

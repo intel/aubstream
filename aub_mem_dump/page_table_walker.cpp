@@ -65,12 +65,13 @@ inline bool isPs64GroupEmpty(PageTable *pte, uint32_t hwBase) {
     return true;
 }
 
-// Backs a naturally-aligned 16-entry PTE group with one 64KB-aligned
-// physical block and marks every entry PS64. The entries share ownership
-// of the block, which stays pending reservation until it reaches the streams.
-inline void allocatePs64Group(PageTable *pte, uint32_t hwBase, uint32_t memoryBank, const AllocationParams::AdditionalParams &additionalAllocParams) {
-    auto allocator = pte->getPhysicalAddressAllocator();
-    const uint64_t base = allocator->reservePhysicalMemory(memoryBank, Ps64::groupSize, Ps64::groupSize);
+// Backs a naturally-aligned 16-entry PTE group with one 64KB-aligned physical block
+// (a fresh one, or the caller's when callerBase is set) and marks every entry PS64. The entries
+// share the block, which stays pending reservation until it reaches the streams.
+inline void allocatePs64Group(PageTable *pte, uint32_t hwBase, uint32_t memoryBank, const AllocationParams::AdditionalParams &additionalAllocParams,
+                              std::optional<uint64_t> callerBase) {
+    auto allocator = callerBase ? nullptr : pte->getPhysicalAddressAllocator();
+    const uint64_t base = callerBase ? *callerBase : allocator->reservePhysicalMemory(memoryBank, Ps64::groupSize, Ps64::groupSize);
     AUBSTREAM_DEBUG_ASSERT((base & (Ps64::groupSize - 1)) == 0);
     auto block = std::make_shared<SharedPhysicalBlock>(allocator, memoryBank, base);
     for (uint32_t i = 0; i < Ps64::groupEntries; i++) {
@@ -297,17 +298,19 @@ void PageTableWalker::walkMemory(PageTable *ppgtt, const AllocationParams &alloc
                     break;
                 }
                 // PS64 is planned, not detected: only a walk that maps a whole, still empty,
-                // 64KB-aligned VA window of 4KB system pages gets one fresh contiguous block.
-                // Caller-provided physical memory is not known to be reserved as one contiguous block,
-                // and cloned entries do not own the block they point to, so neither is promoted.
+                // 64KB-aligned VA window of 4KB system pages gets one contiguous block - a fresh one,
+                // or the caller's contiguous range when it is 64KB-aligned too.
+                // Cloned entries do not own the block they point to, so they are not promoted.
                 const uint32_t hwBase = index & ~(Ps64::groupEntries - 1);
                 const uint64_t pageStart = gfxAddress & ~static_cast<uint64_t>(Ps64::pageSize - 1);
-                const bool planPs64Group = ps64Applicable && mode == WalkMode::Reserve && !physicalAddress &&
+                const bool planPs64Group = ps64Applicable && mode == WalkMode::Reserve &&
+                                           (!physicalAddress || (leafPhysicalAddress & (Ps64::groupSize - 1)) == 0) &&
                                            !isLocalMemory && level == PageTableLevel::Pte && pte->getPageSize() == Ps64::pageSize &&
                                            index == hwBase && pageStart + Ps64::groupSize <= gfxAddress + size &&
                                            isPs64GroupEmpty(parent, hwBase);
                 if (planPs64Group) {
-                    allocatePs64Group(parent, hwBase, pageMemoryBank, allocationParams.additionalParams);
+                    allocatePs64Group(parent, hwBase, pageMemoryBank, allocationParams.additionalParams,
+                                      physicalAddress ? std::optional<uint64_t>(leafPhysicalAddress) : std::nullopt);
                     child = parent->getChild(index);
                 } else if (level == leafLevel && clonePageInfo) {
                     const auto physicalAddressAligned = clonePageInfo->physicalAddress & ~(static_cast<uint64_t>(pageSize - 1));

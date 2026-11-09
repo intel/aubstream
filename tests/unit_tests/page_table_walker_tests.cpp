@@ -970,8 +970,26 @@ TEST_F(PageTableWalkerTestPml5PlannedPs64, givenWindowWithAlreadyMappedPageWhenR
     EXPECT_EQ(0u, secondWalker.pages64KB.size());
 }
 
-TEST_F(PageTableWalkerTestPml5PlannedPs64, givenExplicitPhysicalAddressWhenReservingAlignedWindowThenPs64NotSet) {
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenAlignedExplicitPhysicalAddressWhenReservingAlignedWindowThenCallerBlockIsUsedForPs64WithoutTakingOwnership) {
     const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, Ps64::groupSize, Ps64::groupSize);
+
+    PageTableWalker pageWalker;
+    pageWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
+                          PageTableWalker::WalkMode::Reserve, nullptr, physBase);
+
+    auto &pteEntries = pageWalker.pageWalkEntries[PageTableLevel::Pte];
+    ASSERT_EQ(Ps64::groupEntries, pteEntries.size());
+    for (size_t i = 0; i < pteEntries.size(); i++) {
+        EXPECT_TRUE(isPs64(pteEntries[i]));
+        EXPECT_EQ(physBase + i * Ps64::pageSize, physicalAddress(pteEntries[i]));
+    }
+    ASSERT_EQ(1u, pageWalker.pages64KB.size());
+    EXPECT_EQ(physBase, pageWalker.pages64KB[0]);
+    EXPECT_EQ(nullptr, getLeaf(groupAddress)->getSharedPhysicalBlock()->allocator);
+}
+
+TEST_F(PageTableWalkerTestPml5PlannedPs64, givenMisalignedExplicitPhysicalAddressWhenReservingAlignedWindowThenPs64NotSet) {
+    const uint64_t physBase = allocator->reservePhysicalMemory(MEMORY_BANK_SYSTEM, 2 * Ps64::groupSize, Ps64::groupSize) + Ps64::pageSize;
 
     PageTableWalker pageWalker;
     pageWalker.walkMemory(ppgtt.get(), {groupAddress, nullptr, Ps64::groupSize, MEMORY_BANK_SYSTEM, 0, Ps64::pageSize},
