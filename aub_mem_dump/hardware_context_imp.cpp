@@ -355,10 +355,26 @@ void HardwareContextImp::submitBatchBuffer(uint64_t gfxAddress, bool overrideRin
 
     csTraits.gpu->invalidateTLB(stream, contextId, false);
 
+    submitContextsAndMarkSubmitted();
+}
+
+void HardwareContextImp::submitContextsAndMarkSubmitted() {
     if (this->contextGroupId != std::numeric_limits<uint32_t>::max()) {
+        for (auto groupContext : contextGroup->contexts) {
+            if (groupContext) {
+                groupContext->submitted = true;
+            }
+        }
         csTraits.submit(stream, contextGroup->contexts, ppgtt.getNumAddressBits() != 32);
     } else {
+        submitted = true;
         csTraits.submit(stream, ggttLRCA, ppgtt.getNumAddressBits() != 32, contextId, priority);
+    }
+}
+
+void HardwareContextImp::invalidateTLBIfSubmitted() {
+    if (submitted) {
+        csTraits.gpu->invalidateTLB(stream, contextId, false);
     }
 }
 
@@ -446,11 +462,9 @@ uint32_t HardwareContextImp::getExpectedFence() {
 }
 
 void HardwareContextImp::resubmit() {
-    if (this->contextGroupId != std::numeric_limits<uint32_t>::max()) {
-        csTraits.submit(stream, contextGroup->contexts, ppgtt.getNumAddressBits() != 32);
-    } else {
-        csTraits.submit(stream, ggttLRCA, ppgtt.getNumAddressBits() != 32, contextId, priority);
-    }
+    auto lock = csTraits.obtainUniqueLock();
+
+    submitContextsAndMarkSubmitted();
 }
 
 bool HardwareContextImp::isActive() {

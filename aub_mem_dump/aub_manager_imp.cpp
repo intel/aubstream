@@ -478,9 +478,21 @@ void AubManagerImp::freeMemory(uint64_t gfxAddress, size_t size) {
     }
     AubStream *stream = getStream();
 
-    auto lock = stream->obtainPpgttLock();
+    std::lock_guard<std::mutex> physicalMemoryReuseLock(physicalMemoryReuseMutex);
+    auto ppgttLock = stream->obtainPpgttLock();
+    std::vector<std::unique_lock<std::mutex>> ggttLocks;
+    ggttLocks.reserve(ggtts.size());
+    for (auto &ggtt : ggtts) {
+        ggttLocks.push_back(ggtt->obtainUniqueLock());
+    }
+
     for (auto &ppgtt : ppgtts) {
         stream->freeMemory(ppgtt.get(), gfxAddress, size);
+    }
+
+    std::lock_guard<std::mutex> hwContextsLock(hwContextsMutex);
+    for (auto hwContext : hwContexts) {
+        static_cast<HardwareContextImp *>(hwContext)->invalidateTLBIfSubmitted();
     }
 }
 
@@ -514,6 +526,7 @@ bool AubManagerImp::reservePhysicalMemory(AllocationParams allocationParams, Phy
     physicalAllocInfo.memoryBank = memoryBanks;
     physicalAllocInfo.pageSize = pageSize;
     physicalAllocInfo.size = size;
+    std::lock_guard<std::mutex> physicalMemoryReuseLock(physicalMemoryReuseMutex);
     physicalAllocInfo.physicalAddress = physicalAddressAllocator->reservePhysicalMemory(allocationParams.memoryBanks, sizePageAligned, pageSize);
     return true;
 }
@@ -552,6 +565,7 @@ bool AubManagerImp::reserveOnlyPhysicalSpace(AllocationParams allocationParams, 
     physicalAllocInfo.memoryBank = memoryBanks;
     physicalAllocInfo.pageSize = pageSize;
     physicalAllocInfo.size = size;
+    std::lock_guard<std::mutex> physicalMemoryReuseLock(physicalMemoryReuseMutex);
     physicalAllocInfo.physicalAddress = static_cast<PhysicalAddressAllocatorSimpleAndSHM4Mapper *>(physicalAddressAllocator.get())->reserveOnlyPhysicalSpace(allocationParams.memoryBanks, sizePageAligned, pageSize);
     return true;
 }

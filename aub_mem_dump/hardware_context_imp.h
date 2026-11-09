@@ -60,6 +60,8 @@ struct HardwareContextImp : public HardwareContext {
     void dumpBufferBIN(uint64_t gfxAddress, size_t size) override;
     void dumpSurface(const SurfaceInfo &surfaceInfo) override;
     void submitBatchBuffer(uint64_t gfxAddress, bool overrideRingHead) override;
+    void submitContextsAndMarkSubmitted();
+    void invalidateTLBIfSubmitted();
     void writeMemory2(AllocationParams allocationParams) override;
     void writeMMIO(uint32_t offset, uint32_t value) override;
     void pollForFenceCompletion() override;
@@ -88,6 +90,7 @@ struct HardwareContextImp : public HardwareContext {
     uint32_t contextFenceValue;
     static std::atomic<uint32_t> globalContextId;
     uint32_t contextId{globalContextId.fetch_add(1)};
+    std::atomic<bool> submitted{false};
 
     ContextGroup *contextGroup = nullptr;
 };

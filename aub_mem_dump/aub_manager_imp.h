@@ -110,6 +110,7 @@ class AubManagerImp : public AubManager {
     std::vector<std::unique_ptr<GGTT>> ggtts;
     std::vector<HardwareContext *> hwContexts;
     std::mutex hwContextsMutex{};
+    std::mutex physicalMemoryReuseMutex{};
 
     SharedMemoryInfo sharedMemoryInfo;
     const bool enableThrow{};
