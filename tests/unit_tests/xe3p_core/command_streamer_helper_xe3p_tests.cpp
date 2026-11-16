@@ -86,3 +86,14 @@ HWTEST_F(CommandStreamerHelperTest, CheckCCSInvalidateCommandsXe3p, coreEqualXe3
     // which the test doesn't know about
     EXPECT_EQ(sizeOfCommands, testRingBuffer.size());
 }
+
+HWTEST_F(CommandStreamerHelperTest, givenCcsWhenStoringFenceValueThenPipeControlWithQueueDrainModeAndPostSyncWriteIsAddedXe3p, coreEqualXe3p) {
+    auto &ccs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
+    std::vector<uint32_t> testRingBuffer{};
+
+    ccs.storeFenceValue(testRingBuffer, 0x0badc0fedeadb000ull, 0x8086);
+
+    // QueueDrainMode; DestinationAddressType GGTT, PostSyncOperation WriteImmediateData, PipeControlFlushEnable
+    std::vector<uint32_t> expectedRingBuffer{0x7a001004, 0x01004080, 0xdeadb000, 0x0badc0fe, 0x8086, 0};
+    EXPECT_EQ(expectedRingBuffer, testRingBuffer);
+}

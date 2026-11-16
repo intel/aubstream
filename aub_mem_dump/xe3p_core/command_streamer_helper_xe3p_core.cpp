@@ -173,6 +173,34 @@ void CommandStreamerHelperXe3pCore<CommandStreamerHelperCcs>::addInvalidateComma
 }
 
 template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperCccs>::storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const { BaseClass::storeFenceValue(ringBuffer, gfxAddress, fenceValue); }
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperRcs>::storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const { BaseClass::storeFenceValue(ringBuffer, gfxAddress, fenceValue); }
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperBcs>::storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const { BaseClass::storeFenceValue(ringBuffer, gfxAddress, fenceValue); }
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperLinkBcs>::storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const { BaseClass::storeFenceValue(ringBuffer, gfxAddress, fenceValue); }
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperVcs>::storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const { BaseClass::storeFenceValue(ringBuffer, gfxAddress, fenceValue); }
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperVecs>::storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const { BaseClass::storeFenceValue(ringBuffer, gfxAddress, fenceValue); }
+
+template <>
+void CommandStreamerHelperXe3pCore<CommandStreamerHelperCcs>::storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const {
+    // Pipe Control for fence
+    ringBuffer.push_back(0x7a001004); // QueueDrainMode
+    ringBuffer.push_back(
+        1 << 24 | // DestinationAddressType GGTT
+        1 << 14 | // PostSyncOperation WriteImmediateData
+        1 << 7    // PipeControlFlushEnable
+    );
+    ringBuffer.push_back(uint32_t(gfxAddress));
+    ringBuffer.push_back(uint32_t(gfxAddress >> 32));
+    ringBuffer.push_back(fenceValue);
+    ringBuffer.push_back(0);
+}
+
+template <>
 const MMIOList CommandStreamerHelperXe3pCore<CommandStreamerHelperLinkBcs>::getEngineMMIO() const {
     MMIOList engineMMIO = {
         MMIOPair(mmioEngine + 0x0000229c, 0xffff8284), // GFX_MODE

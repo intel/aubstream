@@ -276,11 +276,18 @@ void CommandStreamerHelper::addBatchBufferJump(std::vector<uint32_t> &ringBuffer
 }
 
 void CommandStreamerHelper::storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const {
-    // Store DWORD Immediate
-    ringBuffer.push_back(0x10400002);
-    ringBuffer.push_back(uint32_t(gfxAddress));
-    ringBuffer.push_back(0);
+    // MI_FLUSH_DW
+    ringBuffer.push_back(
+        0x13000003 |
+        1 << 14 // PostSyncOperation WriteImmediateData
+    );
+    ringBuffer.push_back(
+        uint32_t(gfxAddress) |
+        1 << 2 // DestinationAddressType GGTT
+    );
+    ringBuffer.push_back(uint32_t(gfxAddress >> 32));
     ringBuffer.push_back(fenceValue);
+    ringBuffer.push_back(0);
 }
 
 } // namespace aub_stream

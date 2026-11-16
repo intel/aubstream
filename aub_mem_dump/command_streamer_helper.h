@@ -228,6 +228,21 @@ struct CommandStreamerHelperRcs : public CommandStreamerHelper {
 
         addPreParserDisable(ringBuffer, false);
     }
+
+    void storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const override {
+        // Pipe Control for fence
+        ringBuffer.push_back(0x7a000004);
+        ringBuffer.push_back(
+            1 << 24 | // DestinationAddressType GGTT
+            1 << 20 | // CSStallEnable
+            1 << 14 | // PostSyncOperation WriteImmediateData
+            1 << 7    // PipeControlFlushEnable
+        );
+        ringBuffer.push_back(uint32_t(gfxAddress));
+        ringBuffer.push_back(uint32_t(gfxAddress >> 32));
+        ringBuffer.push_back(fenceValue);
+        ringBuffer.push_back(0);
+    }
 };
 
 struct CommandStreamerHelperBcs : public CommandStreamerHelper {
@@ -332,6 +347,21 @@ struct CommandStreamerHelperCcs : public CommandStreamerHelper {
         ringBuffer.push_back(0);
 
         addPreParserDisable(ringBuffer, false);
+    }
+
+    void storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const override {
+        // Pipe Control for fence
+        ringBuffer.push_back(0x7a000004);
+        ringBuffer.push_back(
+            1 << 24 | // DestinationAddressType GGTT
+            1 << 20 | // CSStallEnable
+            1 << 14 | // PostSyncOperation WriteImmediateData
+            1 << 7    // PipeControlFlushEnable
+        );
+        ringBuffer.push_back(uint32_t(gfxAddress));
+        ringBuffer.push_back(uint32_t(gfxAddress >> 32));
+        ringBuffer.push_back(fenceValue);
+        ringBuffer.push_back(0);
     }
 };
 

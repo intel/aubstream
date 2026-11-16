@@ -394,24 +394,50 @@ TEST_F(CommandStreamerHelperTest, CheckCCSInvalidateCommands) {
     EXPECT_EQ(sizeOfCommands, testRingBuffer.size());
 }
 
-TEST_F(CommandStreamerHelperTest, CheckStoreFence) {
-    // The function is the same for all engines so far
-    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_RCS));
-    auto &rcs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_RCS);
+TEST_F(CommandStreamerHelperTest, givenRcsOrCccsWhenStoringFenceValueThenPipeControlWithPostSyncWriteIsAdded) {
+    for (auto engine : {ENGINE_RCS, ENGINE_CCCS}) {
+        if (!gpu->isEngineSupported(engine)) {
+            continue;
+        }
+        auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, engine);
+        std::vector<uint32_t> testRingBuffer{};
+
+        csHelper.storeFenceValue(testRingBuffer, 0x0badc0fedeadb000ull, 0x8086);
+
+        // DestinationAddressType GGTT, CSStallEnable, PostSyncOperation WriteImmediateData, PipeControlFlushEnable
+        std::vector<uint32_t> expectedRingBuffer{0x7a000004, 0x01104080, 0xdeadb000, 0x0badc0fe, 0x8086, 0};
+        EXPECT_EQ(expectedRingBuffer, testRingBuffer) << "engine: " << engine;
+    }
+}
+
+TEST_F(CommandStreamerHelperTest, givenCcsWhenStoringFenceValueThenPipeControlWithPostSyncWriteIsAdded) {
+    TEST_REQUIRES(gpu->isEngineSupported(ENGINE_CCS));
+    TEST_REQUIRES(!gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS).isExeclistSubmissionEnabled());
+    auto &ccs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
     std::vector<uint32_t> testRingBuffer{};
 
-    rcs.storeFenceValue(testRingBuffer, 0x0badc0fedeadbeefull, 0x8086);
+    ccs.storeFenceValue(testRingBuffer, 0x0badc0fedeadb000ull, 0x8086);
 
-    size_t sizeOfCommands = 0;
-    // Verify the store DWORD
-    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x10400002);
-    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0xdeadbeef);
-    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0);
-    EXPECT_EQ(testRingBuffer[sizeOfCommands++], 0x8086);
+    // DestinationAddressType GGTT, CSStallEnable, PostSyncOperation WriteImmediateData, PipeControlFlushEnable
+    std::vector<uint32_t> expectedRingBuffer{0x7a000004, 0x01104080, 0xdeadb000, 0x0badc0fe, 0x8086, 0};
+    EXPECT_EQ(expectedRingBuffer, testRingBuffer);
+}
 
-    // Finally make sure that we don't have any more commands
-    // which the test doesn't know about
-    EXPECT_EQ(sizeOfCommands, testRingBuffer.size());
+TEST_F(CommandStreamerHelperTest, givenBcsVcsOrVecsWhenStoringFenceValueThenMiFlushDwWithPostSyncWriteIsAdded) {
+    TEST_REQUIRES(gpu->gfxCoreFamily <= CoreFamily::Xe3pCore);
+    for (auto engine : {ENGINE_BCS, ENGINE_BCS1, ENGINE_BCS2, ENGINE_BCS3, ENGINE_BCS4, ENGINE_BCS5, ENGINE_BCS6, ENGINE_BCS7, ENGINE_BCS8, ENGINE_VCS, ENGINE_VECS}) {
+        if (!gpu->isEngineSupported(engine)) {
+            continue;
+        }
+        auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, engine);
+        std::vector<uint32_t> testRingBuffer{};
+
+        csHelper.storeFenceValue(testRingBuffer, 0x0badc0fedeadb000ull, 0x8086);
+
+        // PostSyncOperation WriteImmediateData; DestinationAddressType GGTT
+        std::vector<uint32_t> expectedRingBuffer{0x13004003, 0xdeadb004, 0x0badc0fe, 0x8086, 0};
+        EXPECT_EQ(expectedRingBuffer, testRingBuffer) << "engine: " << engine;
+    }
 }
 
 static std::map<EngineType, uint32_t> engineBases{

@@ -177,6 +177,7 @@ struct CommandStreamerHelperXe3pCore : public CommandStreamerHelperXeCore<Helper
     void appendAdditionalEngineMMIO(MMIOList &engineMMIO) const;
     void addInvalidateCommands(std::vector<uint32_t> &ringBuffer) const override;
     void addFlushCommands(std::vector<uint32_t> &ringBuffer) const override;
+    void storeFenceValue(std::vector<uint32_t> &ringBuffer, uint64_t gfxAddress, uint32_t fenceValue) const override;
 
     using Helper::mmioDevice;
     using Helper::mmioEngine;
