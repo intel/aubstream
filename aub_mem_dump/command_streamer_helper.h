@@ -31,7 +31,7 @@ union MiContextDescriptorReg {
         uint64_t ForceRestore : 1;           //[2]
         uint64_t Legacy : 1;                 //[3]
         uint64_t ADor64bitSupport : 1;       //[4] Selects 64-bit PPGTT in Legacy mode
-        uint64_t LlcCoherencySupport : 1;    //[5]
+        uint64_t : 1;                        //[5]
         uint64_t FaultSupport : 2;           //[7:6]
         uint64_t PrivilegeAccessOrPPGTT : 1; //[8] Selects PPGTT in Legacy mode
         uint64_t FunctionType : 3;           //[11:9]
