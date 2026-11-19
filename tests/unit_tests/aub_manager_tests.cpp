@@ -400,7 +400,8 @@ HWTEST_F(AubManagerTest, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxS
     uint8_t *sysMem[BankSize / 0x1000] = {0};
     uint8_t *lMem[BankSize / 0x1000] = {0};
     SharedMemoryInfo sharedMemoryInfo = {reinterpret_cast<uint8_t *>(sysMem), BankSize, reinterpret_cast<uint8_t *>(lMem), BankSize};
-    MockAubManager aubManager(createGpuFunc(), 1, BankSize, 0u, gpu->requireLocalMemoryForPageTables(), mode::tbxShm4, sharedMemoryInfo);
+    bool localMemorySupport = false;
+    MockAubManager aubManager(createGpuFunc(), 1, BankSize, 0u, localMemorySupport, mode::tbxShm4, sharedMemoryInfo);
     aubManager.initialize();
 
     EXPECT_NE(nullptr, aubManager.streamTbxShm.get());
@@ -410,15 +411,9 @@ HWTEST_F(AubManagerTest, whenAubManagerIsCreatedWithTbxModeThenItInitializesTbxS
     EXPECT_EQ(nullptr, aubManager.streamAubTbx.get());
     EXPECT_FALSE(aubManager.isOpen());
     EXPECT_TRUE(aubManager.getFileName().empty());
-    if (gpu->requireLocalMemoryForPageTables()) {
-        EXPECT_NE(aubManager.translatePhysicalAddressToSystemMemory(BankSize - 0x1000, true), nullptr);
-        EXPECT_EQ(aubManager.translatePhysicalAddressToSystemMemory(BankSize - 0x1000, true), lMem[BankSize / 0x1000 - 1]);
-        EXPECT_EQ(aubManager.translatePhysicalAddressToSystemMemory(0, true), nullptr);
-    } else {
-        EXPECT_NE(aubManager.translatePhysicalAddressToSystemMemory(BankSize - 0x1000, false), nullptr);
-        EXPECT_EQ(aubManager.translatePhysicalAddressToSystemMemory(BankSize - 0x1000, false), sysMem[BankSize / 0x1000 - 1]);
-        EXPECT_EQ(aubManager.translatePhysicalAddressToSystemMemory(0, false), nullptr);
-    }
+    EXPECT_NE(aubManager.translatePhysicalAddressToSystemMemory(BankSize - 0x1000, false), nullptr);
+    EXPECT_EQ(aubManager.translatePhysicalAddressToSystemMemory(BankSize - 0x1000, false), sysMem[BankSize / 0x1000 - 1]);
+    EXPECT_EQ(aubManager.translatePhysicalAddressToSystemMemory(0, false), nullptr);
 }
 
 HWTEST_F(AubManagerTest, givenInvalidSHMPointersForSHM3ModeAndExceptionsEnabledWhenAubManagerIsCreatedThenNoStreamIsCreatedAndIsInitializedReturnsFalse, HwMatcher::coreAboveEqualXeHp) {
@@ -551,9 +546,7 @@ HWTEST_F(AubManagerTest, ggttBaseAddressIsCorrect, HwMatcher::coreAboveEqualXeHp
     aubManager.initialize();
 
     EXPECT_EQ(1u, aubManager.ggtts.size());
-    if (!gpu->requireLocalMemoryForPageTables()) {
-        EXPECT_EQ(gpu->getGSMBaseAddress(0), aubManager.ggtts[0].get()->gttTableOffset);
-    }
+    EXPECT_EQ(gpu->getGSMBaseAddress(0), aubManager.ggtts[0].get()->gttTableOffset);
 }
 
 HWTEST_F(AubManagerTest, when2DevicesAreCreatedThenAubManagerIsInitializedCorrectly, MatchMultiDevice::moreThanOne) {
@@ -565,12 +558,10 @@ HWTEST_F(AubManagerTest, when2DevicesAreCreatedThenAubManagerIsInitializedCorrec
     EXPECT_EQ(2u, aubManager.ppgtts.size());
     EXPECT_EQ(2u, aubManager.ggtts.size());
 
-    if (!gpu->requireLocalMemoryForPageTables()) {
-        EXPECT_EQ(MemoryBank::MEMORY_BANK_SYSTEM, aubManager.ppgtts[0].get()->getMemoryBank());
-        EXPECT_EQ(MemoryBank::MEMORY_BANK_SYSTEM, aubManager.ppgtts[1].get()->getMemoryBank());
-        EXPECT_EQ(MemoryBank::MEMORY_BANK_SYSTEM, aubManager.ggtts[0].get()->getMemoryBank());
-        EXPECT_EQ(MemoryBank::MEMORY_BANK_SYSTEM, aubManager.ggtts[1].get()->getMemoryBank());
-    }
+    EXPECT_EQ(MemoryBank::MEMORY_BANK_SYSTEM, aubManager.ppgtts[0].get()->getMemoryBank());
+    EXPECT_EQ(MemoryBank::MEMORY_BANK_SYSTEM, aubManager.ppgtts[1].get()->getMemoryBank());
+    EXPECT_EQ(MemoryBank::MEMORY_BANK_SYSTEM, aubManager.ggtts[0].get()->getMemoryBank());
+    EXPECT_EQ(MemoryBank::MEMORY_BANK_SYSTEM, aubManager.ggtts[1].get()->getMemoryBank());
 
     EXPECT_NE(nullptr, aubManager.physicalAddressAllocator.get());
     EXPECT_NE(nullptr, aubManager.streamAub.get());
@@ -860,18 +851,6 @@ TEST(AubManager, givenAubManagerWhenCallingAddCommentRedirectsToAubStream) {
     aubManager.addComment(message);
 }
 
-TEST(AubManager, givenLocalMemorySupportFalseWhenGpuRequiresLocalMemoryThenPageTablesAreInLocalMemory) {
-    auto mockGpu = std::make_unique<MockGpu>();
-    bool localMemorySupport = false;
-
-    EXPECT_CALL(*mockGpu, requireLocalMemoryForPageTables()).Times(2).WillRepeatedly(::testing::Return(true));
-    EXPECT_CALL(*mockGpu, allocatePPGTT(_, MemoryBank::MEMORY_BANK_0, _)).Times(1);
-    EXPECT_CALL(*mockGpu, allocatePPGTT(_, MemoryBank::MEMORY_BANK_1, _)).Times(1);
-
-    MockAubManager aubManager(std::move(mockGpu), 2, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::aubFile);
-    aubManager.initialize();
-}
-
 TEST(AubManager, givenGfxAllocationWhenFreeMemoryIsCalledThenFreeEachPpgtt) {
     MockAubManager aubManager(createGpuFunc(), 4, defaultHBMSizePerDevice, 0u, true, mode::aubFile);
     aubManager.initialize();
@@ -1039,7 +1018,8 @@ TEST(AubManager, givenAubManagerSHMWhenCallingTranslatePhysicalAddressToSystemMe
     uint8_t sysMem[0x3000] = {0};
     uint8_t lMem[0x3000] = {0};
     SharedMemoryInfo sharedMemoryInfo = {sysMem, BankSize, lMem, BankSize};
-    MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, gpu->requireLocalMemoryForPageTables(), mode::tbxShm, sharedMemoryInfo);
+    bool localMemorySupport = false;
+    MockAubManager aubManager(createGpuFunc(), 1, defaultHBMSizePerDevice, 0u, localMemorySupport, mode::tbxShm, sharedMemoryInfo);
     aubManager.initialize();
 
     void *p = aubManager.translatePhysicalAddressToSystemMemory(0x2000, false);

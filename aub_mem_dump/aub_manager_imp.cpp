@@ -135,7 +135,7 @@ void AubManagerImp::initialize() {
         uint32_t memoryBank = MemoryBank::MEMORY_BANK_SYSTEM;
         uint64_t gttBaseAddress = gpu->getGSMBaseAddress(i);
 
-        if (localMemorySupported || gpu->requireLocalMemoryForPageTables()) {
+        if (localMemorySupported) {
             memoryBank = MemoryBank::MEMORY_BANK_0 << i;
         }
         if (streamMode == aub_stream::mode::tbxShm4 || streamMode == aub_stream::mode::aubFileAndShm4) {

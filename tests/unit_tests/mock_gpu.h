@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -22,7 +22,6 @@ struct MockGpuBase : public Gpu {
     MOCK_CONST_METHOD2(getCommandStreamerHelper, CommandStreamerHelper &(uint32_t device, EngineType engineType));
     MOCK_CONST_METHOD3(allocateGGTT, GGTT *(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gttBaseAddress));
     MOCK_CONST_METHOD3(allocatePPGTT, PageTable *(PhysicalAddressAllocator *physicalAddressAllocator, uint32_t memoryBank, uint64_t gpuAddressSpace));
-    MOCK_CONST_METHOD0(requireLocalMemoryForPageTables, bool());
     MOCK_CONST_METHOD0(getGlobalMMIO, const MMIOList());
     MOCK_CONST_METHOD0(getSupportedEngines, const std::vector<EngineType>());
     MOCK_CONST_METHOD1(getGSMBaseAddress, uint64_t(uint32_t device));

@@ -74,7 +74,6 @@ struct Gpu : public GpuDescriptor {
     virtual void setMemoryBankSize(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize) const = 0;
     virtual void setGGTTBaseAddresses(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize) const = 0;
 
-    virtual bool requireLocalMemoryForPageTables() const { return false; }
     virtual const MMIOList getGlobalMMIOPlatformSpecific() const { return {}; }
 
     virtual void initializeGlobalMMIO(AubStream &stream, uint32_t devicesCount, uint64_t memoryBankSize, uint32_t stepping) const;
