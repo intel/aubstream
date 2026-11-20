@@ -5,12 +5,14 @@
  *
  */
 
+#include <algorithm>
 #include <cassert>
 #include "aub_stream.h"
 #include "command_streamer_helper.h"
 #include "gpu.h"
 #include "hardware_context_imp.h"
 #include "misc_helpers.h"
+#include "options.h"
 #include "page_table.h"
 
 namespace aub_stream {
@@ -154,6 +156,10 @@ void CommandStreamerHelper::initialize(void *pLRCIn, PageTable *ppgtt, uint32_t 
         *pLRI++ = 0x00000000;
     }
 
+    applyInjectedMMIOsToLRI(ptrOffset(pLRCA, offsetLRI0), numRegsLRI0);
+    applyInjectedMMIOsToLRI(ptrOffset(pLRCA, offsetLRI1), numRegsLRI1);
+    applyInjectedMMIOsToLRI(ptrOffset(pLRCA, offsetLRI2), numRegsLRI2);
+
     setRingHead(pLRCIn, 0);
     setRingTail(pLRCIn, 0);
     setRingBase(pLRCIn, 0);
@@ -240,9 +246,33 @@ void CommandStreamerHelper::submit(AubStream &stream, const std::vector<Hardware
     submitContext(stream, contextDescriptor);
 }
 
+void CommandStreamerHelper::applyInjectedMMIOsToLRI(uint32_t *pLRI, uint32_t numRegs) const {
+    auto pRegister = pLRI + 1;
+    while (numRegs-- > 0) {
+        auto registerOffset = *pRegister++;
+        auto &registerValue = *pRegister++;
+        for (const auto &injectedMmio : MMIOListInjected) {
+            if (mmioDevice + injectedMmio.offset == registerOffset) {
+                registerValue = (registerValue & ~injectedMmio.mask) | (injectedMmio.value & injectedMmio.mask);
+            }
+        }
+    }
+}
+
 void CommandStreamerHelper::initializeEngineMMIO(AubStream &stream) const {
-    for (const auto &mmioPair : getEngineMMIO()) {
+    const auto engineMMIO = getEngineMMIO();
+    for (const auto &mmioPair : engineMMIO) {
         stream.writeMMIO(mmioPair.first, mmioPair.second);
+    }
+
+    for (const auto &injectedMmio : MMIOListInjected) {
+        auto injectedOffset = mmioDevice + injectedMmio.offset;
+        auto isEngineRegister = std::any_of(engineMMIO.begin(), engineMMIO.end(), [injectedOffset](const MMIOPair &mmioPair) {
+            return mmioPair.first == injectedOffset;
+        });
+        if (isEngineRegister) {
+            stream.writeMMIO(injectedOffset, injectedMmio.value, injectedMmio.mask);
+        }
     }
 }
 

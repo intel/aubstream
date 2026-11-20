@@ -9,14 +9,18 @@
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/memory_banks.h"
+#include "aub_mem_dump/options.h"
 
 #include "aubstream/allocation_params.h"
 #include "aubstream/engine_node.h"
 #include "tests/unit_tests/command_stream_helper_tests.h"
+#include "tests/variable_backup.h"
 
 #include "test.h"
 #include "test_defaults.h"
 
+#include <algorithm>
+#include <cstring>
 #include <memory>
 #include <vector>
 
@@ -32,6 +36,62 @@ TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIn
     rcs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
 
     EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, rcs.mmioEngine, 0x20d8, 0x00200020));
+}
+
+TEST_F(CommandStreamerHelperTest, givenInjectedRegisterSavedInContextImageWhenCommandStreamHelperIsInitializedThenLRCAIncludesInjectedValueWithMaskApplied) {
+    auto &ccs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
+    VariableBackup<MaskedMMIOList> injectedMmioListBackup(&MMIOListInjected, {MaskedMMIOWrite(ccs.mmioEngine - ccs.mmioDevice + 0x20d8, 0x00400040, 0x0000ffff)});
+
+    auto sizeLRCA = ccs.sizeLRCA;
+    auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[sizeLRCA / sizeof(uint32_t)]);
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
+    ccs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
+
+    EXPECT_TRUE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, ccs.mmioEngine, 0x20d8, 0x00200040));
+    EXPECT_FALSE(checkLRIInLRCA(pLRCA.get(), sizeLRCA, ccs.mmioEngine, 0x20d8, 0x00200020));
+}
+
+TEST_F(CommandStreamerHelperTest, givenInjectedRegisterNotSavedInContextImageWhenCommandStreamHelperIsInitializedThenLRCAIsNotChanged) {
+    auto &ccs = gpu->getCommandStreamerHelper(defaultDevice, ENGINE_CCS);
+    auto sizeLRCA = ccs.sizeLRCA;
+    PhysicalAddressAllocatorSimple allocator;
+    PML4 pageTable(*gpu, &allocator, defaultMemoryBank);
+
+    auto expectedLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[sizeLRCA / sizeof(uint32_t)]);
+    ccs.initialize(reinterpret_cast<void *>(expectedLRCA.get()), &pageTable, 0);
+
+    VariableBackup<MaskedMMIOList> injectedMmioListBackup(&MMIOListInjected, {MaskedMMIOWrite(0x4148, 0xffffffff, 0xffffffff)});
+    auto pLRCA = std::unique_ptr<uint32_t[]>(new uint32_t[sizeLRCA / sizeof(uint32_t)]);
+    ccs.initialize(reinterpret_cast<void *>(pLRCA.get()), &pageTable, 0);
+
+    EXPECT_EQ(0, memcmp(expectedLRCA.get(), pLRCA.get(), sizeLRCA));
+}
+
+TEST_F(CommandStreamerHelperTest, givenInjectedEngineAndNonEngineRegistersWhenEngineMMIOIsInitializedThenOnlyEngineRegisterIsRewrittenAfterEngineDefaultsOnEachDevice) {
+    TEST_REQUIRES(!gpu->getCommandStreamerHelper(defaultDevice, defaultEngine).getEngineMMIO().empty());
+    const uint32_t nonEngineRegister = 0x4148;
+
+    for (uint32_t device = 0; device < gpu->deviceCount; device++) {
+        auto &csHelper = gpu->getCommandStreamerHelper(device, defaultEngine);
+        const auto engineMMIO = csHelper.getEngineMMIO();
+        ASSERT_TRUE(std::none_of(engineMMIO.begin(), engineMMIO.end(), [&](const MMIOPair &mmioPair) { return mmioPair.first == csHelper.mmioDevice + nonEngineRegister; }));
+
+        const auto &engineRegister = engineMMIO.front();
+        MaskedMMIOWrite injectedEngineMmio(engineRegister.first - csHelper.mmioDevice, 0x12345678, 0x0000ffff);
+        VariableBackup<MaskedMMIOList> injectedMmioListBackup(&MMIOListInjected, {MaskedMMIOWrite(nonEngineRegister, 0x1, 0xffffffff), injectedEngineMmio});
+
+        ::testing::StrictMock<MockAubStreamBase> strictStream;
+        {
+            ::testing::InSequence sequence;
+            for (const auto &mmioPair : engineMMIO) {
+                EXPECT_CALL(strictStream, writeMMIO(mmioPair.first, mmioPair.second, 0xffffffff));
+            }
+            EXPECT_CALL(strictStream, writeMMIO(engineRegister.first, injectedEngineMmio.value, injectedEngineMmio.mask));
+        }
+
+        csHelper.initializeEngineMMIO(strictStream);
+    }
 }
 
 TEST_F(CommandStreamerHelperTest, WhenCommandStreamHelperIsInitializedThenLRCAIncludesBbCurrentHeadReg) {

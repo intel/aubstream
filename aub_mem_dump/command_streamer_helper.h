@@ -175,6 +175,7 @@ struct CommandStreamerHelper {
   protected:
     virtual void submitContext(AubStream &stream, std::vector<MiContextDescriptorReg> &contextDescriptor) const = 0;
     virtual void setPriority(MiContextDescriptorReg &contextDescriptor, uint32_t priority) const {};
+    void applyInjectedMMIOsToLRI(uint32_t *pLRI, uint32_t numRegs) const;
     mutable std::mutex mutex;
 };
 

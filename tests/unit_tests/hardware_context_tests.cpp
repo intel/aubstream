@@ -9,6 +9,7 @@
 #include "aub_mem_dump/family_mapper.h"
 #include "aub_mem_dump/hardware_context_imp.h"
 #include "aub_mem_dump/memory_banks.h"
+#include "aub_mem_dump/options.h"
 #include "aub_mem_dump/misc_helpers.h"
 #include "aub_mem_dump/page_table.h"
 #include "aub_mem_dump/settings.h"
@@ -1145,4 +1146,31 @@ TEST_F(HardwareContextTest, isActiveMustReturnProperValue) {
 
     EXPECT_CALL(stream, readMMIO(_)).Times(2).WillOnce(::testing::Return(0x80)).WillOnce(::testing::Return(context.contextId << 7));
     EXPECT_TRUE(context.isActive());
+}
+
+TEST_F(HardwareContextTest, givenInjectedEngineRegisterWhenHardwareContextsOnSameEngineAreInitializedOneAfterAnotherThenInjectedValueIsWrittenAfterEngineDefaultForEachContext) {
+    auto &csHelper = gpu->getCommandStreamerHelper(defaultDevice, defaultEngine);
+    const auto engineMMIO = csHelper.getEngineMMIO();
+    TEST_REQUIRES(!engineMMIO.empty());
+
+    const auto &engineRegister = engineMMIO.front();
+    MaskedMMIOWrite injectedEngineMmio(engineRegister.first - csHelper.mmioDevice, 0x12345678, 0x0000ffff);
+    VariableBackup<MaskedMMIOList> injectedMmioListBackup(&MMIOListInjected, {injectedEngineMmio});
+
+    GGTT ggtt(*gpu, &allocator, defaultMemoryBank);
+    PML4 ppgtt(*gpu, &allocator, defaultMemoryBank);
+    HardwareContextImp firstContext(0, stream, csHelper, ggtt, ppgtt, 0);
+    HardwareContextImp secondContext(0, stream, csHelper, ggtt, ppgtt, 0);
+
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AnyNumber());
+    {
+        ::testing::InSequence sequence;
+        for (int contextIndex = 0; contextIndex < 2; contextIndex++) {
+            EXPECT_CALL(stream, writeMMIO(engineRegister.first, engineRegister.second, 0xffffffff));
+            EXPECT_CALL(stream, writeMMIO(engineRegister.first, injectedEngineMmio.value, injectedEngineMmio.mask));
+        }
+    }
+
+    firstContext.initialize();
+    secondContext.initialize();
 }
