@@ -50,43 +50,34 @@ class MockAubManager : public AubManagerImp {
             streamAub.reset(mockAubFileStream);
         } else if (streamMode == aub_stream::mode::tbx) {
             streamTbx = std::make_unique<MockReadMMIOTbxStream>();
-            uint32_t localMemDevicesCount = 0;
-            for (uint32_t i = 0; i < devicesCount; i++) {
-                localMemDevicesCount += gpu->isMemorySupported(MEMORY_BANK_0 << i, 0x10000) ? 1 : 0;
-            }
-            if (localMemDevicesCount == 0) {
-                EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(0);
-            } else {
-                ON_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).WillByDefault(::testing::Return(0x10000));
-            }
+            setL3FuseReadExpectations(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()));
         } else if (streamMode == aub_stream::mode::tbxShm || streamMode == aub_stream::mode::tbxShm3 || streamMode == aub_stream::mode::tbxShm4) {
-            uint32_t localMemDevicesCount = 0;
-            for (uint32_t i = 0; i < devicesCount; i++) {
-                localMemDevicesCount += gpu->isMemorySupported(MEMORY_BANK_0 << i, 0x10000) ? 1 : 0;
-            }
             streamTbxShm = std::make_unique<MockReadMMIOTbxShmStream>(streamMode);
-            if (localMemDevicesCount == 0) {
-                EXPECT_CALL(*static_cast<MockReadMMIOTbxShmStream *>(streamTbxShm.get()), readMMIO(0x9118)).Times(0);
-            } else {
-                ON_CALL(*static_cast<MockReadMMIOTbxShmStream *>(streamTbxShm.get()), readMMIO(0x9118)).WillByDefault(::testing::Return(0x10000));
-            }
+            setL3FuseReadExpectations(*static_cast<MockReadMMIOTbxShmStream *>(streamTbxShm.get()));
         } else if (streamMode == aub_stream::mode::aubFileAndTbx) {
-            uint32_t localMemDevicesCount = 0;
-            for (uint32_t i = 0; i < devicesCount; i++) {
-                localMemDevicesCount += gpu->isMemorySupported(MEMORY_BANK_0 << i, 0x10000) ? 1 : 0;
-            }
             streamTbx = std::make_unique<MockReadMMIOTbxStream>();
             streamAub = std::make_unique<AubFileStream>();
             streamAubTbx = std::make_unique<AubTbxStream>(*streamAub, *streamTbx);
-            if (localMemDevicesCount == 0) {
-                EXPECT_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).Times(0);
-            } else {
-                ON_CALL(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()), readMMIO(0x9118)).WillByDefault(::testing::Return(0x10000));
-            }
+            setL3FuseReadExpectations(*static_cast<MockReadMMIOTbxStream *>(streamTbx.get()));
         } else {
             AubManagerImp::createStream();
         }
         streamCreated = true;
+    }
+
+    template <typename MockReadMMIOStreamT>
+    void setL3FuseReadExpectations(MockReadMMIOStreamT &stream) const {
+        uint32_t localMemDevicesCount = 0;
+        for (uint32_t i = 0; i < devicesCount; i++) {
+            localMemDevicesCount += gpu->isMemorySupported(MEMORY_BANK_0 << i, 0x10000) ? 1 : 0;
+        }
+        for (uint32_t l3FuseRegister : {0x9118u, 0x9130u}) {
+            if (localMemDevicesCount == 0) {
+                EXPECT_CALL(stream, readMMIO(l3FuseRegister)).Times(0);
+            } else {
+                ON_CALL(stream, readMMIO(l3FuseRegister)).WillByDefault(::testing::Return(0x10000));
+            }
+        }
     }
 
     MockAubFileStream *getMockAubFileStream() const {

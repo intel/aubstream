@@ -49,3 +49,18 @@ TEST(GpuXe3p, givenXe3pWhenInitializingGlobalMmiosThenProgramCorrectRegisters) {
 
     gpu->initializeGlobalMMIO(stream, 1, 1, 0);
 }
+
+TEST(GpuXe3p, givenLocalMemoryWhenInitializingDefaultMemoryPoolsInTbxModeThenL3NodesAreReadFromFuse3Register) {
+    TEST_REQUIRES(gpu->gfxCoreFamily == CoreFamily::Xe3pCore);
+    TEST_REQUIRES(gpu->isMemorySupported(MEMORY_BANK_0, 0x10000));
+
+    uint64_t bankSize = 16llu * GB;
+    gpu->stolenMemory = StolenMemory::CreateStolenMemory(false, 1, bankSize, 4llu * MB);
+
+    MockTbxStream stream;
+    EXPECT_CALL(stream, writeMMIO(_, _, _)).Times(::testing::AnyNumber());
+    EXPECT_CALL(stream, readMMIO(0x9130)).Times(0);
+    EXPECT_CALL(stream, readMMIO(0x9118)).Times(1).WillOnce(::testing::Return(0xf0000));
+
+    gpu->initializeDefaultMemoryPools(stream, 1, bankSize);
+}
