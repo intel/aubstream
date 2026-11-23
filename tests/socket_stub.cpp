@@ -1,9 +1,11 @@
 /*
- * Copyright (C) 2022-2023 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
  */
+
+#include <cctype>
 
 typedef int SOCKET;
 typedef struct sockaddr SOCKADDR;
@@ -39,6 +41,9 @@ EXPORT int WSAGetLastError(void) { return 0; }
 
 EXPORT int getaddrinfo(const char *name, const char *service, const ADDRINFO *hint, ADDRINFO **results) {
     *results = nullptr;
+    if (::isalpha(name[0])) {
+        return 1;
+    }
     return 0;
 }
 EXPORT void freeaddrinfo(ADDRINFO *info) { return; }

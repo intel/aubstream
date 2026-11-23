@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -8,6 +8,8 @@
 #include "aub_mem_dump/tbx_sockets_imp.h"
 #include "mock_tbx_socket.h"
 #include "gmock/gmock.h"
+
+#include <sstream>
 
 using namespace aub_stream;
 using ::testing::_;
@@ -45,4 +47,18 @@ TEST(TbxSocketsTest, givenTbxSocketInErrorStateWhenReadMMIOIsCalledThenReturnEar
     EXPECT_CALL(tbxSocket, getResponseData(_, _)).Times(0);
 
     EXPECT_FALSE(tbxSocket.readMMIO(0, nullptr));
+}
+
+TEST(TbxSocketsTest, givenHostNameThatCannotBeResolvedWhenInitIsCalledThenReturnFalse) {
+    std::stringstream err;
+    TbxSocketsImp tbxSocket(err);
+
+    EXPECT_FALSE(tbxSocket.init("unresolvable.host", 4321, false));
+}
+
+TEST(TbxSocketsTest, givenNumericHostWhenInitIsCalledThenReturnTrue) {
+    std::stringstream err;
+    TbxSocketsImp tbxSocket(err);
+
+    EXPECT_TRUE(tbxSocket.init("127.0.0.1", 4321, false));
 }

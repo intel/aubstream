@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -116,6 +116,7 @@ void TbxSocketsImp::logErrorInfo(const char *tag) {
 }
 
 bool TbxSocketsImp::init(const std::string &hostNameOrIp, uint16_t port, bool frontdoor) {
+    bool success = false;
     do {
 #ifdef _WIN32
         WSADATA wsaData;
@@ -159,9 +160,11 @@ bool TbxSocketsImp::init(const std::string &hostNameOrIp, uint16_t port, bool fr
         if (!checkServerConfig(frontdoor)) {
             break;
         }
+
+        success = true;
     } while (false);
 
-    return m_socket != INVALID_SOCKET;
+    return success;
 }
 
 bool TbxSocketsImp::connectToServer(const std::string &hostNameOrIp, uint16_t port) {
@@ -176,6 +179,7 @@ bool TbxSocketsImp::connectToServer(const std::string &hostNameOrIp, uint16_t po
 
     std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
     bool retryOnError = false;
+    bool connected = false;
 
     do {
         retryOnError = false;
@@ -227,9 +231,11 @@ bool TbxSocketsImp::connectToServer(const std::string &hostNameOrIp, uint16_t po
                        << ", port " << port << "]?" << std::endl;
             break;
         }
+
+        connected = true;
     } while (retryOnError);
 
-    return !!m_socket;
+    return connected;
 }
 
 bool TbxSocketsImp::checkServerConfig(bool frontdoor) {
