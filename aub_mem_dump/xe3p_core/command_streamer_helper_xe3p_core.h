@@ -227,6 +227,7 @@ struct GpuXe3pCore : public GpuXeCore {
     uint32_t getContextGroupCount() const override {
         return 64;
     }
+    bool isTlbInvalidationDescriptorSupported() const override { return true; }
     std::unique_ptr<CommandStreamerHelper> commandStreamerHelperTable[numSupportedDevices][EngineType::NUM_ENGINES];
 };
 

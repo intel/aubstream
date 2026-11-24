@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2025 Intel Corporation
+ * Copyright (C) 2022-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -155,6 +155,14 @@ struct HwMatcher {
     }
     static bool coreEqualGreaterXe3p(const aub_stream::Gpu *gpu) {
         return gpu->gfxCoreFamily >= aub_stream::CoreFamily::Xe3pCore;
+    }
+    static bool coreUsesAsidTlbInvalidationDescriptor(const aub_stream::Gpu *gpu) {
+        return gpu->gfxCoreFamily == aub_stream::CoreFamily::XeHpcCore ||
+               (gpu->gfxCoreFamily >= aub_stream::CoreFamily::Xe2HpgCore && gpu->gfxCoreFamily <= aub_stream::CoreFamily::Xe3pCore);
+    }
+
+    static bool tlbInvalidationDescriptorNotSupported(const aub_stream::Gpu *gpu) {
+        return !gpu->isTlbInvalidationDescriptorSupported();
     }
 
     template <bool f1(const aub_stream::Gpu *), bool f2(const aub_stream::Gpu *)>

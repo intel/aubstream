@@ -61,7 +61,6 @@ struct HardwareContextImp : public HardwareContext {
     void dumpSurface(const SurfaceInfo &surfaceInfo) override;
     void submitBatchBuffer(uint64_t gfxAddress, bool overrideRingHead) override;
     void submitContextsAndMarkSubmitted();
-    void invalidateTLBIfSubmitted();
     void writeMemory2(AllocationParams allocationParams) override;
     void writeMMIO(uint32_t offset, uint32_t value) override;
     void pollForFenceCompletion() override;

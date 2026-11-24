@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Intel Corporation
+ * Copyright (C) 2024-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -48,6 +48,7 @@ struct GpuXe2HpgCore : public GpuXeCore {
     void initializeTileRangeMmio(AubStream &stream, uint32_t deviceIndex, uint64_t lmemBaseAddress, uint64_t lmemSize) const;
 
     bool isMemorySupported(uint32_t memoryBanks, uint32_t alignment) const override;
+    bool isTlbInvalidationDescriptorSupported() const override { return true; }
     std::unique_ptr<CommandStreamerHelper> commandStreamerHelperTable[numSupportedDevices][EngineType::NUM_ENGINES];
 };
 } // namespace aub_stream

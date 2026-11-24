@@ -14,6 +14,9 @@
 #include "aub_mem_dump/gpu.h"
 #include "aub_mem_dump/memory_banks.h"
 #include "aub_mem_dump/options.h"
+#include <mutex>
+#include <span>
+#include <vector>
 
 namespace aub_stream {
 
@@ -58,6 +61,24 @@ struct CommandStreamerHelperXeCore : public Helper {
     using Helper::mmioEngine;
 };
 
+struct TlbInvalidationDescriptor {
+    static constexpr uint32_t granularityAllMappingsWithinAllAsidAndVf = 0;
+    static constexpr uint32_t invalidationModeHeavy = 0;
+    static constexpr uint32_t descriptorTypeTlbInvalidation = 0;
+
+    // Dword 0
+    uint32_t Valid : 1;
+    uint32_t Granularity : 2;
+    uint32_t AddressMask : 6;
+    uint32_t InvalidationMode : 1;
+    uint32_t DescriptorType : 2;
+    uint32_t Asid : 20;
+    // Dword 1
+    uint32_t Vfid : 6;
+    uint32_t AddressLow : 26;
+};
+static_assert(sizeof(TlbInvalidationDescriptor) == sizeof(uint32_t) * 2);
+
 struct GpuXeCore : public Gpu {
     void setMemoryBankSize(AubStream &stream, uint32_t deviceCount, uint64_t memoryBankSize) const override;
 
@@ -70,6 +91,15 @@ struct GpuXeCore : public Gpu {
     void initializeFlatCcsBaseAddressMmio(AubStream &stream, uint32_t deviceIndex, uint64_t flatCcsBaseAddress) const;
 
     bool isMemorySupported(uint32_t memoryBanks, uint32_t alignment) const override;
+
+    bool invalidateAllTLBs(AubStream &stream, uint32_t devicesCount) const override;
+
+  protected:
+    virtual std::vector<uint32_t> getInvalidateAllTlbsDescriptor() const;
+    virtual uint32_t getTlbInvalidationAckStatusRegister() const { return 0x0CF7C; }
+    bool writeTlbInvalidationDescriptorAndWaitForAck(AubStream &stream, uint32_t mmioDevice, std::span<const uint32_t> descriptorDwords, uint32_t ackStatusRegister) const;
+
+    mutable std::mutex tlbInvalidationMutex;
 };
 
 } // namespace aub_stream

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Intel Corporation
+ * Copyright (C) 2025-2026 Intel Corporation
  *
  * SPDX-License-Identifier: MIT
  *
@@ -7,6 +7,11 @@
 
 #include "aub_mem_dump/xe_core/command_streamer_helper_xe_core.h"
 #include "aub_mem_dump/align_helpers.h"
+#include "aub_mem_dump/settings.h"
+#include <array>
+#include <bit>
+#include <chrono>
+#include <thread>
 
 namespace aub_stream {
 
@@ -260,6 +265,61 @@ bool GpuXeCore::isMemorySupported(uint32_t memoryBanks, uint32_t alignment) cons
 
     // MEMORY_BANK_SYSTEM
     return alignment == 4096 || alignment == 65536;
+}
+
+bool GpuXeCore::writeTlbInvalidationDescriptorAndWaitForAck(AubStream &stream, uint32_t mmioDevice, std::span<const uint32_t> descriptorDwords, uint32_t ackStatusRegister) const {
+    constexpr uint32_t tlbInvalidationDescriptorRegister = 0x0CF7C;
+    constexpr uint32_t tlbInvalidationPendingBit = 0b1;
+    constexpr int maxAckPollRetries = 10;
+
+    std::lock_guard<std::mutex> lock(tlbInvalidationMutex);
+    for (auto dwordIndex = descriptorDwords.size(); dwordIndex > 0; --dwordIndex) {
+        stream.writeMMIO(mmioDevice + tlbInvalidationDescriptorRegister + static_cast<uint32_t>(sizeof(uint32_t) * (dwordIndex - 1)), descriptorDwords[dwordIndex - 1]);
+    }
+
+    uint32_t invalidationStatus = stream.readMMIO(mmioDevice + ackStatusRegister) & tlbInvalidationPendingBit;
+    int retries = maxAckPollRetries;
+    while (invalidationStatus != 0 && retries > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        invalidationStatus = stream.readMMIO(mmioDevice + ackStatusRegister) & tlbInvalidationPendingBit;
+        retries -= 1;
+    }
+
+    const bool acknowledged = invalidationStatus == 0;
+    if (acknowledged && IsAnyAubFileMode(stream.getStreamMode())) {
+        stream.registerPoll(mmioDevice + ackStatusRegister, tlbInvalidationPendingBit, 0, false, CmdServicesMemTraceRegisterPoll::TimeoutActionValues::Abort);
+    }
+
+    return acknowledged;
+}
+
+std::vector<uint32_t> GpuXeCore::getInvalidateAllTlbsDescriptor() const {
+    TlbInvalidationDescriptor descriptor{};
+    descriptor.Valid = 1;
+    descriptor.Granularity = TlbInvalidationDescriptor::granularityAllMappingsWithinAllAsidAndVf;
+    descriptor.InvalidationMode = TlbInvalidationDescriptor::invalidationModeHeavy;
+    descriptor.DescriptorType = TlbInvalidationDescriptor::descriptorTypeTlbInvalidation;
+
+    auto descriptorDwords = std::bit_cast<std::array<uint32_t, sizeof(TlbInvalidationDescriptor) / sizeof(uint32_t)>>(descriptor);
+    return {descriptorDwords.begin(), descriptorDwords.end()};
+}
+
+bool GpuXeCore::invalidateAllTLBs(AubStream &stream, uint32_t devicesCount) const {
+    if (!isTlbInvalidationDescriptorSupported()) {
+        return true;
+    }
+
+    const auto invalidateAllDescriptor = getInvalidateAllTlbsDescriptor();
+    const auto ackStatusRegister = getTlbInvalidationAckStatusRegister();
+
+    bool allAcknowledged = true;
+    for (uint32_t device = 0; device < devicesCount; device++) {
+        if (!writeTlbInvalidationDescriptorAndWaitForAck(stream, device * mmioDeviceOffset, invalidateAllDescriptor, ackStatusRegister)) {
+            PRINT_LOG_ERROR("TLB Invalidation acknowledgement for device: %u not received\n", device);
+            allAcknowledged = false;
+        }
+    }
+    return allAcknowledged;
 }
 
 } // namespace aub_stream

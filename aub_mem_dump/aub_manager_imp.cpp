@@ -28,6 +28,7 @@
 #include "aubstream/physical_allocation_info.h"
 #include "aubstream/shared_mem_info.h"
 
+#include <algorithm>
 #include <cassert>
 #include <exception>
 #include <sstream>
@@ -491,8 +492,12 @@ void AubManagerImp::freeMemory(uint64_t gfxAddress, size_t size) {
     }
 
     std::lock_guard<std::mutex> hwContextsLock(hwContextsMutex);
-    for (auto hwContext : hwContexts) {
-        static_cast<HardwareContextImp *>(hwContext)->invalidateTLBIfSubmitted();
+    const bool anyContextSubmitted = std::any_of(hwContexts.begin(), hwContexts.end(), [](HardwareContext *hwContext) {
+        return static_cast<HardwareContextImp *>(hwContext)->submitted.load();
+    });
+
+    if (anyContextSubmitted && !gpu->invalidateAllTLBs(*stream, devicesCount)) {
+        throwErrorIfEnabled("TLB invalidation acknowledgement not received after freeing memory.");
     }
 }
 

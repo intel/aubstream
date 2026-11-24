@@ -563,6 +563,18 @@ TEST_F(AubStreamTest, givenAllPossibilitiesToTbxTools) {
     EXPECT_EQ(IsAnyTbxShmMode(mode::tbxShm3), true);
 }
 
+TEST_F(AubStreamTest, givenEveryStreamModeWhenCheckingAubFileModeThenOnlyModesRecordingAubFileAreReported) {
+    EXPECT_TRUE(IsAnyAubFileMode(mode::aubFile));
+    EXPECT_TRUE(IsAnyAubFileMode(mode::aubFileAndTbx));
+    EXPECT_TRUE(IsAnyAubFileMode(mode::aubFileAndShm));
+    EXPECT_TRUE(IsAnyAubFileMode(mode::aubFileAndShm4));
+    EXPECT_FALSE(IsAnyAubFileMode(mode::tbx));
+    EXPECT_FALSE(IsAnyAubFileMode(mode::tbxShm));
+    EXPECT_FALSE(IsAnyAubFileMode(mode::tbxShm3));
+    EXPECT_FALSE(IsAnyAubFileMode(mode::tbxShm4));
+    EXPECT_FALSE(IsAnyAubFileMode(mode::null));
+}
+
 using AubStreamTest32 = AubStreamTest;
 
 TEST_F(AubStreamTest32, freeMemoryShouldRemovePTEEntries) {

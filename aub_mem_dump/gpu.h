@@ -141,6 +141,8 @@ struct Gpu : public GpuDescriptor {
     }
 
     virtual void invalidateTLB(AubStream &stream, uint32_t contextId, bool) const {};
+    virtual bool isTlbInvalidationDescriptorSupported() const { return false; }
+    virtual bool invalidateAllTLBs(AubStream &stream, uint32_t devicesCount) const { return true; };
 
     std::unique_ptr<StolenMemory> stolenMemory;
     bool programAdditionalEngineMMIO{false};

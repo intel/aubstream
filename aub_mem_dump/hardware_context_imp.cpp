@@ -374,12 +374,6 @@ void HardwareContextImp::submitContextsAndMarkSubmitted() {
     }
 }
 
-void HardwareContextImp::invalidateTLBIfSubmitted() {
-    if (submitted) {
-        csTraits.gpu->invalidateTLB(stream, contextId, false);
-    }
-}
-
 void HardwareContextImp::writeMemory2(AllocationParams allocationParams) {
     auto lock = stream.obtainPpgttLock();
 

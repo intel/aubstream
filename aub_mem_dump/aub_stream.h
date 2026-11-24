@@ -109,4 +109,8 @@ inline bool IsAnyTbxMode(uint32_t m) {
     return m == aub_stream::mode::tbx || m == aub_stream::mode::aubFileAndTbx || IsAnyTbxShmMode(m);
 }
 
+inline bool IsAnyAubFileMode(uint32_t m) {
+    return m == aub_stream::mode::aubFile || m == aub_stream::mode::aubFileAndTbx || m == aub_stream::mode::aubFileAndShm || m == aub_stream::mode::aubFileAndShm4;
+}
+
 } // namespace aub_stream
