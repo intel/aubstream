@@ -26,6 +26,8 @@ typedef int socklen_t;
 #include "memcpy_s.h"
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -133,6 +135,8 @@ bool TbxSocketsImp::init(const std::string &hostNameOrIp, uint16_t port, bool fr
             break;
         }
 
+        disableNagleAlgorithm();
+
         if (!connectToServer(hostNameOrIp, port)) {
             break;
         }
@@ -165,6 +169,13 @@ bool TbxSocketsImp::init(const std::string &hostNameOrIp, uint16_t port, bool fr
     } while (false);
 
     return success;
+}
+
+void TbxSocketsImp::disableNagleAlgorithm() {
+    int noDelay = 1;
+    if (::setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&noDelay), sizeof(noDelay)) == SOCKET_ERROR) {
+        cerrStream << "Warning: setsockopt(TCP_NODELAY) failed, TBX messages may be delayed by the Nagle algorithm" << std::endl;
+    }
 }
 
 bool TbxSocketsImp::connectToServer(const std::string &hostNameOrIp, uint16_t port) {

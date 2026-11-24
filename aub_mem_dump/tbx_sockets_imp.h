@@ -51,6 +51,7 @@ class TbxSocketsImp : public TbxSockets {
     std::ostream &cerrStream;
     SOCKET m_socket = 0;
 
+    void disableNagleAlgorithm();
     bool connectToServer(const std::string &hostNameOrIp, uint16_t port);
     bool checkServerConfig(bool frontdoor);
     bool sendWriteData(const void *buffer, size_t sizeInBytes);

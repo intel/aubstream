@@ -31,6 +31,31 @@ EXPORT int recv(SOCKET s, char *buf, int len, int flags) { return 0; }
 EXPORT int send(SOCKET s, const char *buf, int len, int flags) { return len; }
 EXPORT int shutdown(SOCKET s, int how) { return 0; }
 EXPORT SOCKET socket(int af, int type, int protocol) { return 0; }
+
+static int setsockoptCallCount = 0;
+static int setsockoptLastLevel = 0;
+static int setsockoptLastOptionName = 0;
+static int setsockoptLastOptionValue = 0;
+static int setsockoptReturnValue = 0;
+
+EXPORT int setsockopt(SOCKET s, int level, int optname, const char *optval, int optlen) {
+    setsockoptCallCount++;
+    setsockoptLastLevel = level;
+    setsockoptLastOptionName = optname;
+    setsockoptLastOptionValue = *reinterpret_cast<const int *>(optval);
+    return setsockoptReturnValue;
+}
+EXPORT void socketStubResetSetsockopt(int returnValue) {
+    setsockoptCallCount = 0;
+    setsockoptLastLevel = 0;
+    setsockoptLastOptionName = 0;
+    setsockoptLastOptionValue = 0;
+    setsockoptReturnValue = returnValue;
+}
+EXPORT int socketStubGetSetsockoptCallCount() { return setsockoptCallCount; }
+EXPORT int socketStubGetSetsockoptLastLevel() { return setsockoptLastLevel; }
+EXPORT int socketStubGetSetsockoptLastOptionName() { return setsockoptLastOptionName; }
+EXPORT int socketStubGetSetsockoptLastOptionValue() { return setsockoptLastOptionValue; }
 EXPORT struct hostent *gethostbyname(const char *name) {
     return nullptr;
 }

@@ -11,6 +11,21 @@
 
 #include <sstream>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#endif
+
+extern "C" {
+void socketStubResetSetsockopt(int returnValue);
+int socketStubGetSetsockoptCallCount();
+int socketStubGetSetsockoptLastLevel();
+int socketStubGetSetsockoptLastOptionName();
+int socketStubGetSetsockoptLastOptionValue();
+}
+
 using namespace aub_stream;
 using ::testing::_;
 
@@ -61,4 +76,28 @@ TEST(TbxSocketsTest, givenNumericHostWhenInitIsCalledThenReturnTrue) {
     TbxSocketsImp tbxSocket(err);
 
     EXPECT_TRUE(tbxSocket.init("127.0.0.1", 4321, false));
+}
+
+TEST(TbxSocketsTest, givenSocketCreatedWhenInitIsCalledThenNagleAlgorithmIsDisabledOnTheSocket) {
+    socketStubResetSetsockopt(0);
+    std::stringstream err;
+    TbxSocketsImp tbxSocket(err);
+
+    EXPECT_TRUE(tbxSocket.init("127.0.0.1", 4321, false));
+    EXPECT_EQ(1, socketStubGetSetsockoptCallCount());
+    EXPECT_EQ(IPPROTO_TCP, socketStubGetSetsockoptLastLevel());
+    EXPECT_EQ(TCP_NODELAY, socketStubGetSetsockoptLastOptionName());
+    EXPECT_EQ(1, socketStubGetSetsockoptLastOptionValue());
+    EXPECT_TRUE(err.str().empty());
+}
+
+TEST(TbxSocketsTest, givenDisablingNagleAlgorithmFailsWhenInitIsCalledThenWarningIsLoggedAndConnectionSucceeds) {
+    socketStubResetSetsockopt(-1);
+    std::stringstream err;
+    TbxSocketsImp tbxSocket(err);
+
+    EXPECT_TRUE(tbxSocket.init("127.0.0.1", 4321, false));
+    EXPECT_EQ(1, socketStubGetSetsockoptCallCount());
+    EXPECT_NE(std::string::npos, err.str().find("TCP_NODELAY"));
+    socketStubResetSetsockopt(0);
 }
